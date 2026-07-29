@@ -116,6 +116,10 @@ describe("team comparison presentation", () => {
     expect(page).toContain("Swap selected teams");
     expect(page).toContain("disabled={team.id === selectedRight}");
     expect(route).toContain("key={`${leftTeamId}-${rightTeamId}`}");
+    expect(route).toContain(
+      'import { TournamentDataBoundary } from "../../../components/tournament-data-state"',
+    );
+    expect(route).toContain("<TournamentDataBoundary>");
 
     for (const [left, right] of [
       ["25", "25"],
