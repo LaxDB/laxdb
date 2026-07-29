@@ -13,8 +13,11 @@ export function TournamentHeader({
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <Link className="brand" to="/">
-        2026 Women's Championship
+      <Link className="brand" to="/" aria-label="World LaxDB home">
+        <span className="brand-mark" aria-hidden="true">
+          <img src="/favicon.svg" alt="" />
+        </span>
+        <span>world.laxdb</span>
       </Link>
       <nav className="mast-nav" aria-label="Tournament navigation">
         <Link to="/schedule">Schedule</Link>

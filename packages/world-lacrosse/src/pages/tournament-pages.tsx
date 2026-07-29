@@ -1,3 +1,4 @@
+import { cn } from "@laxdb/ui/lib/utils";
 import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, type ReactNode } from "react";
 
@@ -35,14 +36,6 @@ const tournamentTeamPools = tournament.teams.map((team) => ({
 const tournamentTeamByName = new Map(
   tournament.teams.map((team) => [team.name, team]),
 );
-const StatAbbreviation = ({
-  abbreviation,
-  label,
-}: {
-  readonly abbreviation: string;
-  readonly label: string;
-}) => <abbr title={label}>{abbreviation}</abbr>;
-
 const gameHasFollowedTeam = (
   game: Readonly<ScheduledGame>,
   followedTeamNames: ReadonlySet<string>,
@@ -109,7 +102,11 @@ const FollowTeamButton = ({
 }) => (
   <button
     type="button"
-    className="follow-team-button"
+    className={cn(
+      "follow-team-button",
+      "button-compact",
+      followed ? "button-primary" : "button-secondary",
+    )}
     aria-pressed={followed}
     aria-label={`${followed ? "Stop following" : "Follow"} ${teamName}`}
     onClick={() => {
@@ -217,33 +214,27 @@ const StandingsTables = ({
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">
-                        <StatAbbreviation abbreviation="Pos" label="Position" />
+                      <th scope="col" aria-label="Position">
+                        Pos
                       </th>
                       <th scope="col">Team</th>
-                      <th scope="col">
-                        <StatAbbreviation abbreviation="P" label="Played" />
+                      <th scope="col" aria-label="Played">
+                        P
                       </th>
-                      <th scope="col">
-                        <StatAbbreviation abbreviation="W" label="Wins" />
+                      <th scope="col" aria-label="Wins">
+                        W
                       </th>
-                      <th scope="col">
-                        <StatAbbreviation abbreviation="L" label="Losses" />
+                      <th scope="col" aria-label="Losses">
+                        L
                       </th>
-                      <th scope="col">
-                        <StatAbbreviation abbreviation="GF" label="Goals for" />
+                      <th scope="col" aria-label="Goals for">
+                        GF
                       </th>
-                      <th scope="col">
-                        <StatAbbreviation
-                          abbreviation="GA"
-                          label="Goals against"
-                        />
+                      <th scope="col" aria-label="Goals against">
+                        GA
                       </th>
-                      <th scope="col">
-                        <StatAbbreviation
-                          abbreviation="GD"
-                          label="Goal difference"
-                        />
+                      <th scope="col" aria-label="Goal difference">
+                        GD
                       </th>
                       {showFollowing && <th scope="col">Follow</th>}
                     </tr>
@@ -329,10 +320,16 @@ export function HomePage() {
 
   return (
     <main>
-      <PageMetadata description="Scores, standings, and today's games from the 2026 World Lacrosse Women's Championship." />
+      <PageMetadata description="Schedules, results, standings, player statistics, and game analysis for the 2026 World Lacrosse Women's Championship." />
       <TournamentHeader />
       <article id="main-content" className="tournament-page home-page">
-        <h1 className="sr-only">2026 Women's Lacrosse Championship</h1>
+        <header className="home-intro">
+          <h1 className="sr-only">2026 Women&apos;s Lacrosse Championship</h1>
+          <p>
+            Schedules, results, standings, player statistics, and deeper game
+            analysis for the 2026 World Lacrosse Women&apos;s Championship.
+          </p>
+        </header>
         <div className="home-dashboard">
           <section className="home-matchday">
             <header className="home-section-header">
@@ -409,28 +406,6 @@ export function HomePage() {
             <StandingsTables schedule={schedule} />
           </section>
         </div>
-
-        <section className="helpful-links">
-          <h2>Helpful links</h2>
-          <div>
-            <a
-              href={`${sourceBase}/event-program/`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Event program ↗
-            </a>
-            <a href={`${sourceBase}/tickets/`} target="_blank" rel="noreferrer">
-              Tickets ↗
-            </a>
-            <a href={`${sourceBase}/news/`} target="_blank" rel="noreferrer">
-              News ↗
-            </a>
-            <a href={`${sourceBase}/history/`} target="_blank" rel="noreferrer">
-              Championship history ↗
-            </a>
-          </div>
-        </section>
       </article>
     </main>
   );

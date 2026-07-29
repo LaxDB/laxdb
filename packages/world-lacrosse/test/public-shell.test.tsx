@@ -65,6 +65,26 @@ describe("public site shell", () => {
       "utf8",
     );
     expect(teamsRoute).toContain('redirect({ to: "/standings"');
+
+    const aboutRoute = readFileSync(
+      new URL("../src/routes/about.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(aboutRoute).toContain('createFileRoute("/about")');
+
+    const footer = readFileSync(
+      new URL("../src/components/home-footer.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(footer).toContain('to="/about"');
+    expect(footer).toContain("https://laxdb.io/");
+
+    const rootRoute = readFileSync(
+      new URL("../src/routes/__root.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(rootRoute).toContain("<Outlet />");
+    expect(rootRoute).toContain("<HomeFooter />");
   });
 
   it("exposes sorting and horizontal-table semantics", () => {
