@@ -7,7 +7,7 @@ import {
   buildPlayerColumns,
   buildPlayerRows,
   playerDataCoverageComplete,
-} from "../src/routes/statistics-page";
+} from "../src/pages/statistics-page";
 import { GameDetails } from "../src/schema";
 import { buildTournamentContext } from "../src/tournament-context";
 import { tournament } from "../src/tournament-data";

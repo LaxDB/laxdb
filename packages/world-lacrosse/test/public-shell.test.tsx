@@ -54,11 +54,17 @@ describe("public site shell", () => {
     expect(header).toContain("2026-world-lacrosse-womens-championship/");
     expect(header).not.toContain("<span />");
     const router = readFileSync(
-      new URL("../src/router.tsx", import.meta.url),
+      new URL("../src/router.ts", import.meta.url),
       "utf8",
     );
-    expect(router).toContain('path: "/teams"');
-    expect(router).toContain('redirect({ to: "/standings"');
+    expect(router).toContain('import { routeTree } from "./routeTree.gen"');
+    expect(router).not.toContain("createRoute(");
+
+    const teamsRoute = readFileSync(
+      new URL("../src/routes/teams/index.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(teamsRoute).toContain('redirect({ to: "/standings"');
   });
 
   it("exposes sorting and horizontal-table semantics", () => {
