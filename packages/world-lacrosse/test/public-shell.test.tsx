@@ -93,13 +93,11 @@ describe("public site shell", () => {
         columns={columns}
         data={[{ name: "Australia" }]}
         searchPlaceholder="Search teams…"
-        descriptionId="table-guide"
       />,
     );
 
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-label="Statistics table"');
-    expect(markup).toContain('aria-describedby="table-guide"');
     expect(markup).toContain('tabindex="0"');
     expect(markup).toContain(">Search<");
     expect(markup).toContain("1 records");
@@ -121,9 +119,7 @@ describe("public site shell", () => {
     expect(markup).toContain('aria-label="Full-screen statistics table"');
     expect(markup).not.toContain("aria-modal");
     expect(markup).toContain("Exit full screen");
-    expect(markup).toContain(
-      'aria-keyshortcuts="Meta+Shift+F Control+Shift+F"',
-    );
+    expect(markup).toContain('aria-keyshortcuts="F"');
 
     const statisticsPage = readFileSync(
       new URL("../src/pages/statistics-page.tsx", import.meta.url),
@@ -135,5 +131,6 @@ describe("public site shell", () => {
     expect(statisticsPage).toContain("filterLabels={statisticsFilterLabels}");
     expect(statisticsPage).not.toContain("setTeamFilter");
     expect(statisticsPage).not.toContain("setPoolFilter");
+    expect(statisticsPage).not.toContain("statistics-table-guide");
   });
 });

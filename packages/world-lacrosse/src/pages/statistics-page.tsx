@@ -842,10 +842,6 @@ export function StatisticsPage() {
         <header className="page-title">
           <h1>Statistics</h1>
         </header>
-        <p id="statistics-table-guide" className="statistics-table-guide">
-          Use Search or Filter to narrow records. Select a heading to sort, and
-          scroll horizontally to see every column.
-        </p>
         {view === "teams" ? (
           <DataTable
             key="teams"
@@ -854,7 +850,6 @@ export function StatisticsPage() {
             searchPlaceholder="Search teams or pools…"
             initialSorting={[{ id: "goalDifference", desc: true }]}
             ariaLabel="Team statistics"
-            descriptionId="statistics-table-guide"
             filterLabels={statisticsFilterLabels}
             viewportKey="teams"
             toolbarLeading={viewSwitcher}
@@ -885,7 +880,6 @@ export function StatisticsPage() {
                 ? "Goalkeeper statistics"
                 : "Field player statistics"
             }
-            descriptionId="statistics-table-guide"
             filterLabels={statisticsFilterLabels}
             viewportKey={playerView}
             toolbarLeading={viewSwitcher}

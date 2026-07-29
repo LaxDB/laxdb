@@ -2825,15 +2825,6 @@ tbody tr:last-child td {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.statistics-table-guide {
-  margin: 0;
-  padding: 10px 0;
-  border-top: 1px solid oklch(var(--border-strong));
-  color: oklch(var(--muted-foreground));
-  font-size: 10px;
-  text-align: right;
-  text-transform: uppercase;
-}
 .statistics-unavailable {
   margin: 0;
   padding: 32px 0;

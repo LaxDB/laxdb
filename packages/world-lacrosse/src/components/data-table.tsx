@@ -147,7 +147,6 @@ export function DataTable<T>({
   searchPlaceholder,
   initialSorting = [],
   ariaLabel = "Statistics table",
-  descriptionId,
   filterLabels = {},
   viewportKey,
   toolbarLeading,
@@ -159,7 +158,6 @@ export function DataTable<T>({
   searchPlaceholder: string;
   initialSorting?: SortingState;
   ariaLabel?: string;
-  descriptionId?: string;
   filterLabels?: Readonly<Record<string, string>>;
   viewportKey?: string;
   toolbarLeading?: ReactNode;
@@ -227,8 +225,9 @@ export function DataTable<T>({
       if (
         event.key.toLocaleLowerCase() !== "f" ||
         event.repeat ||
-        !(event.metaKey || event.ctrlKey) ||
-        !event.shiftKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
         event.altKey ||
         isEditableTarget(event.target) ||
         !(event.target instanceof Node) ||
@@ -579,7 +578,7 @@ export function DataTable<T>({
               className="data-table-toolbar-button"
               type="button"
               aria-pressed={fullscreen}
-              aria-keyshortcuts="Meta+Shift+F Control+Shift+F"
+              aria-keyshortcuts="F"
               onClick={() => {
                 onFullscreenChange(!fullscreen);
               }}
@@ -713,7 +712,6 @@ export function DataTable<T>({
         className="table-shell"
         role="region"
         aria-label={ariaLabel}
-        aria-describedby={descriptionId}
       >
         <table>
           <thead>
