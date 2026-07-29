@@ -13,6 +13,7 @@ import {
   playerDataCoverageComplete,
   teamSavePercentage,
 } from "../src/pages/statistics-page";
+import { parseStatisticsSearch } from "../src/routes/statistics";
 import { GameDetails } from "../src/schema";
 import { buildTournamentContext } from "../src/tournament-context";
 import { tournament } from "../src/tournament-data";
@@ -28,6 +29,14 @@ const context = buildTournamentContext(championship.games, {
 });
 
 describe("statistics page player rows", () => {
+  it("parses shareable equal-game snapshot URLs", () => {
+    expect(parseStatisticsSearch({ through: 3 })).toEqual({ through: 3 });
+    expect(parseStatisticsSearch({ through: "3" })).toEqual({ through: 3 });
+    expect(parseStatisticsSearch({ through: 0 })).toEqual({});
+    expect(parseStatisticsSearch({ through: "3.5" })).toEqual({});
+    expect(parseStatisticsSearch({ through: "latest" })).toEqual({});
+  });
+
   it("supports readable text and numeric filter conditions", () => {
     expect(dataValueMatchesFilter("Pool D", "contains:pool")).toBe(true);
     expect(dataValueMatchesFilter("D", "eq:D")).toBe(true);

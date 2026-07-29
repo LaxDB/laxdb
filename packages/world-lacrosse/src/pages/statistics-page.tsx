@@ -1,11 +1,16 @@
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@laxdb/ui/components/ui/popover";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@laxdb/ui/components/ui/tooltip";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { championship } from "../championship-data";
 import { DataTable } from "../components/data-table";
@@ -14,6 +19,13 @@ import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
 import { isFinalGameStatus } from "../game-status";
 import type { GameDetails } from "../schema";
+import {
+  buildStatisticsScope,
+  statisticsScopeIncludesTeamGame,
+  statisticsThroughOptions,
+  type StatisticsScope,
+  type StatisticsThrough,
+} from "../statistics-scope";
 import { buildCurrentTeamSummary } from "../team-summary";
 import { tournament } from "../tournament-data";
 
@@ -301,12 +313,18 @@ const playerIdentity = (
 
 export const buildPlayerRows = (
   games: readonly GameDetails[] = championship.games,
+  scope?: Readonly<StatisticsScope>,
 ): PlayerRow[] => {
   const finalGames = games.filter(isDecisiveFinalDetails);
   const totals = new Map<string, PlayerTotals>();
   const invalidSaveTeams = new Set<string>();
   for (const game of finalGames) {
     for (const player of game.derivedPlayerStats) {
+      if (
+        scope !== undefined &&
+        !statisticsScopeIncludesTeamGame(scope, player.team, game.id)
+      )
+        continue;
       const identity = playerIdentity(player.id, player.team, player.name);
       const total = totals.get(identity) ?? emptyPlayerTotals();
       totals.set(identity, {
@@ -333,6 +351,11 @@ export const buildPlayerRows = (
       });
     }
     for (const team of [game.home.name, game.away.name]) {
+      if (
+        scope !== undefined &&
+        !statisticsScopeIncludesTeamGame(scope, team, game.id)
+      )
+        continue;
       const rosters = game.rosters.filter((roster) => roster.team === team);
       const teamStats = game.teamStats.filter((row) => row.team === team);
       const roster = rosters[0];
@@ -372,6 +395,7 @@ export const buildPlayerRows = (
 
   const rows = new Map<string, PlayerSeed>();
   for (const player of championship.players) {
+    if (scope !== undefined && !scope.eligibleTeams.has(player.team)) continue;
     rows.set(player.id, {
       id: player.id,
       number: player.number ?? "—",
@@ -382,6 +406,7 @@ export const buildPlayerRows = (
     });
   }
   for (const team of tournament.teamDetails) {
+    if (scope !== undefined && !scope.eligibleTeams.has(team.name)) continue;
     for (const player of team.players) {
       const id = player.Id ?? null;
       const name = player.Name ?? "Unknown player";
@@ -402,6 +427,11 @@ export const buildPlayerRows = (
   }
   for (const game of finalGames) {
     for (const roster of game.rosters) {
+      if (
+        scope !== undefined &&
+        !statisticsScopeIncludesTeamGame(scope, roster.team, game.id)
+      )
+        continue;
       for (const player of roster.players) {
         const identity = playerIdentity(player.id, roster.team, player.name);
         if (rows.has(identity)) continue;
@@ -418,6 +448,11 @@ export const buildPlayerRows = (
       }
     }
     for (const player of game.derivedPlayerStats) {
+      if (
+        scope !== undefined &&
+        !statisticsScopeIncludesTeamGame(scope, player.team, game.id)
+      )
+        continue;
       const identity = playerIdentity(player.id, player.team, player.name);
       if (rows.has(identity)) continue;
       rows.set(identity, {
@@ -690,15 +725,34 @@ const teamColumns: ColumnDef<TeamRow>[] = [
   },
 ];
 
-export function StatisticsPage() {
+const tournamentTeamNames = tournament.teamDetails.map((team) => team.name);
+
+export function StatisticsPage({
+  through,
+  onThroughChange,
+}: {
+  readonly through: StatisticsThrough;
+  readonly onThroughChange: (through: StatisticsThrough) => void;
+}) {
   const [view, setView] = useState<StatisticsView>("field");
   const [tableFullscreen, setTableFullscreen] = useState(false);
+  const [throughOpen, setThroughOpen] = useState(false);
   const snapshot = useCurrentTournamentSnapshot();
-  const playerRows = useMemo(
-    () => buildPlayerRows(snapshot.games),
-    [snapshot.games],
+  const statisticsScope = useMemo(
+    () => buildStatisticsScope(snapshot, tournamentTeamNames, through),
+    [snapshot, through],
   );
-  const playerDataAvailable = playerDataCoverageComplete(snapshot);
+  useEffect(() => {
+    if (snapshot.source === "live" && statisticsScope.through !== through)
+      onThroughChange(statisticsScope.through);
+  }, [onThroughChange, snapshot.source, statisticsScope.through, through]);
+  const playerRows = useMemo(
+    () => buildPlayerRows(snapshot.games, statisticsScope),
+    [snapshot.games, statisticsScope],
+  );
+  const playerDataAvailable = playerDataCoverageComplete(
+    statisticsScope.coverage,
+  );
   const playerView = view === "goalkeepers" ? "goalkeepers" : "field";
   const displayedPlayerRows = useMemo(() => {
     const type = playerView === "goalkeepers" ? "Goalkeeper" : "FieldPlayer";
@@ -710,89 +764,106 @@ export function StatisticsPage() {
   );
   const teamRows = useMemo(
     () =>
-      tournament.teamDetails.map((team) => {
-        const summary = buildCurrentTeamSummary(team, snapshot);
-        const played = strictNumber(summary.record["Matches Played"]) ?? 0;
-        const wins = strictNumber(summary.record.Wins) ?? 0;
-        const losses = strictNumber(summary.record.Losses) ?? 0;
-        const goalsFor = strictNumber(summary.stats.Goals) ?? 0;
-        const goalsAgainst = strictNumber(summary.stats["Goals Allowed"]) ?? 0;
-        const points = strictNumber(summary.stats.Points);
-        const assists = strictNumber(summary.stats.Assists);
-        const totalShots = strictNumber(summary.stats["Total Shots"]);
-        const shotsOnGoal = strictNumber(summary.stats["Shots on Goal"]);
-        const shootingPercentage = percentageStat(
-          summary.stats["Shooting Percentage"],
-        );
-        const groundBalls = strictNumber(summary.stats["Ground Balls"]);
-        const turnovers = strictNumber(summary.stats.Turnovers);
-        const causedTurnovers = strictNumber(summary.stats["Caused Turnovers"]);
-        const draws = ratioStat(summary.stats["Draw Controls"]);
-        const saves = strictNumber(summary.stats.GK);
-        const penaltyMinutes = penaltyMinutesStat(summary.stats.Penalties);
-        const teamPlayers = playerRows.filter(
-          (player) => player.team === team.name,
-        );
-        const playerCardTotal = (
-          card: "greenCards" | "yellowCards" | "redCards",
-        ): number | null =>
-          playerDataAvailable
-            ? teamPlayers.reduce((total, player) => total + player[card], 0)
-            : null;
-        const greenCards =
-          strictNumber(summary.stats["Green Cards"]) ??
-          playerCardTotal("greenCards");
-        const yellowCards =
-          strictNumber(summary.stats["Yellow Cards"]) ??
-          playerCardTotal("yellowCards");
-        const redCards =
-          strictNumber(summary.stats["Red Cards"]) ??
-          playerCardTotal("redCards");
-        const savePercentage = teamSavePercentage(
-          snapshot.games,
-          team.name,
-          played,
-        );
-        return {
-          id: team.id,
-          team: team.name,
-          pool: team.pool,
-          played,
-          wins,
-          losses,
-          winPercentage: played === 0 ? 0 : (wins / played) * 100,
-          goalsFor,
-          goalsAgainst,
-          goalDifference: goalsFor - goalsAgainst,
-          goalsPerGame: played === 0 ? 0 : goalsFor / played,
-          goalsAgainstPerGame: played === 0 ? 0 : goalsAgainst / played,
-          points,
-          pointsPerGame: perGame(points, played),
-          assists,
-          assistsPerGame: perGame(assists, played),
-          totalShots,
-          shotsPerGame: perGame(totalShots, played),
-          shotsOnGoal,
-          shotsOnGoalPerGame: perGame(shotsOnGoal, played),
-          shootingPercentage,
-          groundBalls,
-          groundBallsPerGame: perGame(groundBalls, played),
-          turnovers,
-          turnoversPerGame: perGame(turnovers, played),
-          causedTurnovers,
-          causedTurnoversPerGame: perGame(causedTurnovers, played),
-          drawControls: draws?.numerator ?? null,
-          drawPercentage: draws?.percentage ?? null,
-          saves,
-          savesPerGame: perGame(saves, played),
-          savePercentage,
-          penaltyMinutes,
-          greenCards,
-          yellowCards,
-          redCards,
-        };
-      }),
-    [playerDataAvailable, playerRows, snapshot],
+      tournament.teamDetails
+        .filter((team) => statisticsScope.eligibleTeams.has(team.name))
+        .map((team) => {
+          const selectedSchedule =
+            statisticsScope.selectedScheduleByTeam.get(team.name) ?? [];
+          const selectedGameIds = new Set(
+            selectedSchedule.map((game) => game.id),
+          );
+          const selectedGames = snapshot.games.filter((game) =>
+            selectedGameIds.has(game.id),
+          );
+          const summary = buildCurrentTeamSummary(team, {
+            schedule: [...selectedSchedule],
+            games: selectedGames,
+            updatedAt: snapshot.updatedAt,
+          });
+          const played = strictNumber(summary.record["Matches Played"]) ?? 0;
+          const wins = strictNumber(summary.record.Wins) ?? 0;
+          const losses = strictNumber(summary.record.Losses) ?? 0;
+          const goalsFor = strictNumber(summary.stats.Goals) ?? 0;
+          const goalsAgainst =
+            strictNumber(summary.stats["Goals Allowed"]) ?? 0;
+          const points = strictNumber(summary.stats.Points);
+          const assists = strictNumber(summary.stats.Assists);
+          const totalShots = strictNumber(summary.stats["Total Shots"]);
+          const shotsOnGoal = strictNumber(summary.stats["Shots on Goal"]);
+          const shootingPercentage = percentageStat(
+            summary.stats["Shooting Percentage"],
+          );
+          const groundBalls = strictNumber(summary.stats["Ground Balls"]);
+          const turnovers = strictNumber(summary.stats.Turnovers);
+          const causedTurnovers = strictNumber(
+            summary.stats["Caused Turnovers"],
+          );
+          const draws = ratioStat(summary.stats["Draw Controls"]);
+          const saves = strictNumber(summary.stats.GK);
+          const penaltyMinutes = penaltyMinutesStat(summary.stats.Penalties);
+          const teamPlayers = playerRows.filter(
+            (player) => player.team === team.name,
+          );
+          const playerCardTotal = (
+            card: "greenCards" | "yellowCards" | "redCards",
+          ): number | null =>
+            playerDataAvailable
+              ? teamPlayers.reduce((total, player) => total + player[card], 0)
+              : null;
+          const greenCards =
+            strictNumber(summary.stats["Green Cards"]) ??
+            playerCardTotal("greenCards");
+          const yellowCards =
+            strictNumber(summary.stats["Yellow Cards"]) ??
+            playerCardTotal("yellowCards");
+          const redCards =
+            strictNumber(summary.stats["Red Cards"]) ??
+            playerCardTotal("redCards");
+          const savePercentage = teamSavePercentage(
+            selectedGames,
+            team.name,
+            played,
+          );
+          return {
+            id: team.id,
+            team: team.name,
+            pool: team.pool,
+            played,
+            wins,
+            losses,
+            winPercentage: played === 0 ? 0 : (wins / played) * 100,
+            goalsFor,
+            goalsAgainst,
+            goalDifference: goalsFor - goalsAgainst,
+            goalsPerGame: played === 0 ? 0 : goalsFor / played,
+            goalsAgainstPerGame: played === 0 ? 0 : goalsAgainst / played,
+            points,
+            pointsPerGame: perGame(points, played),
+            assists,
+            assistsPerGame: perGame(assists, played),
+            totalShots,
+            shotsPerGame: perGame(totalShots, played),
+            shotsOnGoal,
+            shotsOnGoalPerGame: perGame(shotsOnGoal, played),
+            shootingPercentage,
+            groundBalls,
+            groundBallsPerGame: perGame(groundBalls, played),
+            turnovers,
+            turnoversPerGame: perGame(turnovers, played),
+            causedTurnovers,
+            causedTurnoversPerGame: perGame(causedTurnovers, played),
+            drawControls: draws?.numerator ?? null,
+            drawPercentage: draws?.percentage ?? null,
+            saves,
+            savesPerGame: perGame(saves, played),
+            savePercentage,
+            penaltyMinutes,
+            greenCards,
+            yellowCards,
+            redCards,
+          };
+        }),
+    [playerDataAvailable, playerRows, snapshot, statisticsScope],
   );
   const viewSwitcher = (
     <div
@@ -831,6 +902,77 @@ export function StatisticsPage() {
       </button>
     </div>
   );
+  const throughLabel =
+    statisticsScope.through === "latest"
+      ? "Latest"
+      : String(statisticsScope.through);
+  const throughPicker = (
+    <Popover open={throughOpen} onOpenChange={setThroughOpen}>
+      <PopoverTrigger
+        render={
+          <button
+            className="data-table-toolbar-button statistics-through-trigger"
+            type="button"
+            aria-label={`Through team game: ${throughLabel}`}
+          />
+        }
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <path d="M2.5 4h11M4.5 8h9M6.5 12h7" />
+        </svg>
+        <span>
+          Through: <strong>{throughLabel}</strong>
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        aria-label="Choose statistics game cutoff"
+        className="data-table-filter-popover statistics-through-popover"
+        sideOffset={6}
+      >
+        <span>Through team game</span>
+        <div
+          className="data-table-filter-menu"
+          role="group"
+          aria-label="Statistics game cutoff"
+        >
+          <button
+            type="button"
+            aria-pressed={statisticsScope.through === "latest"}
+            onClick={() => {
+              onThroughChange("latest");
+              setThroughOpen(false);
+            }}
+          >
+            <span>Latest</span>
+            <b aria-hidden="true">
+              {statisticsScope.through === "latest" ? "✓" : ""}
+            </b>
+          </button>
+          {statisticsThroughOptions(
+            statisticsScope.maximumCompletedTeamGames,
+          ).map((gameNumber) => (
+            <button
+              key={gameNumber}
+              type="button"
+              aria-pressed={statisticsScope.through === gameNumber}
+              onClick={() => {
+                onThroughChange(gameNumber);
+                setThroughOpen(false);
+              }}
+            >
+              <span>
+                {gameNumber} {gameNumber === 1 ? "game" : "games"}
+              </span>
+              <b aria-hidden="true">
+                {statisticsScope.through === gameNumber ? "✓" : ""}
+              </b>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
   return (
     <main>
       <PageMetadata
@@ -851,14 +993,18 @@ export function StatisticsPage() {
             initialSorting={[{ id: "goalDifference", desc: true }]}
             ariaLabel="Team statistics"
             filterLabels={statisticsFilterLabels}
-            viewportKey="teams"
+            viewportKey={`teams-${statisticsScope.through}`}
             toolbarLeading={viewSwitcher}
+            toolbarActions={throughPicker}
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}
           />
         ) : !playerDataAvailable ? (
           <>
-            <div className="statistics-controls">{viewSwitcher}</div>
+            <div className="statistics-controls">
+              {viewSwitcher}
+              {throughPicker}
+            </div>
             <p className="statistics-unavailable">
               Player statistics are temporarily unavailable.
             </p>
@@ -881,8 +1027,9 @@ export function StatisticsPage() {
                 : "Field player statistics"
             }
             filterLabels={statisticsFilterLabels}
-            viewportKey={playerView}
+            viewportKey={`${playerView}-${statisticsScope.through}`}
             toolbarLeading={viewSwitcher}
+            toolbarActions={throughPicker}
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}
           />

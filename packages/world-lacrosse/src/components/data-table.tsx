@@ -150,6 +150,7 @@ export function DataTable<T>({
   filterLabels = {},
   viewportKey,
   toolbarLeading,
+  toolbarActions,
   fullscreen = false,
   onFullscreenChange,
 }: {
@@ -161,6 +162,7 @@ export function DataTable<T>({
   filterLabels?: Readonly<Record<string, string>>;
   viewportKey?: string;
   toolbarLeading?: ReactNode;
+  toolbarActions?: ReactNode;
   fullscreen?: boolean;
   onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
@@ -406,6 +408,7 @@ export function DataTable<T>({
               Search
             </button>
           )}
+          {toolbarActions}
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger
               render={
