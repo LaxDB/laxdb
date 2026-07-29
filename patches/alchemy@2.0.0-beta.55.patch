@@ -1,7 +1,51 @@
+diff --git a/src/Bundle/Bundle.ts b/src/Bundle/Bundle.ts
+index 0c34dd7743cae605cdcae9f35f7f33b52e6595f4..91676c529b11863cc1451e5a622cb65cff97c598 100644
+--- a/src/Bundle/Bundle.ts
++++ b/src/Bundle/Bundle.ts
+@@ -264,21 +264,28 @@ export function bundleOutputFromRolldownOutputBundle(
+   bundle: rolldown.OutputBundle,
+ ): Effect.Effect<BundleOutput, BundleError> {
+   const files = Object.values(bundle);
+-  // These are sanity checks - with rolldown, the first file is always an entry chunk.
+-  if (!files[0] || files[0].type !== "chunk" || !files[0].isEntry) {
++  const entry = files.find(
++    (file): file is rolldown.OutputChunk =>
++      file.type === "chunk" && file.isEntry,
++  );
++  if (entry === undefined) {
+     return Effect.fail(
+       new BundleError({
+-        message: "Invalid bundle output",
++        message: "Invalid bundle output: no entry chunk found",
+       }),
+     );
+   }
+-  return Effect.forEach(
+-    files as [
+-      rolldown.OutputChunk,
+-      ...(rolldown.OutputChunk | rolldown.OutputAsset)[],
+-    ],
+-    bundleFileFromOutputChunk,
+-  ).pipe(Effect.flatMap(bundleOutputFromFiles));
++  return Effect.all({
++    entry: bundleFileFromOutputChunk(entry),
++    remaining: Effect.forEach(
++      files.filter((file) => file !== entry),
++      bundleFileFromOutputChunk,
++    ),
++  }).pipe(
++    Effect.flatMap(({ entry, remaining }) =>
++      bundleOutputFromFiles([entry, ...remaining]),
++    ),
++  );
+ }
+ 
+ /**
 diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
+index a8f696fd0276eec6e09b9e07bf812ee787d81217..6badf50c69540b5e0b422b22ee0eff66637e4d07 100644
 --- a/src/Cloudflare/Workers/Vite.ts
 +++ b/src/Cloudflare/Workers/Vite.ts
-@@ -4,9 +4,42 @@
+@@ -4,10 +4,43 @@ import cloudflare, {
  import * as Effect from "effect/Effect";
  import * as Redacted from "effect/Redacted";
  import { createRequire } from "node:module";
@@ -9,7 +53,7 @@ diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
  import path from "node:path";
  import { pathToFileURL } from "node:url";
  import type * as vite from "vite";
-+
+ 
 +const reservedVitePorts = new Set<number>();
 +const viteServerPorts = new WeakMap<vite.ViteDevServer, number>();
 +
@@ -41,10 +85,11 @@ diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
 +    }
 +  }
 +};
- 
++
  export const viteDev = (
    rootDir: string = process.cwd(),
-@@ -16,19 +49,48 @@
+   env: Record<string, unknown>,
+@@ -16,19 +49,48 @@ export const viteDev = (
  ) =>
    Effect.acquireRelease(
      Effect.promise(async () => {
@@ -103,50 +148,8 @@ diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
        }),
    );
  
-diff --git a/src/Bundle/Bundle.ts b/src/Bundle/Bundle.ts
---- a/src/Bundle/Bundle.ts
-+++ b/src/Bundle/Bundle.ts
-@@ -264,21 +264,28 @@
-   bundle: rolldown.OutputBundle,
- ): Effect.Effect<BundleOutput, BundleError> {
-   const files = Object.values(bundle);
--  // These are sanity checks - with rolldown, the first file is always an entry chunk.
--  if (!files[0] || files[0].type !== "chunk" || !files[0].isEntry) {
-+  const entry = files.find(
-+    (file): file is rolldown.OutputChunk =>
-+      file.type === "chunk" && file.isEntry,
-+  );
-+  if (entry === undefined) {
-     return Effect.fail(
-       new BundleError({
--        message: "Invalid bundle output",
-+        message: "Invalid bundle output: no entry chunk found",
-       }),
-     );
-   }
--  return Effect.forEach(
--    files as [
--      rolldown.OutputChunk,
--      ...(rolldown.OutputChunk | rolldown.OutputAsset)[],
--    ],
--    bundleFileFromOutputChunk,
--  ).pipe(Effect.flatMap(bundleOutputFromFiles));
-+  return Effect.all({
-+    entry: bundleFileFromOutputChunk(entry),
-+    remaining: Effect.forEach(
-+      files.filter((file) => file !== entry),
-+      bundleFileFromOutputChunk,
-+    ),
-+  }).pipe(
-+    Effect.flatMap(({ entry, remaining }) =>
-+      bundleOutputFromFiles([entry, ...remaining]),
-+    ),
-+  );
- }
- 
- /**
 diff --git a/src/Cloudflare/Workers/Worker.ts b/src/Cloudflare/Workers/Worker.ts
-index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..245ce3e1b4a4439318580ffaf03ccac87b583a89 100644
+index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..022cb95e2a70108d6387e169cc4c43160d54208a 100644
 --- a/src/Cloudflare/Workers/Worker.ts
 +++ b/src/Cloudflare/Workers/Worker.ts
 @@ -775,6 +775,28 @@ export const LiveWorkerProvider = () =>
@@ -178,7 +181,7 @@ index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..245ce3e1b4a4439318580ffaf03ccac8
        // Toggle the workers.dev subdomain via `POST /subdomain` with
        // `enabled: true | false`. Mirrors the upstream Alchemy
        // implementation in `.vendor/alchemy/.../worker-subdomain.ts`.
-@@ -953,10 +972,8 @@ export const LiveWorkerProvider = () =>
+@@ -953,10 +975,8 @@ export const LiveWorkerProvider = () =>
            // don't try to delete domains we no longer track.
            const toRemove = liveAll.filter((d) => !desiredSet.has(d.hostname));
            yield* Effect.all(
@@ -191,7 +194,7 @@ index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..245ce3e1b4a4439318580ffaf03ccac8
              ),
              { concurrency: "unbounded" },
            );
-@@ -2187,16 +2204,7 @@ export const LiveWorkerProvider = () =>
+@@ -2187,16 +2207,7 @@ export const LiveWorkerProvider = () =>
              yield* Effect.all(
                liveDomains.flatMap((d) =>
                  d.id

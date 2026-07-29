@@ -9,6 +9,8 @@ const workerSource = await readFile(
   "utf8",
 );
 
+new Bun.Transpiler({ loader: "ts" }).transformSync(workerSource);
+
 assert.match(
   workerSource,
   /const deleteWorkerDomain = \(accountId: string, domainId: string\)/,
