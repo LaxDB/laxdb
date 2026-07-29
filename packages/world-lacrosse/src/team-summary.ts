@@ -108,7 +108,10 @@ const sumPenaltySeconds = (
   if (sources.length === 0) return null;
   let total = 0;
   for (const source of sources) {
-    const seconds = parsePenaltySeconds(source.Penalties);
+    const seconds =
+      source.Penalties === undefined
+        ? 0
+        : parsePenaltySeconds(source.Penalties);
     if (seconds === null) return null;
     total += seconds;
   }

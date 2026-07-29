@@ -153,7 +153,6 @@ const liveSchedule = LiveSchedule.make({
         "Caused Turnovers": "6",
         Turnovers: "6",
         Saves: "1 / 6 (16.7%)",
-        Penalties: "0",
         "Yellow Cards": "0",
       },
       {},
