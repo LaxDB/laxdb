@@ -17,7 +17,7 @@ import { PageMetadata } from "../components/page-metadata";
 import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
-import { isFinalGameStatus } from "../game-status";
+import { isFinalGameStatus, isInProgressGameStatus } from "../game-status";
 import type { GameDetails } from "../schema";
 import { staticTournamentMetadata } from "../static-tournament-data";
 import {
@@ -46,6 +46,7 @@ const statisticsFilterLabels: Readonly<Record<string, string>> = {
   goalDifference: "Goal difference",
   goalsPerGame: "Goals per game",
   goalsAgainstPerGame: "Goals against per game",
+  gamesPlayed: "Games played",
   points: "Points",
   assists: "Assists",
   assistsPerGame: "Assists per game",
@@ -88,6 +89,8 @@ interface PlayerRow {
   readonly team: string;
   readonly playerType: "FieldPlayer" | "Goalkeeper";
   readonly position: string;
+  readonly gamesPlayed: number;
+  readonly isLive: boolean;
   readonly starts: number;
   readonly goalkeeperPeriodStarts: number;
   readonly goals: number;
@@ -311,21 +314,84 @@ const playerIdentity = (
   name: string,
 ): string => id ?? `${team}\u0000${name}`;
 
+const playerNameIdentity = (team: string, name: string): string =>
+  `${team}\u0000${name}`;
+
 export const buildPlayerRows = (
   games: readonly GameDetails[],
   scope?: Readonly<StatisticsScope>,
 ): PlayerRow[] => {
-  const finalGames = games.filter(isDecisiveFinalDetails);
+  const playerGames = games.filter(
+    (game) =>
+      isDecisiveFinalDetails(game) || isInProgressGameStatus(game.status),
+  );
+  const canonicalIdentitiesByName = new Map<string, string>();
+  const recordCanonicalIdentity = (
+    id: string | null,
+    team: string,
+    name: string,
+  ): void => {
+    if (id === null || id.trim().length === 0) return;
+    const nameIdentity = playerNameIdentity(team, name);
+    if (!canonicalIdentitiesByName.has(nameIdentity))
+      canonicalIdentitiesByName.set(nameIdentity, id);
+  };
+  for (const player of staticTournamentMetadata.playerProfiles)
+    recordCanonicalIdentity(player.id, player.team, player.name);
+  for (const team of staticTournamentMetadata.teamProfiles)
+    for (const player of team.players)
+      recordCanonicalIdentity(
+        player.Id ?? null,
+        team.name,
+        player.Name ?? "Unknown player",
+      );
+  for (const game of playerGames) {
+    for (const roster of game.rosters)
+      for (const player of roster.players)
+        recordCanonicalIdentity(player.id, roster.team, player.name);
+    for (const player of game.derivedPlayerStats)
+      recordCanonicalIdentity(player.id, player.team, player.name);
+  }
+  const canonicalPlayerId = (
+    id: string | null,
+    team: string,
+    name: string,
+  ): string | null =>
+    id ?? canonicalIdentitiesByName.get(playerNameIdentity(team, name)) ?? null;
+  const resolvePlayerIdentity = (
+    id: string | null,
+    team: string,
+    name: string,
+  ): string =>
+    canonicalPlayerId(id, team, name) ?? playerIdentity(id, team, name);
+
   const totals = new Map<string, PlayerTotals>();
+  const appearances = new Map<string, Set<string>>();
+  const livePlayers = new Set<string>();
   const invalidSaveTeams = new Set<string>();
-  for (const game of finalGames) {
+  const includesTeamGame = (game: Readonly<GameDetails>, team: string) =>
+    scope === undefined ||
+    statisticsScopeIncludesTeamGame(scope, team, game.id) ||
+    (scope.through === "latest" && isInProgressGameStatus(game.status));
+  const recordAppearance = (
+    identity: string,
+    game: Readonly<GameDetails>,
+  ): void => {
+    const gameIds = appearances.get(identity) ?? new Set<string>();
+    gameIds.add(game.id);
+    appearances.set(identity, gameIds);
+    if (isInProgressGameStatus(game.status)) livePlayers.add(identity);
+  };
+
+  for (const game of playerGames) {
     for (const player of game.derivedPlayerStats) {
-      if (
-        scope !== undefined &&
-        !statisticsScopeIncludesTeamGame(scope, player.team, game.id)
-      )
-        continue;
-      const identity = playerIdentity(player.id, player.team, player.name);
+      if (!includesTeamGame(game, player.team)) continue;
+      const identity = resolvePlayerIdentity(
+        player.id,
+        player.team,
+        player.name,
+      );
+      recordAppearance(identity, game);
       const total = totals.get(identity) ?? emptyPlayerTotals();
       totals.set(identity, {
         ...total,
@@ -351,14 +417,16 @@ export const buildPlayerRows = (
       });
     }
     for (const team of [game.home.name, game.away.name]) {
-      if (
-        scope !== undefined &&
-        !statisticsScopeIncludesTeamGame(scope, team, game.id)
-      )
-        continue;
+      if (!includesTeamGame(game, team)) continue;
       const rosters = game.rosters.filter((roster) => roster.team === team);
       const teamStats = game.teamStats.filter((row) => row.team === team);
       const roster = rosters[0];
+      if (roster !== undefined)
+        for (const player of roster.players)
+          recordAppearance(
+            resolvePlayerIdentity(player.id, team, player.name),
+            game,
+          );
       const sourceSaves = ratioStat(teamStats[0]?.stats.Saves);
       if (
         rosters.length !== 1 ||
@@ -381,7 +449,7 @@ export const buildPlayerRows = (
           continue;
         }
         rosterSaves += gameSaves;
-        const identity = playerIdentity(player.id, team, player.name);
+        const identity = resolvePlayerIdentity(player.id, team, player.name);
         const total = totals.get(identity) ?? emptyPlayerTotals();
         totals.set(identity, {
           ...total,
@@ -408,9 +476,13 @@ export const buildPlayerRows = (
   for (const team of staticTournamentMetadata.teamProfiles) {
     if (scope !== undefined && !scope.eligibleTeams.has(team.name)) continue;
     for (const player of team.players) {
-      const id = player.Id ?? null;
+      const sourceId =
+        player.Id === undefined || player.Id.trim().length === 0
+          ? null
+          : player.Id;
       const name = player.Name ?? "Unknown player";
-      const identity = playerIdentity(id, team.name, name);
+      const id = canonicalPlayerId(sourceId, team.name, name);
+      const identity = resolvePlayerIdentity(id, team.name, name);
       if (rows.has(identity)) continue;
       rows.set(identity, {
         id,
@@ -425,18 +497,15 @@ export const buildPlayerRows = (
       });
     }
   }
-  for (const game of finalGames) {
+  for (const game of playerGames) {
     for (const roster of game.rosters) {
-      if (
-        scope !== undefined &&
-        !statisticsScopeIncludesTeamGame(scope, roster.team, game.id)
-      )
-        continue;
+      if (!includesTeamGame(game, roster.team)) continue;
       for (const player of roster.players) {
-        const identity = playerIdentity(player.id, roster.team, player.name);
+        const id = canonicalPlayerId(player.id, roster.team, player.name);
+        const identity = resolvePlayerIdentity(id, roster.team, player.name);
         if (rows.has(identity)) continue;
         rows.set(identity, {
-          id: player.id,
+          id,
           number: player.number,
           name: player.name,
           team: roster.team,
@@ -448,15 +517,12 @@ export const buildPlayerRows = (
       }
     }
     for (const player of game.derivedPlayerStats) {
-      if (
-        scope !== undefined &&
-        !statisticsScopeIncludesTeamGame(scope, player.team, game.id)
-      )
-        continue;
-      const identity = playerIdentity(player.id, player.team, player.name);
+      if (!includesTeamGame(game, player.team)) continue;
+      const id = canonicalPlayerId(player.id, player.team, player.name);
+      const identity = resolvePlayerIdentity(id, player.team, player.name);
       if (rows.has(identity)) continue;
       rows.set(identity, {
-        id: player.id,
+        id,
         number: "—",
         name: player.name,
         team: player.team,
@@ -471,6 +537,8 @@ export const buildPlayerRows = (
     return {
       ...player,
       ...total,
+      gamesPlayed: appearances.get(identity)?.size ?? 0,
+      isLive: livePlayers.has(identity),
       points: total.goals + total.assists,
       goalsWithoutRecordedAssist: total.unassistedGoals,
       saves: invalidSaveTeams.has(player.team) ? null : total.saves,
@@ -487,14 +555,26 @@ const percentageCell = (value: number | null): string =>
 const playerIdentityColumn: ColumnDef<PlayerRow> = {
   accessorKey: "name",
   header: "Player",
-  cell: (info) =>
-    info.row.original.id === null ? (
-      info.row.original.name
-    ) : (
-      <Link to="/players/$playerId" params={{ playerId: info.row.original.id }}>
-        {info.row.original.name}
-      </Link>
-    ),
+  cell: (info) => {
+    const player = info.row.original;
+    return (
+      <span
+        className="statistics-player-name"
+        data-live={player.isLive || undefined}
+      >
+        {player.isLive && <span className="statistics-player-live">Live</span>}
+        <span className="statistics-player-label">
+          {player.id === null ? (
+            player.name
+          ) : (
+            <Link to="/players/$playerId" params={{ playerId: player.id }}>
+              {player.name}
+            </Link>
+          )}
+        </span>
+      </span>
+    );
+  },
 };
 
 function StatisticHeader({
@@ -559,6 +639,7 @@ export const buildPlayerColumns = (
         } satisfies ColumnDef<PlayerRow>,
       ]
     : []),
+  playerStatColumn("gamesPlayed", "GP", "Games played"),
   playerStatColumn("points", "PTS", "Points"),
   playerStatColumn("goals", "G", "Goals"),
   playerStatColumn("assists", "A", "Assists"),
@@ -953,6 +1034,7 @@ export function StatisticsPage({
           </button>
           {statisticsThroughOptions(
             statisticsScope.maximumCompletedTeamGames,
+            statisticsScope.latestIncludesInProgressGames,
           ).map((gameNumber) => (
             <button
               key={gameNumber}

@@ -14,7 +14,7 @@ import {
   teamSavePercentage,
 } from "../src/pages/statistics-page";
 import { parseStatisticsSearch } from "../src/routes/statistics";
-import { GameDetails } from "../src/schema";
+import { DerivedPlayerStats, GameDetails } from "../src/schema";
 import { buildTournamentContext } from "../src/tournament-context";
 import { tournament } from "../src/tournament-data";
 
@@ -27,6 +27,59 @@ const context = buildTournamentContext(championship.games, {
   })),
   players: championship.players,
 });
+
+const withGameStatus = (
+  game: Readonly<GameDetails>,
+  status: string,
+  derivedPlayerStats = game.derivedPlayerStats,
+): GameDetails =>
+  GameDetails.make({
+    id: game.id,
+    url: game.url,
+    competition: game.competition,
+    phase: game.phase,
+    date: game.date,
+    time: game.time,
+    venue: game.venue,
+    status,
+    home: game.home,
+    away: game.away,
+    periodScores: game.periodScores,
+    teamStats: game.teamStats,
+    plays: game.plays,
+    derivedPlayerStats,
+    rosters: game.rosters,
+    officials: game.officials,
+  });
+
+const withPlayerIdentity = (
+  player: Readonly<DerivedPlayerStats>,
+  id: string | null,
+  name: string,
+  team: string,
+): DerivedPlayerStats =>
+  DerivedPlayerStats.make({
+    id,
+    name,
+    team,
+    goals: player.goals,
+    assists: player.assists,
+    unassistedGoals: player.unassistedGoals,
+    shots: player.shots,
+    shotsOnGoal: player.shotsOnGoal,
+    shotsOffTarget: player.shotsOffTarget,
+    freePositionGoals: player.freePositionGoals,
+    freePositionAttempts: player.freePositionAttempts,
+    groundBalls: player.groundBalls,
+    drawControls: player.drawControls,
+    turnovers: player.turnovers,
+    causedTurnovers: player.causedTurnovers,
+    yellowCards: player.yellowCards,
+    greenCards: player.greenCards,
+    redCards: player.redCards,
+    startedGame: player.startedGame,
+    goalkeeperStarts: player.goalkeeperStarts,
+  });
 
 describe("statistics page player rows", () => {
   it("parses shareable equal-game snapshot URLs", () => {
@@ -92,6 +145,8 @@ describe("statistics page player rows", () => {
 
     expect(player).toMatchObject({
       name: "LIPKIN Jordyn",
+      gamesPlayed: 3,
+      isLive: false,
       goals: 12,
       assists: 5,
       points: 17,
@@ -107,6 +162,132 @@ describe("statistics page player rows", () => {
     });
   });
 
+  it("includes accepted live-game totals and marks active players", () => {
+    const game = championship.games.find((candidate) => candidate.id === "107");
+    expect(game).toBeDefined();
+    if (game === undefined) return;
+
+    const liveGame = withGameStatus(game, "LIVE");
+    const player = buildPlayerRows([liveGame]).find(
+      (candidate) => candidate.id === "1315",
+    );
+    expect(player).toMatchObject({
+      gamesPlayed: 1,
+      isLive: true,
+      points: 5,
+    });
+    if (player === undefined) return;
+
+    const markup = renderToStaticMarkup(
+      <DataTable
+        columns={buildPlayerColumns("field")}
+        data={[{ ...player, id: null }]}
+        searchPlaceholder="Search players…"
+      />,
+    );
+    expect(markup).toContain('data-live="true"');
+    expect(markup).toContain('class="statistics-player-live">Live</span>');
+  });
+
+  it("does not count or mark players before the game starts", () => {
+    const game = championship.games.find((candidate) => candidate.id === "107");
+    expect(game).toBeDefined();
+    if (game === undefined) return;
+
+    const player = buildPlayerRows([
+      withGameStatus(game, "GETTING READY"),
+    ]).find((candidate) => candidate.id === "1315");
+    expect(player).toMatchObject({
+      gamesPlayed: 0,
+      isLive: false,
+      points: 0,
+    });
+  });
+
+  it("reconciles nullable live event IDs with the known player", () => {
+    const game = championship.games.find((candidate) => candidate.id === "107");
+    expect(game).toBeDefined();
+    if (game === undefined) return;
+
+    const liveGame = withGameStatus(game, "LIVE");
+    const nullableEventGame = withGameStatus(
+      liveGame,
+      "LIVE",
+      liveGame.derivedPlayerStats.map((player) =>
+        player.id === "1315"
+          ? DerivedPlayerStats.make({
+              id: null,
+              name: player.name,
+              team: player.team,
+              goals: player.goals,
+              assists: player.assists,
+              unassistedGoals: player.unassistedGoals,
+              shots: player.shots,
+              shotsOnGoal: player.shotsOnGoal,
+              shotsOffTarget: player.shotsOffTarget,
+              freePositionGoals: player.freePositionGoals,
+              freePositionAttempts: player.freePositionAttempts,
+              groundBalls: player.groundBalls,
+              drawControls: player.drawControls,
+              turnovers: player.turnovers,
+              causedTurnovers: player.causedTurnovers,
+              yellowCards: player.yellowCards,
+              greenCards: player.greenCards,
+              redCards: player.redCards,
+              startedGame: player.startedGame,
+              goalkeeperStarts: player.goalkeeperStarts,
+            })
+          : player,
+      ),
+    );
+    const rows = buildPlayerRows([nullableEventGame]).filter(
+      (player) => player.team === "Israel" && player.name === "LIPKIN Jordyn",
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: "1315",
+      gamesPlayed: 1,
+      isLive: true,
+      points: 5,
+    });
+  });
+
+  it("retains a later canonical ID for a newly discovered athlete", () => {
+    const firstGame = championship.games[0];
+    const secondGame = championship.games[1];
+    const seed = firstGame?.derivedPlayerStats[0];
+    expect(firstGame).toBeDefined();
+    expect(secondGame).toBeDefined();
+    expect(seed).toBeDefined();
+    if (
+      firstGame === undefined ||
+      secondGame === undefined ||
+      seed === undefined
+    )
+      return;
+
+    const discoveredPlayer = (id: string | null): DerivedPlayerStats =>
+      withPlayerIdentity(seed, id, "DISCOVERED Athlete", "Discovery Team");
+    const rows = buildPlayerRows([
+      withGameStatus(firstGame, "LIVE", [discoveredPlayer(null)]),
+      withGameStatus(secondGame, "LIVE", [
+        discoveredPlayer("canonical-live-player"),
+      ]),
+    ]).filter(
+      (player) =>
+        player.team === "Discovery Team" &&
+        player.name === "DISCOVERED Athlete",
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: "canonical-live-player",
+      gamesPlayed: 2,
+      isLive: true,
+    });
+  });
+
   it("publishes every recorded field-player counting category", () => {
     const markup = renderToStaticMarkup(
       <DataTable
@@ -117,6 +298,7 @@ describe("statistics page player rows", () => {
     );
 
     for (const heading of [
+      "GP",
       "PTS",
       "G",
       "A",
@@ -134,6 +316,7 @@ describe("statistics page player rows", () => {
       "RC",
     ])
       expect(markup).toContain(`>${heading}<`);
+    expect(markup.indexOf(">GP<")).toBeLessThan(markup.indexOf(">PTS<"));
     expect(markup).toContain(">#<");
     expect(markup).not.toContain(">RA<");
     expect(markup).not.toContain(">SH%<");
@@ -153,7 +336,18 @@ describe("statistics page player rows", () => {
       />,
     );
 
-    for (const heading of ["GS", "PS", "SV", "PTS", "G", "A", "GB", "TO", "CT"])
+    for (const heading of [
+      "GS",
+      "PS",
+      "SV",
+      "GP",
+      "PTS",
+      "G",
+      "A",
+      "GB",
+      "TO",
+      "CT",
+    ])
       expect(markup).toContain(`>${heading}<`);
   });
 

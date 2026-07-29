@@ -3429,6 +3429,38 @@ html:has(.data-table[data-fullscreen="true"]) {
   background: oklch(var(--background));
   text-align: left;
 }
+.statistics-player-name {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.statistics-player-name[data-live] .statistics-player-label {
+  font-weight: 800;
+}
+.statistics-player-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statistics-player-live {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: oklch(var(--foreground));
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.statistics-player-live::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: oklch(var(--brand-accent));
+  content: "";
+}
 .data-table thead .data-table-sort {
   display: flex;
   align-items: center;
@@ -3451,16 +3483,12 @@ html:has(.data-table[data-fullscreen="true"]) {
   justify-content: flex-start;
 }
 .data-table-sort b {
-  color: oklch(var(--muted-foreground) / 0.45);
+  color: inherit;
   font-size: 14px;
   line-height: 1;
 }
-.data-table-sort[data-sorted] {
+.data-table thead .data-table-sort[data-sorted] {
   color: oklch(var(--foreground));
-  box-shadow: inset 0 -2px oklch(var(--accent));
-}
-.data-table-sort[data-sorted] b {
-  color: oklch(var(--accent));
 }
 .data-table-pagination {
   display: flex;

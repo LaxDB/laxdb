@@ -107,6 +107,17 @@ const game3 = scheduledGame("3", "A", "B");
 const game4 = scheduledGame("4", "B", "C");
 const game5 = scheduledGame("5", "A", "B");
 const schedule = [game1, game2, game3, game4, game5];
+const inProgressGame = ScheduledGame.make({
+  id: GameId.make("6"),
+  url: "https://example.com/games/6",
+  date: "Day 6",
+  time: game5.time,
+  phase: game5.phase,
+  venue: game5.venue,
+  status: "LIVE",
+  home: game5.home,
+  away: game5.away,
+});
 
 const details = [
   gameDetails(game1, 1, 1),
@@ -115,6 +126,7 @@ const details = [
   gameDetails(game4, 4, 40),
   gameDetails(game5, 50, 50),
 ];
+const inProgressDetails = gameDetails(inProgressGame, 60, 6);
 
 const source = (games: readonly GameDetails[]) => ({
   schedule,
@@ -267,11 +279,39 @@ describe("equal-games statistics scope", () => {
     );
   });
 
+  it("keeps the current completed-game cutoff distinct while a game is live", () => {
+    const liveSource = {
+      schedule: [...schedule, inProgressGame],
+      games: [...details, inProgressDetails],
+      conflictedDetailGameIds: [],
+    };
+    const latest = buildStatisticsScope(liveSource, ["A", "B", "C"], "latest");
+    const completedCutoff = buildStatisticsScope(
+      liveSource,
+      ["A", "B", "C"],
+      4,
+    );
+
+    expect(latest.latestIncludesInProgressGames).toBe(true);
+    expect(completedCutoff.through).toBe(4);
+    expect(
+      buildPlayerRows(liveSource.games, latest).find(
+        (player) => player.team === "A",
+      )?.goals,
+    ).toBe(143);
+    expect(
+      buildPlayerRows(liveSource.games, completedCutoff).find(
+        (player) => player.team === "A",
+      )?.goals,
+    ).toBe(83);
+  });
+
   it("offers only non-redundant cutoffs below the latest team-game count", () => {
     expect(statisticsThroughOptions(0)).toEqual([]);
     expect(statisticsThroughOptions(1)).toEqual([]);
     expect(statisticsThroughOptions(3)).toEqual([1, 2]);
     expect(statisticsThroughOptions(5)).toEqual([1, 2, 3, 4]);
+    expect(statisticsThroughOptions(5, true)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("normalizes invalid, current, and out-of-range URL cutoffs", () => {
@@ -279,6 +319,7 @@ describe("equal-games statistics scope", () => {
     expect(normalizeStatisticsThrough(0, 5)).toBe("latest");
     expect(normalizeStatisticsThrough(9, 5)).toBe("latest");
     expect(normalizeStatisticsThrough(5, 5)).toBe("latest");
+    expect(normalizeStatisticsThrough(5, 5, true)).toBe(5);
     expect(normalizeStatisticsThrough(3, 5)).toBe(3);
     expect(normalizeStatisticsThrough(3, 0)).toBe("latest");
   });
