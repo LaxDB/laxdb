@@ -589,8 +589,7 @@ tbody tr:last-child td {
 .score-worm-baseline,
 .score-worm-period-line,
 .score-worm-home-path,
-.score-worm-away-path,
-.score-worm-winning-point {
+.score-worm-away-path {
   vector-effect: non-scaling-stroke;
 }
 .score-worm-boundary {
@@ -625,10 +624,133 @@ tbody tr:last-child td {
 .score-worm-away-path {
   stroke: oklch(var(--orange));
 }
-.score-worm-winning-point {
-  fill: oklch(var(--background));
-  stroke: oklch(var(--orange));
-  stroke-width: 2.5;
+.score-worm-goal-trigger {
+  position: absolute;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.score-worm-goal-trigger::before,
+.score-worm-goal-trigger::after {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  content: "";
+}
+.score-worm-goal-trigger::before {
+  inset: 1px;
+  border: 1.5px solid oklch(var(--background));
+  background: oklch(var(--foreground));
+  box-shadow: 0 0 0 1.5px oklch(var(--foreground));
+}
+.score-worm-goal-trigger[data-side="away"]::before {
+  background: oklch(var(--orange));
+  box-shadow: 0 0 0 1.5px oklch(var(--orange));
+}
+.score-worm-goal-trigger[data-game-winner]::after {
+  inset: -5px;
+  border: 1.5px solid oklch(var(--orange));
+}
+.score-worm-goal-trigger:focus-visible {
+  outline: 2px solid oklch(var(--foreground));
+  outline-offset: 3px;
+}
+.score-worm-goal-trigger[data-active]::before {
+  box-shadow:
+    0 0 0 3px oklch(var(--background)),
+    0 0 0 5px oklch(var(--foreground));
+}
+.score-worm-goal-trigger[data-side="away"][data-active]::before {
+  box-shadow:
+    0 0 0 3px oklch(var(--background)),
+    0 0 0 5px oklch(var(--orange));
+}
+.score-worm-hover-layer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .score-worm-hover-layer {
+    pointer-events: auto;
+  }
+}
+.score-worm-goal-tooltip {
+  position: relative;
+  z-index: 100;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px;
+  border: 1px solid oklch(var(--foreground));
+  border-radius: 5px;
+  background: oklch(var(--foreground));
+  box-shadow: 0 8px 24px rgb(38 38 38 / 0.2);
+  color: oklch(var(--background));
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  pointer-events: none;
+  animation: none !important;
+  transition: none !important;
+}
+.score-worm-goal-tooltip header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: oklch(var(--background) / 0.64);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.score-worm-goal-tooltip > strong {
+  display: block;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 19px;
+  line-height: 1.05;
+}
+.score-worm-goal-tooltip p {
+  margin: 6px 0 0;
+  color: oklch(var(--background) / 0.64);
+}
+.score-worm-goal-tooltip p span {
+  color: oklch(var(--background));
+}
+.score-worm-goal-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid oklch(var(--background) / 0.25);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.score-worm-goal-score span:last-child {
+  text-align: right;
+}
+.score-worm-goal-tooltip > small {
+  display: block;
+  margin-top: 8px;
+  color: oklch(var(--background) / 0.64);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.score-worm-goal-tooltip [data-slot="tooltip-arrow"] {
+  background: oklch(var(--foreground));
+  fill: oklch(var(--foreground));
 }
 .score-worm-periods {
   display: flex;
@@ -723,7 +845,8 @@ tbody tr:last-child td {
   text-underline-offset: 3px;
 }
 .insight-lead-section,
-.insight-performance-section {
+.insight-performance-section,
+.insight-wide-section {
   grid-column: 1 / -1;
 }
 .insight-lead-time {
