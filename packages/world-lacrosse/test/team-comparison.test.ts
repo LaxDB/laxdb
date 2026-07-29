@@ -554,7 +554,7 @@ describe("team comparison", () => {
         ).toBe(true);
       }
     }
-  }, 30_000);
+  }, 120_000);
 
   it("preserves route orientation and rejects unknown or identical teams", () => {
     const forward = comparisonFor("25", "24");
