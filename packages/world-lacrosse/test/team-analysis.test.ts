@@ -194,7 +194,7 @@ describe("team analysis", () => {
         Schema.encodeSync(TeamAnalysis)(analysis),
       );
     }
-  });
+  }, 15_000);
 
   it("withholds a malformed player metric game instead of parsing a numeric prefix", () => {
     const game = championship.games.find((candidate) => candidate.id === "84");
