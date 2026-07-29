@@ -1,0 +1,42 @@
+{
+  "name": "@laxdb/pipeline",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "bun --bun vitest run",
+    "test:watch": "bun --bun vitest",
+    "test:integration": "bun --bun vitest run --config vitest.integration.config.ts",
+    "test:integration:watch": "bun --bun vitest --config vitest.integration.config.ts",
+    "test:coverage": "bun --bun vitest run --coverage",
+    "test:pll": "bun --bun vitest run src/pll/",
+    "test:nll": "bun --bun vitest run src/nll/",
+    "test:mll": "bun --bun vitest run src/mll/",
+    "test:msl": "bun --bun vitest run src/msl/",
+    "test:wla": "bun --bun vitest run src/wla/",
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix --quiet",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt",
+    "fix": "bun run lint:fix && bun run format:fix"
+  },
+  "dependencies": {
+    "@laxdb/core": "*",
+    "cheerio": "^1.1.2"
+  },
+  "effect": {
+    "generateExports": {
+      "include": [
+        "**/*.ts"
+      ]
+    },
+    "generateIndex": {
+      "include": [
+        "**/*.ts"
+      ]
+    }
+  }
+}

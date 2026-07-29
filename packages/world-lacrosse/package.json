@@ -1,0 +1,40 @@
+{
+  "name": "@laxdb/world-lacrosse",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "vite dev --port 3010",
+    "build": "vite build",
+    "build:fresh": "bun src/cli.ts sync && vite build",
+    "scrape": "bun src/cli.ts scrape",
+    "sync": "bun src/cli.ts sync",
+    "sync:force": "bun src/cli.ts sync --force",
+    "sync:poll": "bun src/cli.ts poll",
+    "test": "bun --bun vitest run",
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix --quiet",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "4.0.0-beta.79",
+    "@laxdb/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-router": "^1.143.11",
+    "@tanstack/react-table": "^8.21.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "cheerio": "^1.1.2",
+    "effect": "4.0.0-beta.79",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "vite": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

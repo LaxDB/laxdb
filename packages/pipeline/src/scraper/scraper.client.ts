@@ -1,0 +1,133 @@
+import { Effect, Layer, Schedule, Context } from "effect";
+
+import { PipelineConfig } from "../config";
+import { fetchResponse, readResponseText } from "../http";
+
+import {
+  ScraperHttpError,
+  ScraperNetworkError,
+  ScraperRateLimitError,
+  ScraperTimeoutError,
+} from "./scraper.error";
+import type { ScrapeRequest, ScrapeResponse } from "./scraper.schema";
+
+type ScraperError =
+  | ScraperHttpError
+  | ScraperTimeoutError
+  | ScraperRateLimitError
+  | ScraperNetworkError;
+
+export class ScraperClient extends Context.Service<ScraperClient>()(
+  "ScraperClient",
+  {
+    make: Effect.gen(function* () {
+      const config = yield* PipelineConfig;
+
+      const fetchUrl = (
+        request: ScrapeRequest,
+      ): Effect.Effect<ScrapeResponse, ScraperError> =>
+        Effect.gen(function* () {
+          const startTime = Date.now();
+          const timeoutMs = request.timeoutMs ?? config.defaultTimeoutMs;
+
+          const response = yield* fetchResponse({
+            url: request.url,
+            timeoutMs,
+            method: "GET",
+            headers: {
+              "User-Agent": config.userAgent,
+              ...request.headers,
+            },
+            redirect: request.followRedirects ? "follow" : "manual",
+            timeoutError: (url, requestTimeoutMs) =>
+              new ScraperTimeoutError({
+                message: `Request timed out after ${requestTimeoutMs}ms`,
+                url,
+                timeoutMs: requestTimeoutMs,
+              }),
+            networkError: (url, error) =>
+              new ScraperNetworkError({
+                message: `Network error: ${String(error)}`,
+                url,
+                cause: error,
+              }),
+          });
+
+          const statusCode = response.status;
+
+          if (statusCode === 429) {
+            const retryAfter = response.headers.get("retry-after");
+            const retryAfterMs = retryAfter
+              ? Number.parseInt(retryAfter, 10) * 1000
+              : undefined;
+
+            return yield* Effect.fail(
+              new ScraperRateLimitError({
+                message: "Rate limited by server",
+                url: request.url,
+                retryAfterMs,
+              }),
+            );
+          }
+
+          if (statusCode >= 400) {
+            return yield* Effect.fail(
+              new ScraperHttpError({
+                message: `HTTP ${statusCode} error`,
+                url: request.url,
+                statusCode,
+              }),
+            );
+          }
+
+          const body = yield* readResponseText(response, {
+            url: request.url,
+            bodyReadError: (url, error) =>
+              new ScraperNetworkError({
+                message: `Failed to read response body: ${String(error)}`,
+                url,
+                cause: error,
+              }),
+          });
+
+          const durationMs = Date.now() - startTime;
+
+          const headers: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headers[key] = value;
+          });
+
+          return {
+            url: request.url,
+            finalUrl: response.url,
+            statusCode,
+            headers,
+            body,
+            contentType: response.headers.get("content-type"),
+            fetchedAt: new Date(),
+            durationMs,
+          } as ScrapeResponse;
+        });
+
+      const fetchWithRetry = (request: ScrapeRequest) =>
+        fetchUrl(request).pipe(
+          Effect.retry({
+            schedule: Schedule.exponential(config.retryDelay),
+            times: config.maxRetries,
+            while: (error: ScraperError) =>
+              error instanceof ScraperNetworkError ||
+              error instanceof ScraperTimeoutError,
+          }),
+        );
+
+      return {
+        fetch: fetchUrl,
+        fetchWithRetry,
+      } as const;
+    }),
+  },
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(PipelineConfig.layer)),
+  );
+}

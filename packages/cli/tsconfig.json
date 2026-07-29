@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["**/*.ts", "../../types/**/*.d.ts"],
+  "exclude": ["src/test"],
+  "compilerOptions": {
+    "paths": {
+      "@laxdb/core/*": ["../core/src/*"]
+    }
+  }
+}

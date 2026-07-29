@@ -1,0 +1,18 @@
+{
+  "ignorePatterns": [
+    "node_modules/**",
+    "src/content/**/.*",
+    "src/content/Templates/**",
+    ".content-collections/**",
+    ".output/**",
+    "dist/**",
+    "**/*.gen.ts"
+  ],
+  "experimentalTailwindcss": {
+    "stylesheet": "./src/globals.css",
+    "attributes": ["class", "className"],
+    "functions": ["clsx", "cn"],
+    "preserveDuplicates": false,
+    "preserveWhitespace": false
+  }
+}

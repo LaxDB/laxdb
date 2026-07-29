@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../../types/tanstack-table.d.ts"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": false,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "paths": {
+      "@laxdb/ui/*": ["./src/*"]
+    }
+  }
+}

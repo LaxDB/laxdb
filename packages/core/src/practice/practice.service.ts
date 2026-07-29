@@ -1,0 +1,285 @@
+import { Context, Effect, Layer, Schema } from "effect";
+
+import { NotFoundError } from "../error";
+import { decodeArguments, parseSqlError, type SchemaInput } from "../util";
+
+import { PracticeRepo } from "./practice.repo";
+import {
+  Practice,
+  PracticeEdge,
+  PracticeItem,
+  PracticeReview,
+  AddItemInput,
+  CreatePracticeInput,
+  CreateReviewInput,
+  DeletePracticeInput,
+  GetPracticeInput,
+  GetReviewInput,
+  ListEdgesInput,
+  ListItemsInput,
+  RemoveItemInput,
+  ReorderItemsInput,
+  ReplaceEdgesInput,
+  UpdateItemInput,
+  UpdatePracticeInput,
+  UpdateReviewInput,
+} from "./practice.schema";
+
+const asPractice = Schema.decodeUnknownSync(Practice);
+const asItem = Schema.decodeUnknownSync(PracticeItem);
+const asEdge = Schema.decodeUnknownSync(PracticeEdge);
+const asReview = Schema.decodeUnknownSync(PracticeReview);
+
+export class PracticeService extends Context.Service<PracticeService>()(
+  "PracticeService",
+  {
+    make: Effect.gen(function* () {
+      const repo = yield* PracticeRepo;
+
+      return {
+        // -----------------------------------------------------------------
+        // Practice CRUD
+        // -----------------------------------------------------------------
+
+        list: () =>
+          repo.list().pipe(
+            Effect.map((rows) => rows.map((row) => asPractice(row))),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        get: (input: SchemaInput<typeof GetPracticeInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(GetPracticeInput, input);
+            return yield* repo.get(decoded);
+          }).pipe(
+            Effect.map(asPractice),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "Practice",
+                  id: input.publicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        create: (input: SchemaInput<typeof CreatePracticeInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(CreatePracticeInput, input);
+            return yield* repo.create(decoded);
+          }).pipe(
+            Effect.map(asPractice),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "Practice",
+                  id: "new",
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        update: (input: SchemaInput<typeof UpdatePracticeInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(UpdatePracticeInput, input);
+            return yield* repo.update(decoded);
+          }).pipe(
+            Effect.map(asPractice),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "Practice",
+                  id: input.publicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        delete: (input: SchemaInput<typeof DeletePracticeInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(DeletePracticeInput, input);
+            return yield* repo.delete(decoded);
+          }).pipe(
+            Effect.map(asPractice),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "Practice",
+                  id: input.publicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        // -----------------------------------------------------------------
+        // Practice items
+        // -----------------------------------------------------------------
+
+        listItems: (input: SchemaInput<typeof ListItemsInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(ListItemsInput, input);
+            return yield* repo.listItems(decoded);
+          }).pipe(
+            Effect.map((rows) => rows.map((row) => asItem(row))),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        addItem: (input: SchemaInput<typeof AddItemInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(AddItemInput, input);
+            return yield* repo.addItem(decoded);
+          }).pipe(
+            Effect.map(asItem),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeItem",
+                  id: "new",
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        updateItem: (input: SchemaInput<typeof UpdateItemInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(UpdateItemInput, input);
+            return yield* repo.updateItem(decoded);
+          }).pipe(
+            Effect.map(asItem),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeItem",
+                  id: input.publicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        removeItem: (input: SchemaInput<typeof RemoveItemInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(RemoveItemInput, input);
+            return yield* repo.removeItem(decoded);
+          }).pipe(
+            Effect.map(asItem),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeItem",
+                  id: input.publicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        reorderItems: (input: SchemaInput<typeof ReorderItemsInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(ReorderItemsInput, input);
+            return yield* repo.reorderItems(decoded);
+          }).pipe(
+            Effect.map((rows) => rows.map((row) => asItem(row))),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        listEdges: (input: SchemaInput<typeof ListEdgesInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(ListEdgesInput, input);
+            return yield* repo.listEdges(decoded);
+          }).pipe(
+            Effect.map((rows) => rows.map((row) => asEdge(row))),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        replaceEdges: (input: SchemaInput<typeof ReplaceEdgesInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(ReplaceEdgesInput, input);
+            return yield* repo.replaceEdges(decoded);
+          }).pipe(
+            Effect.map((rows) => rows.map((row) => asEdge(row))),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        // -----------------------------------------------------------------
+        // Practice review
+        // -----------------------------------------------------------------
+
+        getReview: (input: SchemaInput<typeof GetReviewInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(GetReviewInput, input);
+            return yield* repo.getReview(decoded);
+          }).pipe(
+            Effect.map(asReview),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeReview",
+                  id: input.practicePublicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        createReview: (input: SchemaInput<typeof CreateReviewInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(CreateReviewInput, input);
+            return yield* repo.createReview(decoded);
+          }).pipe(
+            Effect.map(asReview),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeReview",
+                  id: input.practicePublicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+
+        updateReview: (input: SchemaInput<typeof UpdateReviewInput>) =>
+          Effect.gen(function* () {
+            const decoded = yield* decodeArguments(UpdateReviewInput, input);
+            return yield* repo.updateReview(decoded);
+          }).pipe(
+            Effect.map(asReview),
+            Effect.catchTag("NoSuchElementError", () =>
+              Effect.fail(
+                new NotFoundError({
+                  domain: "PracticeReview",
+                  id: input.practicePublicId,
+                }),
+              ),
+            ),
+            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+            Effect.tapError(Effect.logError),
+          ),
+      } as const;
+    }),
+  },
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(PracticeRepo.layer),
+  );
+}

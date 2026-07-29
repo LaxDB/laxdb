@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    fix:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bun run fix
+      stage_fixed: true
+    typecheck:
+      run: bun run typecheck
+
+pre-push:
+  parallel: true
+  commands:
+    fix:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bun run fix
+    typecheck:
+      run: bun run typecheck

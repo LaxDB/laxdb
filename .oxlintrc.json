@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "unicorn", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off",
+    "no-inline-comments": "off",
+    "no-magic-numbers": "off",
+    "max-lines-per-function": "off",
+    "max-classes-per-file": "off",
+    "require-yield": "off",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-non-null-assertion": "warn",
+    "typescript/consistent-type-imports": "error",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "import/max-dependencies": "off",
+    "react-hooks/rules-of-hooks": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "unicorn/no-array-callback-reference": "off",
+    "max-lines": "off",
+    "@typescript-eslint/strict-boolean-expressions": "off",
+    "unicorn/no-empty-file": "warn",
+    "no-warning-comments": "off"
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    "packages/marketing/src/content/**/.*",
+    "packages/marketing/src/content/Templates/**",
+    "**/dist/**",
+    "**/*.gen.ts",
+    "**/migrations/**",
+    "bun.lock"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "name": "laxdb",
+  "description": "Lax DB is a suite of tools made with lacrosse in mind",
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "turbo build",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy",
+    "dev": "alchemy dev",
+    "test": "bun ./scripts/test-alchemy-bundle-order.ts && bun ./scripts/run-workspace-tests.mjs",
+    "test:integration": "bun ./scripts/run-workspace-integration-tests.mjs",
+    "test:ci": "bun run test && bun run test:integration",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "design:lint": "bunx @google/design.md lint DESIGN.md",
+    "design:export": "bunx @google/design.md export --format css-tailwind DESIGN.md > packages/ui/src/design.generated.css",
+    "lint:fix": "turbo lint:fix",
+    "format": "turbo format",
+    "format:fix": "turbo format:fix",
+    "fix": "bun run lint:fix && bun run format:fix",
+    "prepare": "effect-language-service patch"
+  },
+  "dependencies": {
+    "alchemy": "2.0.0-beta.55",
+    "effect": "4.0.0-beta.79"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
+    "@cloudflare/workers-types": "^4.20260122.0",
+    "@effect/language-service": "^0.84.3",
+    "@effect/platform-bun": "4.0.0-beta.79",
+    "@effect/platform-node": "4.0.0-beta.79",
+    "@effect/vitest": "4.0.0-beta.79",
+    "@tanstack/react-table": "^8.21.3",
+    "@types/bun": "latest",
+    "@types/node": "^24.10.9",
+    "@typescript/native-preview": "^7.0.0-dev.20260122.3",
+    "@vitest/coverage-v8": "^4.0.17",
+    "@vitest/ui": "^4.0.17",
+    "agentation": "^2.3.2",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "lefthook": "^2.0.15",
+    "miniflare": "^4.20260116.0",
+    "oxfmt": "^0.24.0",
+    "oxlint": "^1.41.0",
+    "oxlint-tsgolint": "^0.19.0",
+    "rolldown": "1.0.1",
+    "turbo": "^2.8.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "overrides": {
+    "libsodium-wrappers": "0.7.13"
+  },
+  "packageManager": "bun@1.3.5",
+  "patchedDependencies": {
+    "alchemy@2.0.0-beta.55": "patches/alchemy@2.0.0-beta.55.patch"
+  }
+}

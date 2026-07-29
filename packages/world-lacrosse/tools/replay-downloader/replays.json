@@ -1,0 +1,168 @@
+{
+  "collectionUrl": "https://tv.worldlacrosse.sport/sportitemset/6a428b4e3f2b0b4028c73f62",
+  "updatedAt": "2026-07-27T11:34:31.197Z",
+  "replays": [
+    {
+      "id": "6a428ce6c20f08736b4d605a",
+      "status": "REPLAY",
+      "date": "24 Jul 26",
+      "title": "Pool D | Israel v Philippines",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a428ce6c20f08736b4d605a",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-d96d4a3a5e8fa45e/hls/index.m3u8"
+    },
+    {
+      "id": "6a428d6cc20f08736b4d60db",
+      "status": "REPLAY",
+      "date": "24 Jul 26",
+      "title": "Pool D | Japan v Czechia",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a428d6cc20f08736b4d60db",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-d96d4a3a5e8fa45e/hls/index.m3u8"
+    },
+    {
+      "id": "6a428e16c20f08736b4d6138",
+      "status": "REPLAY",
+      "date": "25 Jul 26",
+      "title": "Pool A | Ireland v USA",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a428e16c20f08736b4d6138",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-fc4ae028f162ce9e/hls/index.m3u8"
+    },
+    {
+      "id": "6a428eabe62612a95a901ab6",
+      "status": "REPLAY",
+      "date": "25 Jul 26",
+      "title": "Pool A | Haudenosaunee v Chinese Taipei",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a428eabe62612a95a901ab6",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-08c4e65980f90a2e/hls/index.m3u8"
+    },
+    {
+      "id": "6a44fce2fe28b3088517406c",
+      "status": "REPLAY",
+      "date": "25 Jul 26",
+      "title": "Pool C | England v Puerto Rico",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a44fce2fe28b3088517406c",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-a0352ce435cc1ca9/hls/index.m3u8"
+    },
+    {
+      "id": "6a4500510728da485d990b92",
+      "status": "REPLAY",
+      "date": "25 Jul 26",
+      "title": "Pool B | Wales v Germany",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a4500510728da485d990b92",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-6588a897246e55f2/hls/index.m3u8"
+    },
+    {
+      "id": "6a4501c3fe28b3088517414d",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool C | Scotland v Argentina",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a4501c3fe28b3088517414d",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-c656e8d3279ecfc8/hls/index.m3u8"
+    },
+    {
+      "id": "6a428f5ac20f08736b4d6235",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool A | USA v Haudenosaunee",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a428f5ac20f08736b4d6235",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-1dbdee0c52da4dbd/hls/index.m3u8"
+    },
+    {
+      "id": "6a4293dec20f08736b4d62c3",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool A | Chinese Taipei v Ireland",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a4293dec20f08736b4d62c3",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-339db43edab18d02/hls/index.m3u8"
+    },
+    {
+      "id": "6a45030a0728da485d990c8a",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool D | Philippines v Japan",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a45030a0728da485d990c8a",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-8dd73792ad1fe64c/hls/index.m3u8"
+    },
+    {
+      "id": "6a450483fe28b308851749af",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool D | Czechia v Israel",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a450483fe28b308851749af",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-ca85ccbc6864a17d/hls/index.m3u8"
+    },
+    {
+      "id": "6a465764d813b018dcc61bc4",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool B | Germany v Canada",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a465764d813b018dcc61bc4",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-3b9e19a7e39117f8/hls/index.m3u8"
+    },
+    {
+      "id": "6a4657ead813b018dcc61c11",
+      "status": "REPLAY",
+      "date": "26 Jul 26",
+      "title": "Pool B | Australia v Wales",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a4657ead813b018dcc61c11",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-255ab604ca5c628b/hls/index.m3u8"
+    },
+    {
+      "id": "6a42990b169b3d01aeb03880",
+      "status": "REPLAY",
+      "date": "Today",
+      "title": "Pool C | England v Scotland",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a42990b169b3d01aeb03880",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-3c8b7359b92b8b64/hls/index.m3u8"
+    },
+    {
+      "id": "6a429bf2c20f08736b4d6420",
+      "status": "REPLAY",
+      "date": "Today",
+      "title": "Pool C | Puerto Rico v Argentina",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a429bf2c20f08736b4d6420",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-804d35f1e0e2904b/hls/index.m3u8"
+    },
+    {
+      "id": "6a46589cfe28b3088517dc49",
+      "status": "REPLAY",
+      "date": "Today",
+      "title": "Pool D | Japan v Israel",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a46589cfe28b3088517dc49",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-ce5943cb3c837496/hls/index.m3u8"
+    },
+    {
+      "id": "6a4659090728da485d99a278",
+      "status": "REPLAY",
+      "date": "Today",
+      "title": "Pool D | Czechia v Philippines",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a4659090728da485d99a278",
+      "masterUrl": "https://vod.sportall.media/channel-1bc82b541365598e/broadcast-38f1cea8e5abb568/hls/index.m3u8"
+    },
+    {
+      "id": "6a649e8aac66fc321da00943",
+      "status": "REPLAY",
+      "date": "Today",
+      "title": "Pool B | Canada v Australia",
+      "competition": "2026 World Lacrosse Women’s Championship Division I",
+      "pageUrl": "https://tv.worldlacrosse.sport/sportitem/6a649e8aac66fc321da00943",
+      "masterUrl": "https://vod.sportall.media/channel-fb9ff2184e7f8e81/broadcast-8780f10e2c61a13d/hls/index.m3u8"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+# dependencies
+node_modules
+
+# pi
+.pi
+
+# ts build
+*.tsbuildinfo
+
+# content collections
+.content-collections
+
+# local marketing vault settings
+packages/marketing/src/content/**/.*
+packages/marketing/src/content/Templates
+
+# fumadocs
+.source
+
+# tmp
+tmp
+
+# claude
+.claude
+
+# ralph logs
+.ralph
+
+# coverage
+.coverage
+coverage
+
+# opencode
+.sisyphus
+
+# wrangler
+.wrangler
+wrangler.jsonc
+wrangler.json
+
+# alchemy
+.alchemy
+
+# tmp files
+.#*
+
+# env
+.env*.local
+.env
+
+# misc
+.DS_Store
+
+.turbo
+.opencode
+.opencode.json
+
+.zed
+
+node_modules
+package-lock.json
+yarn.lock
+
+.DS_Store
+.cache
+.env
+.vercel
+.output
+/build/
+/api/
+/server/build
+/public/build# Sentry Config File
+.env.sentry-build-plugin
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+dist
+dist-ssr
+*.local
+.nitro
+.tanstack
+.output
+.vinxi
+
+# pipeline extraction output
+packages/pipeline/output
