@@ -36,6 +36,10 @@ describe("MatchInsightsPanel", () => {
     expect(markup.match(/class="score-worm-goal-trigger"/gu)).toHaveLength(
       insights.goals.length,
     );
+    expect(
+      markup.match(/<button[^>]+class="score-worm-goal-trigger"/gu),
+    ).toHaveLength(insights.goals.length);
+    expect(markup).toContain("Tap, hover, or focus a goal marker for details.");
     expect(markup).not.toContain("NaN");
     expect(markup).not.toContain("Period scoring");
     expect(markup).toContain("Time leading, trailing and tied");

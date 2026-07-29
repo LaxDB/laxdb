@@ -10,13 +10,15 @@ import {
   buildArchivedTournamentSnapshot,
   buildLiveTournamentSnapshot,
   classifyLiveSnapshotFreshness,
+  CurrentTournamentSnapshot,
   nextLiveFreshnessCheckAt,
+  validateArchivedTournamentSnapshot,
 } from "../src/current-tournament";
 import {
   LiveScheduleValidationError,
   validateLiveScheduleCandidate,
 } from "../src/live-snapshot-validation";
-import { LiveSchedule, type ScheduledGame } from "../src/schema";
+import { LiveSchedule, ScheduledGame } from "../src/schema";
 import { staticTournamentMetadata } from "../src/static-tournament-data";
 import { buildStaticTournamentMetadata } from "../src/static-tournament-metadata";
 import { tournament } from "../src/tournament-data";
@@ -178,6 +180,47 @@ describe("live tournament authority", () => {
     expect(current.schedule).toEqual(tournament.schedule);
     expect(() =>
       buildArchivedTournamentSnapshot(archivedTournamentData),
+    ).toThrow(ArchiveNotReadyError);
+  });
+
+  it("rejects an otherwise complete 44-game archive with an unofficial final", () => {
+    const schedule = archivedTournamentData.schedule.map((game, index) =>
+      ScheduledGame.make({
+        id: game.id,
+        url: game.url,
+        date: game.date,
+        time: game.time,
+        phase: game.phase,
+        venue: game.venue,
+        status: index === 0 ? "UNOFFICIAL" : "OFFICIAL",
+        period: game.period,
+        home: game.home,
+        away: game.away,
+      }),
+    );
+    const snapshot = CurrentTournamentSnapshot.make({
+      source: "archive",
+      integrity: "complete",
+      updatedAt: archivedTournamentData.updatedAt,
+      nextRefreshAt: null,
+      schedule,
+      games: archivedTournamentData.games,
+      players: archivedTournamentData.players,
+      completedGames: expectedTournamentGames,
+      detailedGames: expectedTournamentGames,
+      missingDetailGameIds: [],
+      conflictedDetailGameIds: [],
+      provisional: true,
+      issues: [],
+    });
+
+    expect(snapshot.schedule).toHaveLength(44);
+    expect(snapshot.games).toHaveLength(44);
+    expect(() =>
+      validateArchivedTournamentSnapshot(
+        snapshot,
+        archivedTournamentData.expectedPlayerIds,
+      ),
     ).toThrow(ArchiveNotReadyError);
   });
 

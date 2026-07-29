@@ -186,6 +186,7 @@ export const validateArchivedTournamentSnapshot = (
     snapshot.integrity === "complete" &&
     snapshot.missingDetailGameIds.length === 0 &&
     snapshot.conflictedDetailGameIds.length === 0 &&
+    !snapshot.provisional &&
     playerProfilesComplete;
   if (!ready)
     throw new ArchiveNotReadyError(

@@ -62,7 +62,7 @@ a {
   display: grid;
   min-height: calc(100dvh - 68px);
   place-items: center;
-  padding-top: clamp(64px, 10vw, 144px);
+  padding: clamp(64px, 10vw, 144px) clamp(20px, 4vw, 64px) 0;
 }
 .tournament-data-state-page > header,
 .tournament-data-unavailable {
@@ -644,20 +644,31 @@ tbody tr:last-child td {
   content: "";
 }
 .score-worm-goal-trigger::before {
-  inset: 1px;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
   border: 1.5px solid oklch(var(--background));
   background: oklch(var(--foreground));
   box-shadow: 0 0 0 1.5px oklch(var(--foreground));
+  transform: translate(-50%, -50%);
 }
 .score-worm-goal-trigger[data-side="away"]::before {
   background: oklch(var(--orange));
   box-shadow: 0 0 0 1.5px oklch(var(--orange));
 }
 .score-worm-goal-trigger[data-game-winner]::after {
-  inset: -5px;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
   border: 1.5px solid oklch(var(--orange));
+  transform: translate(-50%, -50%);
 }
 .score-worm-goal-trigger:focus-visible {
+  outline: none;
+}
+.score-worm-goal-trigger:focus-visible::before {
   outline: 2px solid oklch(var(--foreground));
   outline-offset: 3px;
 }
@@ -679,6 +690,13 @@ tbody tr:last-child td {
 }
 @media (hover: hover) and (pointer: fine) {
   .score-worm-hover-layer {
+    pointer-events: auto;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .score-worm-goal-trigger {
+    width: 32px;
+    height: 32px;
     pointer-events: auto;
   }
 }

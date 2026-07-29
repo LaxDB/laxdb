@@ -119,11 +119,21 @@ interface ScoreWormGoalProps {
   readonly onBlur: () => void;
   readonly onDismiss: () => void;
   readonly onFocus: () => void;
+  readonly onTouchPress: () => void;
   readonly point: Readonly<WormPoint>;
 }
 
 function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
-  const { active, id, insights, onBlur, onDismiss, onFocus, point } = props;
+  const {
+    active,
+    id,
+    insights,
+    onBlur,
+    onDismiss,
+    onFocus,
+    onTouchPress,
+    point,
+  } = props;
   const { goal } = point;
   const homeLabel = insights.home.code ?? insights.home.name;
   const awayLabel = insights.away.code ?? insights.away.name;
@@ -143,15 +153,17 @@ function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
       }}
     >
       <TooltipTrigger
+        type="button"
         className="score-worm-goal-trigger"
         id={id}
-        render={<span />}
-        role="img"
-        tabIndex={0}
+        closeOnClick={false}
         aria-label={`${scorer} goal for ${goal.team}, ${periodLabel(goal.period)} ${goal.clock}. Score ${homeLabel} ${goal.score.home}, ${awayLabel} ${goal.score.away}.${assistLabel}${detailLabel}`}
         data-active={active ? "true" : undefined}
         onBlur={onBlur}
         onFocus={onFocus}
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse") onTouchPress();
+        }}
         data-game-winner={goal.gameWinner ? "true" : undefined}
         data-side={goal.side}
         style={{
@@ -199,13 +211,15 @@ export function ScoreWorm({
   const id = useId().replaceAll(":", "");
   const [focusedSequence, setFocusedSequence] = useState<number | null>(null);
   const [hoveredSequence, setHoveredSequence] = useState<number | null>(null);
-  const activeSequence = focusedSequence ?? hoveredSequence;
+  const [touchedSequence, setTouchedSequence] = useState<number | null>(null);
+  const activeSequence = touchedSequence ?? focusedSequence ?? hoveredSequence;
 
   useEffect(() => {
     const dismissOnEscape = (event: Readonly<KeyboardEvent>) => {
       if (event.key !== "Escape") return;
       setFocusedSequence(null);
       setHoveredSequence(null);
+      setTouchedSequence(null);
     };
 
     if (activeSequence !== null) {
@@ -389,9 +403,19 @@ export function ScoreWorm({
               onDismiss={() => {
                 setFocusedSequence(null);
                 setHoveredSequence(null);
+                setTouchedSequence(null);
               }}
               onFocus={() => {
                 setFocusedSequence(point.goal.sequence);
+              }}
+              onTouchPress={() => {
+                if (activeSequence === point.goal.sequence) {
+                  setFocusedSequence(null);
+                  setHoveredSequence(null);
+                  setTouchedSequence(null);
+                } else {
+                  setTouchedSequence(point.goal.sequence);
+                }
               }}
               point={point}
             />
@@ -425,8 +449,8 @@ export function ScoreWorm({
             {insights.away.name} lead
           </span>
           <small>
-            Hover or focus a goal marker for details. Distance from the center
-            line is the goal margin.
+            Tap, hover, or focus a goal marker for details. Distance from the
+            center line is the goal margin.
           </small>
         </figcaption>
       </figure>
