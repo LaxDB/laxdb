@@ -1,3 +1,8 @@
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@laxdb/ui/components/ui/tooltip";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
@@ -167,7 +172,9 @@ const ratioStat = (
     : { numerator, denominator, percentage };
 };
 
-const penaltyMinutesStat = (value: string | undefined): number | null => {
+export const penaltyMinutesStat = (
+  value: string | undefined,
+): number | null => {
   const match = value?.trim().match(/^\((\d+)(?::([0-5]\d))? min\)$/u);
   const minutes = strictNumber(match?.[1]);
   if (minutes === null) return null;
@@ -175,7 +182,7 @@ const penaltyMinutesStat = (value: string | undefined): number | null => {
   return seconds === null ? null : minutes + seconds / 60;
 };
 
-const currentTeamSavePercentage = (
+export const teamSavePercentage = (
   games: readonly GameDetails[],
   team: string,
   expectedGames: number,
@@ -186,6 +193,7 @@ const currentTeamSavePercentage = (
       (game.home.name === team || game.away.name === team),
   );
   if (teamGames.length !== expectedGames || teamGames.length === 0) return null;
+
   let saves = 0;
   let shotsAgainst = 0;
   for (const game of teamGames) {
@@ -213,6 +221,7 @@ const currentTeamSavePercentage = (
     saves += ratio.numerator;
     shotsAgainst += ratio.denominator;
   }
+
   return shotsAgainst === 0 ? null : (saves / shotsAgainst) * 100;
 };
 
@@ -406,13 +415,42 @@ const playerIdentityColumn: ColumnDef<PlayerRow> = {
     ),
 };
 
+function StatisticHeader({
+  abbreviation,
+  label,
+}: {
+  abbreviation: string;
+  label: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<span className="statistics-stat-abbreviation" />}
+      >
+        {abbreviation}
+      </TooltipTrigger>
+      <TooltipContent
+        className="statistics-stat-tooltip"
+        side="top"
+        sideOffset={6}
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+const statisticHeader = (abbreviation: string, label: string) => () => (
+  <StatisticHeader abbreviation={abbreviation} label={label} />
+);
+
 const playerStatColumn = (
   accessorKey: keyof PlayerRow,
   abbreviation: string,
   label: string,
 ): ColumnDef<PlayerRow> => ({
   accessorKey,
-  header: () => <abbr title={label}>{abbreviation}</abbr>,
+  header: statisticHeader(abbreviation, label),
 });
 
 export const buildPlayerColumns = (
@@ -434,7 +472,7 @@ export const buildPlayerColumns = (
         ),
         {
           accessorKey: "saves",
-          header: () => <abbr title="Saves">SV</abbr>,
+          header: statisticHeader("SV", "Saves"),
           cell: (info) => info.row.original.saves ?? "—",
         } satisfies ColumnDef<PlayerRow>,
       ]
@@ -456,7 +494,6 @@ export const buildPlayerColumns = (
   playerStatColumn("drawControls", "DC", "Draw controls"),
   playerStatColumn("turnovers", "TO", "Turnovers"),
   playerStatColumn("causedTurnovers", "CT", "Caused turnovers"),
-  playerStatColumn("greenCards", "GC", "Green cards"),
   playerStatColumn("yellowCards", "YC", "Yellow cards"),
   playerStatColumn("redCards", "RC", "Red cards"),
 ];
@@ -472,151 +509,136 @@ const teamColumns: ColumnDef<TeamRow>[] = [
     ),
   },
   { accessorKey: "pool", header: "Pool" },
-  { accessorKey: "played", header: () => <abbr title="Played">P</abbr> },
-  { accessorKey: "wins", header: () => <abbr title="Wins">W</abbr> },
-  { accessorKey: "losses", header: () => <abbr title="Losses">L</abbr> },
+  { accessorKey: "played", header: statisticHeader("P", "Played") },
+  { accessorKey: "wins", header: statisticHeader("W", "Wins") },
+  { accessorKey: "losses", header: statisticHeader("L", "Losses") },
   {
     accessorKey: "winPercentage",
-    header: () => <abbr title="Win percentage">W%</abbr>,
+    header: statisticHeader("W%", "Win percentage"),
     cell: (info) => percentageCell(info.row.original.winPercentage),
   },
-  { accessorKey: "goalsFor", header: () => <abbr title="Goals for">GF</abbr> },
+  { accessorKey: "goalsFor", header: statisticHeader("GF", "Goals for") },
   {
     accessorKey: "goalsAgainst",
-    header: () => <abbr title="Goals against">GA</abbr>,
+    header: statisticHeader("GA", "Goals against"),
   },
   {
     accessorKey: "goalDifference",
-    header: () => <abbr title="Goal difference">GD</abbr>,
+    header: statisticHeader("GD", "Goal difference"),
   },
   {
     accessorKey: "goalsPerGame",
-    header: () => <abbr title="Goals for per game">GF/G</abbr>,
+    header: statisticHeader("GF/G", "Goals for per game"),
     cell: (info) => decimalCell(info.row.original.goalsPerGame),
   },
   {
     accessorKey: "goalsAgainstPerGame",
-    header: () => <abbr title="Goals against per game">GA/G</abbr>,
+    header: statisticHeader("GA/G", "Goals against per game"),
     cell: (info) => decimalCell(info.row.original.goalsAgainstPerGame),
   },
   {
-    accessorKey: "points",
-    header: () => <abbr title="Points">PTS</abbr>,
-    cell: (info) => info.row.original.points ?? "—",
-  },
-  {
-    accessorKey: "pointsPerGame",
-    header: () => <abbr title="Points per game">PTS/G</abbr>,
-    cell: (info) => decimalCell(info.row.original.pointsPerGame),
-  },
-  {
     accessorKey: "assists",
-    header: () => <abbr title="Assists">A</abbr>,
+    header: statisticHeader("A", "Assists"),
     cell: (info) => info.row.original.assists ?? "—",
   },
   {
     accessorKey: "assistsPerGame",
-    header: () => <abbr title="Assists per game">A/G</abbr>,
+    header: statisticHeader("A/G", "Assists per game"),
     cell: (info) => decimalCell(info.row.original.assistsPerGame),
   },
   {
     accessorKey: "totalShots",
-    header: () => <abbr title="Shots">SH</abbr>,
+    header: statisticHeader("SH", "Shots"),
     cell: (info) => info.row.original.totalShots ?? "—",
   },
   {
     accessorKey: "shotsPerGame",
-    header: () => <abbr title="Shots per game">SH/G</abbr>,
+    header: statisticHeader("SH/G", "Shots per game"),
     cell: (info) => decimalCell(info.row.original.shotsPerGame),
   },
   {
     accessorKey: "shotsOnGoal",
-    header: () => <abbr title="Shots on goal">SOG</abbr>,
+    header: statisticHeader("SOG", "Shots on goal"),
     cell: (info) => info.row.original.shotsOnGoal ?? "—",
   },
   {
     accessorKey: "shotsOnGoalPerGame",
-    header: () => <abbr title="Shots on goal per game">SOG/G</abbr>,
+    header: statisticHeader("SOG/G", "Shots on goal per game"),
     cell: (info) => decimalCell(info.row.original.shotsOnGoalPerGame),
   },
   {
     accessorKey: "shootingPercentage",
-    header: () => <abbr title="Shooting percentage">SH%</abbr>,
+    header: statisticHeader("SH%", "Shooting percentage"),
     cell: (info) => percentageCell(info.row.original.shootingPercentage),
   },
   {
     accessorKey: "groundBalls",
-    header: () => <abbr title="Ground balls">GB</abbr>,
+    header: statisticHeader("GB", "Ground balls"),
     cell: (info) => info.row.original.groundBalls ?? "—",
   },
   {
     accessorKey: "groundBallsPerGame",
-    header: () => <abbr title="Ground balls per game">GB/G</abbr>,
+    header: statisticHeader("GB/G", "Ground balls per game"),
     cell: (info) => decimalCell(info.row.original.groundBallsPerGame),
   },
   {
     accessorKey: "turnovers",
-    header: () => <abbr title="Turnovers">TO</abbr>,
+    header: statisticHeader("TO", "Turnovers"),
     cell: (info) => info.row.original.turnovers ?? "—",
   },
   {
     accessorKey: "turnoversPerGame",
-    header: () => <abbr title="Turnovers per game">TO/G</abbr>,
+    header: statisticHeader("TO/G", "Turnovers per game"),
     cell: (info) => decimalCell(info.row.original.turnoversPerGame),
   },
   {
     accessorKey: "causedTurnovers",
-    header: () => <abbr title="Caused turnovers">CT</abbr>,
+    header: statisticHeader("CT", "Caused turnovers"),
     cell: (info) => info.row.original.causedTurnovers ?? "—",
   },
   {
     accessorKey: "causedTurnoversPerGame",
-    header: () => <abbr title="Caused turnovers per game">CT/G</abbr>,
+    header: statisticHeader("CT/G", "Caused turnovers per game"),
     cell: (info) => decimalCell(info.row.original.causedTurnoversPerGame),
   },
   {
     accessorKey: "drawControls",
-    header: () => <abbr title="Draw controls won">DC</abbr>,
+    header: statisticHeader("DC", "Draw controls won"),
     cell: (info) => info.row.original.drawControls ?? "—",
   },
   {
     accessorKey: "drawPercentage",
-    header: () => <abbr title="Draw-control percentage">DC%</abbr>,
+    header: statisticHeader("DC%", "Draw-control percentage"),
     cell: (info) => percentageCell(info.row.original.drawPercentage),
   },
   {
     accessorKey: "saves",
-    header: () => <abbr title="Saves">SV</abbr>,
+    header: statisticHeader("SV", "Saves"),
     cell: (info) => info.row.original.saves ?? "—",
   },
   {
     accessorKey: "savesPerGame",
-    header: () => <abbr title="Saves per game">SV/G</abbr>,
+    header: statisticHeader("SV/G", "Saves per game"),
     cell: (info) => decimalCell(info.row.original.savesPerGame),
   },
   {
     accessorKey: "savePercentage",
-    header: () => <abbr title="Save percentage">SV%</abbr>,
+    header: statisticHeader("SV%", "Save percentage"),
     cell: (info) => percentageCell(info.row.original.savePercentage),
   },
   {
     accessorKey: "penaltyMinutes",
-    header: () => <abbr title="Penalty minutes">PIM</abbr>,
+    header: statisticHeader("PIM", "Penalty minutes"),
     cell: (info) => decimalCell(info.row.original.penaltyMinutes),
   },
   {
-    accessorKey: "greenCards",
-    header: () => <abbr title="Green cards">GC</abbr>,
-    cell: (info) => info.row.original.greenCards ?? "—",
-  },
-  {
     accessorKey: "yellowCards",
-    header: () => <abbr title="Yellow cards">YC</abbr>,
+    header: statisticHeader("YC", "Yellow cards"),
     cell: (info) => info.row.original.yellowCards ?? "—",
   },
   {
     accessorKey: "redCards",
-    header: () => <abbr title="Red cards">RC</abbr>,
+    header: statisticHeader("RC", "Red cards"),
     cell: (info) => info.row.original.redCards ?? "—",
   },
 ];
@@ -684,7 +706,7 @@ export function StatisticsPage() {
         const redCards =
           strictNumber(summary.stats["Red Cards"]) ??
           playerCardTotal("redCards");
-        const savePercentage = currentTeamSavePercentage(
+        const savePercentage = teamSavePercentage(
           snapshot.games,
           team.name,
           played,

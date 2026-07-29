@@ -6,7 +6,9 @@ import { DataTable } from "../src/components/data-table";
 import {
   buildPlayerColumns,
   buildPlayerRows,
+  penaltyMinutesStat,
   playerDataCoverageComplete,
+  teamSavePercentage,
 } from "../src/pages/statistics-page";
 import { GameDetails } from "../src/schema";
 import { buildTournamentContext } from "../src/tournament-context";
@@ -104,7 +106,6 @@ describe("statistics page player rows", () => {
       "DC",
       "TO",
       "CT",
-      "GC",
       "YC",
       "RC",
     ])
@@ -112,6 +113,9 @@ describe("statistics page player rows", () => {
     expect(markup).toContain(">#<");
     expect(markup).not.toContain(">RA<");
     expect(markup).not.toContain(">SH%<");
+    expect(markup).not.toContain(">GC<");
+    expect(markup).not.toContain("title=");
+    expect(markup).toContain("statistics-stat-abbreviation");
   });
 
   it("shows saves and the full stat line for goalkeepers", () => {
@@ -125,6 +129,47 @@ describe("statistics page player rows", () => {
 
     for (const heading of ["GS", "PS", "SV", "PTS", "G", "A", "GB", "TO", "CT"])
       expect(markup).toContain(`>${heading}<`);
+  });
+
+  it("parses zero and non-zero penalty minutes", () => {
+    expect(penaltyMinutesStat("(0 min)")).toBe(0);
+    expect(penaltyMinutesStat("(15 min)")).toBe(15);
+    expect(penaltyMinutesStat("(1:30 min)")).toBe(1.5);
+  });
+
+  it("derives save percentage only from complete, reconciled game evidence", () => {
+    const game = championship.games.find((candidate) => candidate.id === "107");
+    const philippinesStats = game?.teamStats.find(
+      (candidate) => candidate.team === "Philippines",
+    );
+    expect(game).toBeDefined();
+    expect(philippinesStats).toBeDefined();
+    if (!game || !philippinesStats) return;
+
+    expect(teamSavePercentage([game], "Philippines", 1)).toBe(40);
+    expect(teamSavePercentage([game], "Philippines", 2)).toBeNull();
+
+    const duplicateEvidence = GameDetails.make({
+      id: game.id,
+      url: game.url,
+      competition: game.competition,
+      phase: game.phase,
+      date: game.date,
+      time: game.time,
+      venue: game.venue,
+      status: game.status,
+      home: game.home,
+      away: game.away,
+      periodScores: game.periodScores,
+      teamStats: [...game.teamStats, philippinesStats],
+      plays: game.plays,
+      derivedPlayerStats: game.derivedPlayerStats,
+      rosters: game.rosters,
+      officials: game.officials,
+    });
+    expect(
+      teamSavePercentage([duplicateEvidence], "Philippines", 1),
+    ).toBeNull();
   });
 
   it("withholds saves when a game contains duplicate roster evidence", () => {
