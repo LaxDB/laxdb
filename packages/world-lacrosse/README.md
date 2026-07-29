@@ -20,9 +20,11 @@ The sync pipeline captures:
 bun run --cwd packages/world-lacrosse dev
 ```
 
-Open `http://localhost:3010`. Routes include `/schedule`, `/teams`, `/standings`, `/statistics`, `/analysis`, `/compare/:leftTeamId/:rightTeamId`, `/format`, `/games/:gameId`, `/players/:playerId`, and `/teams/:teamId`. Team routes combine the current match ledger, pool position, reconciled performance rates, game-state and scoring profiles, recorded player leaders, squad metadata, and staff. Upcoming fixtures replace empty match analysis with a descriptive comparison of both teams' official, reconciled prior games.
+Open `http://localhost:3010`. Routes include `/schedule`, `/teams`, `/standings`, `/statistics`, `/analysis`, `/compare/:leftTeamId/:rightTeamId`, `/evaluate/:teamId`, `/format`, `/games/:gameId`, `/players/:playerId`, and `/teams/:teamId`. Team routes combine the current match ledger, pool position, reconciled performance rates, game-state and scoring profiles, recorded player leaders, squad metadata, and staff. Upcoming fixtures replace empty match analysis with a descriptive comparison of both teams' official, reconciled prior games.
 
 The comparison route preserves the selected left/right order and covers the full current tournament snapshot rather than a pre-fixture sample. It pools verified totals and rate numerators/denominators across each team's official, final-reconciled games, discloses a separate sample for every metric, and withholds unsupported values. For example, `/compare/25/24` compares Australia with the United States of America. Direct meetings appear only when the selected teams have an analytically eligible current-tournament game.
+
+The evaluation lab compares any two custom game samples for one team across the same 87 team metrics and metric-local player evidence. It supports wins/losses, exact games and opponents, game/opponent exclusions, leave-team-out opponent record groups, phases, venues, and arbitrary checkbox scopes. Player scoring can also be inspected by quarter, half, and overtime. Team dossiers and player profiles deep-link into the lab; see [`docs/TEAM_EVALUATION.md`](docs/TEAM_EVALUATION.md) for formulas and limitations.
 
 ## Product roadmap
 
