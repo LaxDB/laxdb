@@ -626,7 +626,7 @@ tbody tr:last-child td {
 }
 .score-worm-goal-trigger {
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   width: 10px;
   height: 10px;
   padding: 0;
@@ -634,7 +634,7 @@ tbody tr:last-child td {
   border-radius: 50%;
   background: transparent;
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  pointer-events: auto;
 }
 .score-worm-goal-trigger::before,
 .score-worm-goal-trigger::after {

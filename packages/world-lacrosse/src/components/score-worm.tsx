@@ -6,7 +6,7 @@ import {
 import {
   useEffect,
   useId,
-  useState,
+  useReducer,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
@@ -18,6 +18,11 @@ import {
 import type { MatchInsightGoal, MatchInsights } from "../match-insights-schema";
 
 import { nearestScoreWormGoal } from "./score-worm-geometry";
+import {
+  activeScoreWormSequence,
+  initialScoreWormInteraction,
+  reduceScoreWormInteraction,
+} from "./score-worm-interaction";
 
 const chartWidth = 900;
 const chartHeight = 280;
@@ -112,26 +117,32 @@ const goalDetails = (goal: Readonly<MatchInsightGoal>): readonly string[] => {
   return details;
 };
 
+interface TooltipChangeDetails {
+  readonly reason: string;
+}
+
 interface ScoreWormGoalProps {
+  readonly activated: boolean;
   readonly active: boolean;
   readonly id: string;
   readonly insights: Readonly<MatchInsights>;
+  readonly onActivate: () => void;
   readonly onBlur: () => void;
   readonly onDismiss: () => void;
   readonly onFocus: () => void;
-  readonly onTouchPress: () => void;
   readonly point: Readonly<WormPoint>;
 }
 
 function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
   const {
+    activated,
     active,
     id,
     insights,
+    onActivate,
     onBlur,
     onDismiss,
     onFocus,
-    onTouchPress,
     point,
   } = props;
   const { goal } = point;
@@ -143,27 +154,31 @@ function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
   const assistLabel = goal.recordedAssist
     ? ` Assist by ${goal.recordedAssist.name}.`
     : "";
+  const handleOpenChange = (
+    open: boolean,
+    eventDetails: Readonly<TooltipChangeDetails>,
+  ) => {
+    if (
+      !open &&
+      ["escape-key", "outside-press"].includes(eventDetails.reason)
+    ) {
+      onDismiss();
+    }
+  };
 
   return (
-    <Tooltip
-      open={active}
-      triggerId={id}
-      onOpenChange={(open) => {
-        if (!open) onDismiss();
-      }}
-    >
+    <Tooltip open={active} triggerId={id} onOpenChange={handleOpenChange}>
       <TooltipTrigger
         type="button"
         className="score-worm-goal-trigger"
         id={id}
         closeOnClick={false}
         aria-label={`${scorer} goal for ${goal.team}, ${periodLabel(goal.period)} ${goal.clock}. Score ${homeLabel} ${goal.score.home}, ${awayLabel} ${goal.score.away}.${assistLabel}${detailLabel}`}
+        aria-pressed={activated}
         data-active={active ? "true" : undefined}
         onBlur={onBlur}
+        onClick={onActivate}
         onFocus={onFocus}
-        onPointerDown={(event) => {
-          if (event.pointerType !== "mouse") onTouchPress();
-        }}
         data-game-winner={goal.gameWinner ? "true" : undefined}
         data-side={goal.side}
         style={{
@@ -209,17 +224,16 @@ export function ScoreWorm({
   readonly insights: Readonly<MatchInsights>;
 }) {
   const id = useId().replaceAll(":", "");
-  const [focusedSequence, setFocusedSequence] = useState<number | null>(null);
-  const [hoveredSequence, setHoveredSequence] = useState<number | null>(null);
-  const [touchedSequence, setTouchedSequence] = useState<number | null>(null);
-  const activeSequence = touchedSequence ?? focusedSequence ?? hoveredSequence;
+  const [interaction, dispatchInteraction] = useReducer(
+    reduceScoreWormInteraction,
+    initialScoreWormInteraction,
+  );
+  const activeSequence = activeScoreWormSequence(interaction);
 
   useEffect(() => {
     const dismissOnEscape = (event: Readonly<KeyboardEvent>) => {
       if (event.key !== "Escape") return;
-      setFocusedSequence(null);
-      setHoveredSequence(null);
-      setTouchedSequence(null);
+      dispatchInteraction({ type: "dismiss" });
     };
 
     if (activeSequence !== null) {
@@ -265,6 +279,7 @@ export function ScoreWorm({
   const handlePointerMove = (
     event: Readonly<ReactPointerEvent<HTMLDivElement>>,
   ) => {
+    if (event.pointerType === "touch") return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const sequence = nearestScoreWormGoal(
       hitPoints,
@@ -273,7 +288,7 @@ export function ScoreWorm({
       bounds.width / chartWidth,
       bounds.height / chartHeight,
     );
-    setHoveredSequence(sequence);
+    dispatchInteraction({ type: "hover", sequence });
   };
   const maximumMargin = Math.max(
     1,
@@ -297,7 +312,13 @@ export function ScoreWorm({
         <h3 id={`${id}-heading`}>Score worm</h3>
       </header>
       <figure className="score-worm-figure">
-        <div className="score-worm-plot">
+        <div
+          className="score-worm-plot"
+          onPointerLeave={() => {
+            dispatchInteraction({ type: "hover", sequence: null });
+          }}
+          onPointerMove={handlePointerMove}
+        >
           <div className="score-worm-y-labels" aria-hidden="true">
             <span>
               {insights.home.name} +{maximumMargin}
@@ -393,41 +414,33 @@ export function ScoreWorm({
           </svg>
           {points.map((point) => (
             <ScoreWormGoal
+              activated={interaction.activatedSequence === point.goal.sequence}
               active={activeSequence === point.goal.sequence}
               id={`${id}-goal-${point.goal.sequence}`}
               insights={insights}
               key={point.goal.sequence}
+              onActivate={() => {
+                dispatchInteraction({
+                  type: "activate",
+                  sequence: point.goal.sequence,
+                });
+              }}
               onBlur={() => {
-                setFocusedSequence(null);
+                dispatchInteraction({ type: "blur" });
               }}
               onDismiss={() => {
-                setFocusedSequence(null);
-                setHoveredSequence(null);
-                setTouchedSequence(null);
+                dispatchInteraction({ type: "dismiss" });
               }}
               onFocus={() => {
-                setFocusedSequence(point.goal.sequence);
-              }}
-              onTouchPress={() => {
-                if (activeSequence === point.goal.sequence) {
-                  setFocusedSequence(null);
-                  setHoveredSequence(null);
-                  setTouchedSequence(null);
-                } else {
-                  setTouchedSequence(point.goal.sequence);
-                }
+                dispatchInteraction({
+                  type: "focus",
+                  sequence: point.goal.sequence,
+                });
               }}
               point={point}
             />
           ))}
-          <div
-            className="score-worm-hover-layer"
-            aria-hidden="true"
-            onPointerLeave={() => {
-              setHoveredSequence(null);
-            }}
-            onPointerMove={handlePointerMove}
-          />
+          <div className="score-worm-hover-layer" aria-hidden="true" />
         </div>
         <div className="score-worm-periods" aria-hidden="true">
           {displayPeriods.map((period) => (
