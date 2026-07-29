@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from "react";
 
 import { PageMetadata } from "../components/page-metadata";
 import { TeamAnalysisPanel } from "../components/team-analysis-panel";
+import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import {
   type CurrentTournamentSnapshot,
@@ -20,21 +21,24 @@ import {
 } from "../game-status";
 import { selectMatchday } from "../matchday";
 import { scheduleDateLabel } from "../schedule-date";
-import type { ScheduledGame, TeamDetails } from "../schema";
+import type { ScheduledGame } from "../schema";
 import { buildCurrentStandings, formatGoalDifference } from "../standings";
+import {
+  staticTournamentMetadata,
+  type StaticTeamProfile,
+} from "../static-tournament-data";
 import { buildTeamAnalysis } from "../team-analysis";
 import { buildCurrentTeamSummary } from "../team-summary";
-import { tournament } from "../tournament-data";
 
 const sourceBase =
   "https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship";
 const pools = ["A", "B", "C", "D"] as const;
-const tournamentTeamPools = tournament.teams.map((team) => ({
+const tournamentTeamPools = staticTournamentMetadata.teams.map((team) => ({
   name: team.name,
   pool: team.pool,
 }));
 const tournamentTeamByName = new Map(
-  tournament.teams.map((team) => [team.name, team]),
+  staticTournamentMetadata.teams.map((team) => [team.name, team]),
 );
 const gameHasFollowedTeam = (
   game: Readonly<ScheduledGame>,
@@ -56,11 +60,13 @@ const Page = ({
   title,
   description,
   source,
+  showTournamentStatus = false,
   children,
 }: {
   title: string;
   description?: string;
   source?: string;
+  showTournamentStatus?: boolean;
   children: ReactNode;
 }) => (
   <main>
@@ -80,6 +86,7 @@ const Page = ({
           : undefined
       }
     />
+    {showTournamentStatus && <TournamentDataStatus />}
     <article id="main-content" className="tournament-page">
       <header className="page-title">
         <h1>{title}</h1>
@@ -124,7 +131,10 @@ const StandingsTables = ({
   readonly schedule: readonly ScheduledGame[];
   readonly showFollowing?: boolean;
 }) => {
-  const standings = buildCurrentStandings(schedule, tournament.teams);
+  const standings = buildCurrentStandings(
+    schedule,
+    staticTournamentMetadata.teams,
+  );
   const { followedTeamIds, toggleTeam } = useFollowedTeams();
   const followedRows = standings.flatMap((standing) => {
     const team = tournamentTeamByName.get(standing.team);
@@ -322,6 +332,7 @@ export function HomePage() {
     <main>
       <PageMetadata description="Schedules, results, standings, player statistics, and game analysis for the 2026 World Lacrosse Women's Championship." />
       <TournamentHeader />
+      <TournamentDataStatus />
       <article id="main-content" className="tournament-page home-page">
         <header className="home-intro">
           <h1 className="sr-only">2026 Women&apos;s Lacrosse Championship</h1>
@@ -417,7 +428,7 @@ export function SchedulePage() {
   const followedTeamNames = useMemo(
     () =>
       new Set(
-        tournament.teams
+        staticTournamentMetadata.teams
           .filter((team) => followedTeamIds.includes(team.id))
           .map((team) => team.name),
       ),
@@ -499,7 +510,7 @@ export function SchedulePage() {
   );
 
   return (
-    <Page title="Schedule" source="schedule">
+    <Page title="Schedule" source="schedule" showTournamentStatus>
       <div className="schedule-list">
         {currentAndUpcomingDates.map(renderDate)}
         {earlierDates.length > 0 && (
@@ -522,6 +533,7 @@ export function StandingsPage() {
       title="Standings"
       description="Pool standings and team pages for the 2026 World Lacrosse Women's Championship."
       source="standings"
+      showTournamentStatus
     >
       <StandingsTables schedule={snapshot.schedule} showFollowing />
     </Page>
@@ -653,7 +665,9 @@ export function TeamRoutePage() {
 
 function TeamDetailsPage({ teamId }: { teamId: string }) {
   const snapshot = useCurrentTournamentSnapshot();
-  const team = tournament.teamDetails.find((item) => item.id === teamId);
+  const team = staticTournamentMetadata.teamProfiles.find(
+    (item) => item.id === teamId,
+  );
   if (!team)
     return (
       <Page title="Team not found">
@@ -668,7 +682,7 @@ function TeamDetailsContent({
   team,
   snapshot,
 }: {
-  readonly team: TeamDetails;
+  readonly team: StaticTeamProfile;
   readonly snapshot: CurrentTournamentSnapshot;
 }) {
   const { followedTeamIds, toggleTeam } = useFollowedTeams();
@@ -683,7 +697,7 @@ function TeamDetailsContent({
   );
   const standing = buildCurrentStandings(
     snapshot.schedule,
-    tournament.teams,
+    staticTournamentMetadata.teams,
   ).find((candidate) => candidate.team === team.name);
   const nextGame = analysis.games.find(
     (game) =>
@@ -701,9 +715,9 @@ function TeamDetailsContent({
   const tournamentGoalsAvailable =
     Number.isSafeInteger(tournamentGoalsFor) &&
     Number.isSafeInteger(tournamentGoalsAgainst);
-  const organization = team.info.Organization;
+  const organization = team.organization;
   const showOrganization =
-    organization !== undefined &&
+    organization !== null &&
     organization !== team.name &&
     organization !== team.code;
   return (
@@ -711,6 +725,7 @@ function TeamDetailsContent({
       title={team.name}
       description={`${team.name} results, tournament statistics, player leaders, squad, and staff.`}
       source={team.url}
+      showTournamentStatus
     >
       <section className="team-competition-brief" aria-label="Team summary">
         <div className="team-brief-flag">

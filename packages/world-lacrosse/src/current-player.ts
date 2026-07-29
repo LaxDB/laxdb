@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 
 import { isFinalGameStatus } from "./game-status";
-import type { GameDetails, PlayerDetails } from "./schema";
+import type { GameDetails } from "./schema";
+import type { StaticPlayerProfile } from "./static-tournament-data";
 
 const NonNegativeInteger = Schema.Number.check(
   Schema.isInt(),
@@ -53,7 +54,7 @@ const percentage = (made: number, attempts: number): string =>
   attempts === 0 ? "—" : `${((made / attempts) * 100).toFixed(1)}%`;
 
 export const buildCurrentPlayerSummary = (
-  player: Readonly<PlayerDetails>,
+  player: Readonly<StaticPlayerProfile>,
   games: readonly GameDetails[],
 ): CurrentPlayerSummary => {
   const currentGames = games.filter(

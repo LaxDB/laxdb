@@ -6,9 +6,9 @@ import {
   LiveSchedule,
   ScheduledGame,
   Team,
-  TeamDetails,
   TeamStat,
 } from "../src/schema";
+import { StaticTeamProfile } from "../src/static-tournament-data";
 import { buildCurrentTeamSummary } from "../src/team-summary";
 
 const team = (name: string, score: number) =>
@@ -67,7 +67,7 @@ const details = (
     officials: [],
   });
 
-const australia = TeamDetails.make({
+const australia = StaticTeamProfile.make({
   pool: "B",
   id: "25",
   code: "AUS",
@@ -75,32 +75,9 @@ const australia = TeamDetails.make({
   flagUrl: null,
   sourceUrl: "https://example.com/teams/25",
   url: "https://example.com/teams/25",
-  info: {},
+  organization: null,
   players: [],
   officials: [],
-  record: {
-    "Matches Played": "2",
-    Wins: "1",
-    Losses: "1",
-    "Win Percentage": "50%",
-  },
-  stats: {
-    "Matches Played": "2",
-    Assists: "7",
-    Penalties: "(8 min)",
-    Goals: "20",
-    "Shots on Goal": "31",
-    Points: "27",
-    "Goals Allowed": "20",
-    GK: "9",
-    "Draw Controls": "24/46 (52.2%)",
-    Turnovers: "27",
-    "Ground Balls": "17",
-    "Caused Turnovers": "16",
-    "Yellow Cards": "4",
-    "Power Play Goals Against": "0",
-  },
-  contributions: [],
 });
 
 const australiaWales = scheduleGame("76", "Australia", 9, "Wales", 7);
@@ -190,7 +167,7 @@ describe("current team summary", () => {
       detailedGames: 3,
       provisional: false,
     });
-    expect(summary.retainedSnapshotFields).toContain(
+    expect(Object.keys(summary.stats)).not.toContain(
       "Power Play Goals Against",
     );
   });

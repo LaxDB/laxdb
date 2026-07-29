@@ -9,7 +9,10 @@ export default defineConfig({
     {
       name: "world-lacrosse-generated-data-full-reload",
       handleHotUpdate({ file, server }) {
-        if (file.endsWith("/src/generated/dataset.json")) {
+        if (
+          file.endsWith("/src/generated/dataset.json") ||
+          file.endsWith("/src/generated/metadata.json")
+        ) {
           server.ws.send({ type: "full-reload" });
           return [];
         }

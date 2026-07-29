@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 
 import { buildAnalysisData } from "../analysis-data";
-import { championship } from "../championship-data";
 import { PageMetadata } from "../components/page-metadata";
 import { TournamentContextOverview } from "../components/tournament-context-overview";
+import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
+import { staticTournamentMetadata } from "../static-tournament-data";
 import { buildTournamentContext } from "../tournament-context";
-import { tournament } from "../tournament-data";
 
 const sourceUrl =
   "https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship/tournament-stats/";
@@ -180,8 +180,8 @@ export function AdvancedStatisticsPage() {
     () =>
       buildTournamentContext(snapshot.games, {
         sourceUpdatedAt: snapshot.updatedAt,
-        players: championship.players,
-        teamPools: tournament.teams.map((team) => ({
+        players: snapshot.players,
+        teamPools: staticTournamentMetadata.teams.map((team) => ({
           name: team.name,
           pool: team.pool,
         })),
@@ -234,6 +234,7 @@ export function AdvancedStatisticsPage() {
         description="Tournament records, team form, player leaders, and match analysis from the 2026 World Lacrosse Women's Championship."
       />
       <TournamentHeader sourceUrl={sourceUrl} />
+      <TournamentDataStatus />
       <article id="main-content" className="tournament-page advanced-page">
         <header className="page-title">
           <h1>Analysis</h1>

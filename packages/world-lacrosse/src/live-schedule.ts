@@ -1,41 +1,80 @@
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Schema } from "effect";
 
 import { isActiveGameStatus } from "./game-status";
+import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { LiveSchedule } from "./schema";
-import { tournament } from "./tournament-data";
 
 const decodeLiveSchedule = Schema.decodeUnknownSync(LiveSchedule);
-const initialSchedule = LiveSchedule.make({
-  updatedAt: tournament.scrapedAt,
-  nextRefreshAt: tournament.scrapedAt,
-  schedule: tournament.schedule,
-  games: [],
-});
+
+export const liveScheduleQueryKey = [
+  "world-lacrosse",
+  "live-schedule",
+] as const;
+
+const productionEndpoint = "https://live.world.laxdb.io/schedule";
+const requestTimeoutMs = 5_000;
 
 const endpoint = (): string =>
-  import.meta.env.VITE_LIVE_SCORES_URL ??
-  "https://live.world.laxdb.io/schedule";
+  import.meta.env.VITE_LIVE_SCORES_URL ?? productionEndpoint;
 
-export const fetchLiveSchedule = async (): Promise<LiveSchedule> => {
-  const response = await fetch(endpoint(), { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Live scores returned HTTP ${response.status}`);
+export const fetchLiveSchedule = async (
+  previous?: Readonly<LiveSchedule>,
+  querySignal?: AbortSignal,
+): Promise<LiveSchedule> => {
+  const controller = new AbortController();
+  const cancelRequest = (): void => {
+    controller.abort();
+  };
+  if (querySignal?.aborted) cancelRequest();
+  else querySignal?.addEventListener("abort", cancelRequest, { once: true });
+  const timeout = setTimeout(cancelRequest, requestTimeoutMs);
+  try {
+    const response = await fetch(endpoint(), {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Live scores returned HTTP ${response.status}`);
+    }
+    return validateLiveScheduleCandidate(
+      decodeLiveSchedule(await response.json()),
+      previous,
+    );
+  } finally {
+    clearTimeout(timeout);
+    querySignal?.removeEventListener("abort", cancelRequest);
   }
-  return decodeLiveSchedule(await response.json());
 };
 
-export const useLiveSchedule = () =>
-  useQuery({
-    queryKey: ["world-lacrosse", "live-schedule"],
-    queryFn: fetchLiveSchedule,
-    initialData: initialSchedule,
-    initialDataUpdatedAt: 0,
-    refetchInterval: (query) =>
-      query.state.data?.schedule.some((game) => isActiveGameStatus(game.status))
-        ? 30_000
-        : 60_000,
+export const liveScheduleQueryOptions = (
+  enabled: boolean,
+  previous: () => LiveSchedule | undefined,
+) =>
+  queryOptions({
+    queryKey: liveScheduleQueryKey,
+    queryFn: ({ signal }) => fetchLiveSchedule(previous(), signal),
+    enabled,
+    gcTime: Infinity,
+    refetchInterval: enabled
+      ? (query) =>
+          query.state.data?.schedule.some((game) =>
+            isActiveGameStatus(game.status),
+          )
+            ? 30_000
+            : 60_000
+      : false,
     refetchIntervalInBackground: false,
-    retry: 1,
+    refetchOnWindowFocus: enabled,
+    retry: enabled ? 1 : false,
     staleTime: 15_000,
   });
+
+export const useLiveSchedule = (enabled: boolean) => {
+  const queryClient = useQueryClient();
+  return useQuery(
+    liveScheduleQueryOptions(enabled, () =>
+      queryClient.getQueryData<LiveSchedule>(liveScheduleQueryKey),
+    ),
+  );
+};

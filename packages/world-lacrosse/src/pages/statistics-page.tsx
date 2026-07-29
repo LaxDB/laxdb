@@ -12,13 +12,14 @@ import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 
-import { championship } from "../championship-data";
 import { DataTable } from "../components/data-table";
 import { PageMetadata } from "../components/page-metadata";
+import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
 import { isFinalGameStatus } from "../game-status";
 import type { GameDetails } from "../schema";
+import { staticTournamentMetadata } from "../static-tournament-data";
 import {
   buildStatisticsScope,
   statisticsScopeIncludesTeamGame,
@@ -27,7 +28,6 @@ import {
   type StatisticsThrough,
 } from "../statistics-scope";
 import { buildCurrentTeamSummary } from "../team-summary";
-import { tournament } from "../tournament-data";
 
 const sourceUrl =
   "https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship/tournament-stats/";
@@ -312,7 +312,7 @@ const playerIdentity = (
 ): string => id ?? `${team}\u0000${name}`;
 
 export const buildPlayerRows = (
-  games: readonly GameDetails[] = championship.games,
+  games: readonly GameDetails[],
   scope?: Readonly<StatisticsScope>,
 ): PlayerRow[] => {
   const finalGames = games.filter(isDecisiveFinalDetails);
@@ -394,7 +394,7 @@ export const buildPlayerRows = (
   }
 
   const rows = new Map<string, PlayerSeed>();
-  for (const player of championship.players) {
+  for (const player of staticTournamentMetadata.playerProfiles) {
     if (scope !== undefined && !scope.eligibleTeams.has(player.team)) continue;
     rows.set(player.id, {
       id: player.id,
@@ -405,7 +405,7 @@ export const buildPlayerRows = (
       position: player.position ?? "—",
     });
   }
-  for (const team of tournament.teamDetails) {
+  for (const team of staticTournamentMetadata.teamProfiles) {
     if (scope !== undefined && !scope.eligibleTeams.has(team.name)) continue;
     for (const player of team.players) {
       const id = player.Id ?? null;
@@ -725,7 +725,9 @@ const teamColumns: ColumnDef<TeamRow>[] = [
   },
 ];
 
-const tournamentTeamNames = tournament.teamDetails.map((team) => team.name);
+const tournamentTeamNames = staticTournamentMetadata.teamProfiles.map(
+  (team) => team.name,
+);
 
 export function StatisticsPage({
   through,
@@ -764,7 +766,7 @@ export function StatisticsPage({
   );
   const teamRows = useMemo(
     () =>
-      tournament.teamDetails
+      staticTournamentMetadata.teamProfiles
         .filter((team) => statisticsScope.eligibleTeams.has(team.name))
         .map((team) => {
           const selectedSchedule =
@@ -980,6 +982,7 @@ export function StatisticsPage({
         description="Player and team statistics from the 2026 World Lacrosse Women's Championship."
       />
       <TournamentHeader sourceUrl={sourceUrl} />
+      <TournamentDataStatus />
       <article id="main-content" className="tournament-page statistics-page">
         <header className="page-title">
           <h1>Statistics</h1>

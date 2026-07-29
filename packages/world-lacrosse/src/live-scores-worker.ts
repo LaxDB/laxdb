@@ -6,6 +6,10 @@ import { parseCurrentPeriod, parseGameDetails, parseSchedule } from "./parser";
 import { LiveSchedule, ScheduledGame } from "./schema";
 import type { GameDetails } from "./schema";
 import { DEFAULT_SCHEDULE_URL, MIN_REQUEST_INTERVAL_MS } from "./scraper";
+import {
+  expectedTournamentGames,
+  isExpectedTournamentGameCount,
+} from "./tournament-mode";
 
 interface Env {
   readonly SCORES: KVNamespace;
@@ -14,7 +18,6 @@ interface Env {
 const scheduleKey = "world-lacrosse:live-schedule:v1";
 const liveRefreshMs = 55_000;
 const idleRefreshMs = 115_000;
-const expectedTournamentGames = 44;
 const decodeLiveSchedule = Schema.decodeUnknownSync(LiveSchedule);
 const wait = (duration: number): Promise<void> =>
   new Promise((resolve) => {
@@ -179,7 +182,7 @@ const refreshSchedule = async (env: Env): Promise<LiveSchedule> => {
     await response.text(),
     DEFAULT_SCHEDULE_URL,
   );
-  if (scrapedSchedule.length < expectedTournamentGames)
+  if (!isExpectedTournamentGameCount(scrapedSchedule.length))
     throw new Error(
       `Candidate live schedule returned ${scrapedSchedule.length}/${expectedTournamentGames} expected games`,
     );

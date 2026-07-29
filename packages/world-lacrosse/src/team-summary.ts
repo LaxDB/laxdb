@@ -2,7 +2,8 @@ import { Schema } from "effect";
 
 import { gameDetailMatchesSchedule } from "./game-evidence";
 import { isCompletedGame } from "./game-status";
-import type { GameDetails, LiveSchedule, TeamDetails } from "./schema";
+import type { GameDetails, LiveSchedule } from "./schema";
+import type { StaticTeamProfile } from "./static-tournament-data";
 
 const NonNegativeInteger = Schema.Number.check(
   Schema.isInt(),
@@ -18,7 +19,6 @@ export class CurrentTeamSummary extends Schema.Class<CurrentTeamSummary>(
   detailedGames: NonNegativeInteger,
   provisional: Schema.Boolean,
   updatedAt: Schema.String,
-  retainedSnapshotFields: Schema.Array(Schema.String),
 }) {}
 
 const strictInteger = (value: string | undefined): number | null => {
@@ -127,7 +127,7 @@ const formatPercentage = (part: number, total: number): string =>
   total === 0 ? "0%" : `${((part / total) * 100).toFixed(1)}%`;
 
 export const buildCurrentTeamSummary = (
-  team: Readonly<TeamDetails>,
+  team: Readonly<Pick<StaticTeamProfile, "name">>,
   liveSchedule: Readonly<
     Pick<LiveSchedule, "schedule" | "games" | "updatedAt">
   >,
@@ -151,7 +151,6 @@ export const buildCurrentTeamSummary = (
   }
   const losses = completed.length - wins;
   const record = {
-    ...team.record,
     "Matches Played": String(completed.length),
     Wins: String(wins),
     Losses: String(losses),
@@ -170,11 +169,9 @@ export const buildCurrentTeamSummary = (
   const completeDetailCoverage = statSources.length === completed.length;
   const completeStatSources = completeDetailCoverage ? statSources : [];
   const stats: Record<string, string> = {};
-  const updatedFields = new Set<string>();
   const setStat = (key: string, value: string | null): void => {
     if (value === null) return;
     stats[key] = value;
-    updatedFields.add(key);
   };
 
   setStat("Matches Played", String(completed.length));
@@ -227,8 +224,5 @@ export const buildCurrentTeamSummary = (
       (game) => game.status.toUpperCase() === "UNOFFICIAL",
     ),
     updatedAt: liveSchedule.updatedAt,
-    retainedSnapshotFields: Object.keys(team.stats).filter(
-      (key) => !updatedFields.has(key),
-    ),
   });
 };

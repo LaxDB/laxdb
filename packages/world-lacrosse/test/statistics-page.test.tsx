@@ -78,7 +78,7 @@ describe("statistics page player rows", () => {
     expect(outsideTopTen).toBeDefined();
     if (!outsideTopTen?.id) return;
 
-    const row = buildPlayerRows().find(
+    const row = buildPlayerRows(championship.games).find(
       (candidate) => candidate.id === outsideTopTen.id,
     );
     expect(row?.goals).toBe(outsideTopTen.value);
@@ -86,7 +86,7 @@ describe("statistics page player rows", () => {
   });
 
   it("aggregates current shooting, possession, and discipline data", () => {
-    const player = buildPlayerRows().find(
+    const player = buildPlayerRows(championship.games).find(
       (candidate) => candidate.id === "1315",
     );
 
@@ -233,7 +233,7 @@ describe("statistics page player rows", () => {
   });
 
   it("shows reconciled saves and withholds a conflicting team total", () => {
-    const players = buildPlayerRows();
+    const players = buildPlayerRows(championship.games);
     const philippinesGoalkeeper = players.find(
       (player) => player.id === "1349",
     );

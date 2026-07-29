@@ -58,6 +58,86 @@ a {
   padding: 4px 8px;
   font-size: 9px;
 }
+.tournament-data-state-page {
+  display: grid;
+  min-height: calc(100dvh - 68px);
+  place-items: center;
+  padding-top: clamp(64px, 10vw, 144px);
+}
+.tournament-data-state-page > header,
+.tournament-data-unavailable {
+  width: min(760px, 100%);
+  padding: clamp(24px, 5vw, 56px) 0;
+  border-top: 1px solid oklch(var(--border-strong));
+}
+.tournament-data-state-page span,
+.tournament-data-status strong {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tournament-data-state-page h1 {
+  max-width: 12ch;
+  margin: 18px 0;
+  font-family: Newsreader, Georgia, serif;
+  font-size: clamp(48px, 8vw, 96px);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.tournament-data-state-page p {
+  max-width: 58ch;
+  margin: 0 0 24px;
+  color: oklch(var(--muted-foreground));
+  text-wrap: pretty;
+}
+.tournament-data-skeleton {
+  display: grid;
+  width: min(760px, 100%);
+  gap: 8px;
+}
+.tournament-data-skeleton span {
+  display: block;
+  height: 56px;
+  border: 1px solid oklch(var(--border));
+  background: oklch(var(--muted));
+}
+.tournament-data-status {
+  display: flex;
+  width: min(1440px, 100%);
+  min-height: 48px;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 8px clamp(20px, 4vw, 64px);
+  border-bottom: 1px solid oklch(var(--border-strong));
+  background: oklch(var(--muted));
+  color: oklch(var(--foreground));
+  font-size: 12px;
+}
+.tournament-data-status[data-state="warning"] {
+  background: oklch(var(--warning) / 0.18);
+}
+.tournament-data-status > span {
+  color: oklch(var(--muted-foreground));
+}
+.tournament-data-status .button-secondary {
+  min-height: 28px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .tournament-data-status {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    padding-block: 12px;
+  }
+  .tournament-data-status .button-secondary {
+    margin: 7px 0 0;
+  }
+}
 @media (hover: hover) and (pointer: fine) {
   .button-secondary:hover {
     border-color: oklch(var(--foreground));
