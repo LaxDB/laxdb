@@ -50,6 +50,16 @@ describe("public site shell", () => {
       "/format",
     ])
       expect(header).toContain(`to="${destination}"`);
+    expect(header).toContain('to="/compare/$leftTeamId/$rightTeamId"');
+    expect(header).toContain('leftTeamId: "25"');
+    expect(header).toContain('rightTeamId: "24"');
+    const styles = readFileSync(
+      new URL("../src/styles.css", import.meta.url),
+      "utf8",
+    );
+    expect(styles).toContain(
+      "grid-template-columns: repeat(3, minmax(0, 1fr));",
+    );
     expect(header).not.toContain('to="/teams"');
     expect(header).toContain("2026-world-lacrosse-womens-championship/");
     expect(header).not.toContain("<span />");

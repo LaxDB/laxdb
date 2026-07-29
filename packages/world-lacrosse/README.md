@@ -11,6 +11,7 @@ The sync pipeline captures:
 - standings and tournament leaderboards
 - tournament format and progression
 - schema-backed match insights and verified tournament context with explicit ranking samples
+- shareable team-versus-team comparisons over official, final-reconciled games
 - a derived completed-game dataset for advanced analysis
 
 ## UI
@@ -19,7 +20,9 @@ The sync pipeline captures:
 bun run --cwd packages/world-lacrosse dev
 ```
 
-Open `http://localhost:3010`. Routes include `/schedule`, `/teams`, `/standings`, `/statistics`, `/analysis`, `/format`, `/games/:gameId`, `/players/:playerId`, and `/teams/:teamId`. Team routes combine the current match ledger, pool position, reconciled performance rates, game-state and scoring profiles, recorded player leaders, squad metadata, and staff. Upcoming fixtures replace empty match analysis with a descriptive comparison of both teams' official, reconciled prior games.
+Open `http://localhost:3010`. Routes include `/schedule`, `/teams`, `/standings`, `/statistics`, `/analysis`, `/compare/:leftTeamId/:rightTeamId`, `/format`, `/games/:gameId`, `/players/:playerId`, and `/teams/:teamId`. Team routes combine the current match ledger, pool position, reconciled performance rates, game-state and scoring profiles, recorded player leaders, squad metadata, and staff. Upcoming fixtures replace empty match analysis with a descriptive comparison of both teams' official, reconciled prior games.
+
+The comparison route preserves the selected left/right order and covers the full current tournament snapshot rather than a pre-fixture sample. It pools verified totals and rate numerators/denominators across each team's official, final-reconciled games, discloses a separate sample for every metric, and withholds unsupported values. For example, `/compare/25/24` compares Australia with the United States of America. Direct meetings appear only when the selected teams have an analytically eligible current-tournament game.
 
 ## Product roadmap
 

@@ -16,6 +16,8 @@ export * from "./standings";
 export * from "./sync";
 export * from "./team-analysis";
 export * from "./team-analysis-schema";
+export * from "./team-comparison";
+export * from "./team-comparison-schema";
 export * from "./team-summary";
 export * from "./tournament-context";
 export * from "./tournament-context-schema";
