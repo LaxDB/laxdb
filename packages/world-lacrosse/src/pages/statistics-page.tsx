@@ -647,6 +647,7 @@ export function StatisticsPage() {
   const [view, setView] = useState<StatisticsView>("field");
   const [teamFilter, setTeamFilter] = useState("all");
   const [poolFilter, setPoolFilter] = useState("all");
+  const [tableFullscreen, setTableFullscreen] = useState(false);
   const snapshot = useCurrentTournamentSnapshot();
   const playerRows = useMemo(
     () => buildPlayerRows(snapshot.games),
@@ -759,6 +760,43 @@ export function StatisticsPage() {
       ),
     [poolFilter, teamRows],
   );
+  const viewSwitcher = (
+    <div
+      className="statistics-view-switcher"
+      role="group"
+      aria-label="Statistics view"
+    >
+      <button
+        type="button"
+        aria-pressed={view === "field"}
+        disabled={!playerDataAvailable}
+        onClick={() => {
+          setView("field");
+        }}
+      >
+        Field players
+      </button>
+      <button
+        type="button"
+        aria-pressed={view === "goalkeepers"}
+        disabled={!playerDataAvailable}
+        onClick={() => {
+          setView("goalkeepers");
+        }}
+      >
+        Goalkeepers
+      </button>
+      <button
+        type="button"
+        aria-pressed={view === "teams"}
+        onClick={() => {
+          setView("teams");
+        }}
+      >
+        Teams
+      </button>
+    </div>
+  );
   return (
     <main>
       <PageMetadata
@@ -770,42 +808,7 @@ export function StatisticsPage() {
         <header className="page-title">
           <h1>Statistics</h1>
         </header>
-        <div className="statistics-controls">
-          <div
-            className="statistics-view-switcher"
-            role="group"
-            aria-label="Statistics view"
-          >
-            <button
-              type="button"
-              aria-pressed={view === "field"}
-              disabled={!playerDataAvailable}
-              onClick={() => {
-                setView("field");
-              }}
-            >
-              Field players
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "goalkeepers"}
-              disabled={!playerDataAvailable}
-              onClick={() => {
-                setView("goalkeepers");
-              }}
-            >
-              Goalkeepers
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "teams"}
-              onClick={() => {
-                setView("teams");
-              }}
-            >
-              Teams
-            </button>
-          </div>
+        <div className="statistics-controls statistics-filter-controls">
           {view === "teams" ? (
             <div className="statistics-filters">
               <label>
@@ -861,11 +864,17 @@ export function StatisticsPage() {
             ariaLabel="Team statistics"
             descriptionId="statistics-table-guide"
             viewportKey={`teams-${poolFilter}`}
+            toolbarLeading={viewSwitcher}
+            fullscreen={tableFullscreen}
+            onFullscreenChange={setTableFullscreen}
           />
         ) : !playerDataAvailable ? (
-          <p className="statistics-unavailable">
-            Player statistics are temporarily unavailable.
-          </p>
+          <>
+            <div className="statistics-controls">{viewSwitcher}</div>
+            <p className="statistics-unavailable">
+              Player statistics are temporarily unavailable.
+            </p>
+          </>
         ) : (
           <DataTable
             key={playerView}
@@ -885,6 +894,9 @@ export function StatisticsPage() {
             }
             descriptionId="statistics-table-guide"
             viewportKey={`${playerView}-${teamFilter}`}
+            toolbarLeading={viewSwitcher}
+            fullscreen={tableFullscreen}
+            onFullscreenChange={setTableFullscreen}
           />
         )}
       </article>

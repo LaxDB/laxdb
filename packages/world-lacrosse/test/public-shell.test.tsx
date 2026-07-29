@@ -99,5 +99,36 @@ describe("public site shell", () => {
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-label="Statistics table"');
     expect(markup).toContain('tabindex="0"');
+    expect(markup).toContain(">Search<");
+    expect(markup).toContain("1 records");
+  });
+
+  it("labels the full-screen table workspace without claiming modality", () => {
+    const markup = renderToStaticMarkup(
+      <DataTable
+        columns={columns}
+        data={[{ name: "Australia" }]}
+        searchPlaceholder="Search teams…"
+        fullscreen
+        onFullscreenChange={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('data-fullscreen="true"');
+    expect(markup).toContain('role="region"');
+    expect(markup).toContain('aria-label="Full-screen statistics table"');
+    expect(markup).not.toContain("aria-modal");
+    expect(markup).toContain("Exit full screen");
+    expect(markup).toContain(
+      'aria-keyshortcuts="Meta+Shift+F Control+Shift+F"',
+    );
+
+    const statisticsPage = readFileSync(
+      new URL("../src/pages/statistics-page.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(statisticsPage).toContain("fullscreen={tableFullscreen}");
+    expect(statisticsPage).toContain("onFullscreenChange={setTableFullscreen}");
+    expect(statisticsPage).toContain("toolbarLeading={viewSwitcher}");
   });
 });
