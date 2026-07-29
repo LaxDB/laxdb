@@ -23,6 +23,12 @@ export function TournamentHeader({
         <Link to="/schedule">Schedule</Link>
         <Link to="/standings">Standings</Link>
         <Link to="/statistics">Statistics</Link>
+        <Link
+          to="/compare/$leftTeamId/$rightTeamId"
+          params={{ leftTeamId: "25", rightTeamId: "24" }}
+        >
+          Compare
+        </Link>
         <Link to="/analysis">Analysis</Link>
         <Link to="/format">Format</Link>
       </nav>

@@ -183,6 +183,18 @@ Observed time ahead, tied, and behind is weighted by total verified game-clock s
 
 Team player boards are rebuilt directly from eligible game details rather than filtering the tournament-wide top-ten table. Each player metric reconciles independently for every included team-game; malformed or conflicting source totals reduce that board's disclosed sample instead of being parsed or repaired. Points remain goals plus recorded assists. Static team-profile contribution totals never enter these boards.
 
+## Team comparison
+
+The shareable team comparison route uses the full current tournament snapshot and preserves the selected left/right order. It calls the team-analysis builder first and accepts only the detail IDs marked eligible there, so it cannot loosen schedule/detail reconciliation or admit active, unofficial, final-unreconciled, or invalid score-flow games. Unlike a pregame preview, the sample is not truncated at a fixture date.
+
+Every comparison row carries a metric-specific game sample. Totals are summed from normalized match evidence. Per-game rates pool totals over eligible games, and percentages pool numerators and denominators; neither is an average of game-level percentages. Missing, malformed, duplicated, or unattributed source evidence removes only the affected metric from that game. A zero-attempt percentage is therefore unavailable rather than a fabricated zero percent.
+
+The comparison covers verified record and sample coverage; scoring totals and per-game rates; regulation quarters and halves; overall, half, close-game, and overtime shooting and save splits; free-position conversion; draws and recorded events; weighted game-state and margin time; leads, recovered deficits, runs, droughts, responses, burst speed, and save runs; situational goals, unique recorded scorers, leading-scorer concentration, and scorer/assist coverage; overtime results and attributed events; and recorded discipline. Regulation halves exclude overtime. “Close-game” time and shooting retain the match-insight definition of tied or within one goal. Direct meetings are listed only when the selected teams share an eligible current-tournament game.
+
+“Goals conceded during longest-duration drought” remains paired to the same drought that supplies the displayed maximum duration. It is not the independent maximum number of goals conceded during any drought.
+
+The route is descriptive. It does not identify a stronger side, project a result, claim that a metric caused an outcome, or infer possessions from draws, ground balls, or turnovers. Player-versus-player, goalkeeper-specific, and cross-tournament comparisons remain outside this feature.
+
 ## Pregame comparison
 
 A scheduled game that has not begun renders a preview instead of an empty match analysis. The preview takes only schedule rows before that fixture, revalidates their details against that truncated schedule, and builds each team's comparison from official, final-reconciled prior games. Later results cannot leak backward into the preview.

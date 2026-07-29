@@ -14,6 +14,8 @@ All mutable routes now consume one validated current-tournament snapshot. Schedu
 
 Team pages now act as tournament dossiers rather than static profile dumps. They combine the current match trail, pool position, reconciled team rates, weighted game-state time, period scoring, recorded scoring facts, metric-specific player leaders, squad metadata, and staff. Schedule-visible results and stricter official analytical samples remain separately labelled. Upcoming assignments include a descriptive preview comparing both teams' verified prior form; the same preview replaces empty analysis on the scheduled game route until play begins.
 
+Shareable team-versus-team routes now compare the full current tournament snapshot. They reuse the official team-analysis eligibility seam, pool count and rate evidence instead of averaging percentages, retain metric-specific samples, and cover regulation halves, overtime, efficiency, event totals, game state, situational scoring, attribution, and discipline. The comparison remains descriptive and shows direct meetings only when eligible evidence exists.
+
 ## Queued
 
 ### Tournament progression engine
@@ -28,16 +30,15 @@ Model tournament rules as executable domain logic:
 
 The rules engine should be independently tested before it drives a bracket or scenario interface.
 
-### Team and player comparison
+### Player and goalkeeper comparison
 
-Create shareable comparisons based on normalized tournament statistics:
+Extend the normalized comparison model beyond teams:
 
-- Team versus team and player versus player
-- Tournament totals and per-game rates
+- Player versus player totals and per-game rates
 - Tournament-context deltas against the verified rankings
-- Goalkeeper-specific head-to-head comparisons
+- Goalkeeper-specific comparisons with reconciled minutes and shots faced
 
-Canonical stat normalization is the prerequisite because several source statistics are currently retained as free-form strings.
+Player and goalkeeper comparisons remain separate work because their qualification and attribution samples differ from team-level game evidence.
 
 ### Follow-your-team utilities
 
