@@ -2,7 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { championship } from "../src/championship-data";
-import { DataTable } from "../src/components/data-table";
+import {
+  DataTable,
+  dataValueMatchesFilter,
+} from "../src/components/data-table";
 import {
   buildPlayerColumns,
   buildPlayerRows,
@@ -25,6 +28,18 @@ const context = buildTournamentContext(championship.games, {
 });
 
 describe("statistics page player rows", () => {
+  it("supports readable text and numeric filter conditions", () => {
+    expect(dataValueMatchesFilter("Pool D", "contains:pool")).toBe(true);
+    expect(dataValueMatchesFilter("D", "eq:D")).toBe(true);
+    expect(dataValueMatchesFilter("D", "neq:D")).toBe(false);
+    expect(dataValueMatchesFilter(54.2, "gt:50")).toBe(true);
+    expect(dataValueMatchesFilter(20, "gte:20")).toBe(true);
+    expect(dataValueMatchesFilter(20, "lt:20")).toBe(false);
+    expect(dataValueMatchesFilter(20, "contains:2")).toBe(false);
+    expect(dataValueMatchesFilter(20, "eq:not-a-number")).toBe(false);
+    expect(dataValueMatchesFilter("D", "toString:D")).toBe(false);
+  });
+
   it("fails closed when a completed game has no accepted details", () => {
     expect(
       playerDataCoverageComplete({
@@ -116,6 +131,8 @@ describe("statistics page player rows", () => {
     expect(markup).not.toContain(">GC<");
     expect(markup).not.toContain("title=");
     expect(markup).toContain("statistics-stat-abbreviation");
+    expect(markup).toContain(">Filter<");
+    expect(markup).not.toContain("data-table-column-filter");
   });
 
   it("shows saves and the full stat line for goalkeepers", () => {

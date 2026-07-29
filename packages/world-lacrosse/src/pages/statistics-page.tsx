@@ -20,6 +20,53 @@ import { tournament } from "../tournament-data";
 const sourceUrl =
   "https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship/tournament-stats/";
 
+const statisticsFilterLabels: Readonly<Record<string, string>> = {
+  name: "Player",
+  number: "Number",
+  team: "Team",
+  pool: "Pool",
+  played: "Played",
+  wins: "Wins",
+  losses: "Losses",
+  winPercentage: "Win percentage",
+  goalsFor: "Goals for",
+  goalsAgainst: "Goals against",
+  goalDifference: "Goal difference",
+  goalsPerGame: "Goals per game",
+  goalsAgainstPerGame: "Goals against per game",
+  points: "Points",
+  assists: "Assists",
+  assistsPerGame: "Assists per game",
+  totalShots: "Shots",
+  shotsPerGame: "Shots per game",
+  shotsOnGoal: "Shots on goal",
+  shotsOnGoalPerGame: "Shots on goal per game",
+  shootingPercentage: "Shooting percentage",
+  groundBalls: "Ground balls",
+  groundBallsPerGame: "Ground balls per game",
+  turnovers: "Turnovers",
+  turnoversPerGame: "Turnovers per game",
+  causedTurnovers: "Caused turnovers",
+  causedTurnoversPerGame: "Caused turnovers per game",
+  drawControls: "Draw controls",
+  drawPercentage: "Draw-control percentage",
+  saves: "Saves",
+  savesPerGame: "Saves per game",
+  savePercentage: "Save percentage",
+  penaltyMinutes: "Penalty minutes",
+  yellowCards: "Yellow cards",
+  redCards: "Red cards",
+  position: "Position",
+  starts: "Games started",
+  goalkeeperPeriodStarts: "Goalkeeper period starts",
+  goals: "Goals",
+  shots: "Shots",
+  shotsOffTarget: "Shots off target",
+  goalsWithoutRecordedAssist: "Goals without a recorded assist",
+  freePositionGoals: "Free-position goals",
+  freePositionAttempts: "Free-position attempts",
+};
+
 type StatisticsView = "field" | "goalkeepers" | "teams";
 
 interface PlayerRow {
@@ -645,8 +692,6 @@ const teamColumns: ColumnDef<TeamRow>[] = [
 
 export function StatisticsPage() {
   const [view, setView] = useState<StatisticsView>("field");
-  const [teamFilter, setTeamFilter] = useState("all");
-  const [poolFilter, setPoolFilter] = useState("all");
   const [tableFullscreen, setTableFullscreen] = useState(false);
   const snapshot = useCurrentTournamentSnapshot();
   const playerRows = useMemo(
@@ -657,12 +702,8 @@ export function StatisticsPage() {
   const playerView = view === "goalkeepers" ? "goalkeepers" : "field";
   const displayedPlayerRows = useMemo(() => {
     const type = playerView === "goalkeepers" ? "Goalkeeper" : "FieldPlayer";
-    return playerRows.filter(
-      (player) =>
-        player.playerType === type &&
-        (teamFilter === "all" || player.team === teamFilter),
-    );
-  }, [playerRows, playerView, teamFilter]);
+    return playerRows.filter((player) => player.playerType === type);
+  }, [playerRows, playerView]);
   const currentPlayerColumns = useMemo(
     () => buildPlayerColumns(playerView),
     [playerView],
@@ -753,13 +794,6 @@ export function StatisticsPage() {
       }),
     [playerDataAvailable, playerRows, snapshot],
   );
-  const displayedTeamRows = useMemo(
-    () =>
-      teamRows.filter(
-        (team) => poolFilter === "all" || team.pool === poolFilter,
-      ),
-    [poolFilter, teamRows],
-  );
   const viewSwitcher = (
     <div
       className="statistics-view-switcher"
@@ -808,62 +842,21 @@ export function StatisticsPage() {
         <header className="page-title">
           <h1>Statistics</h1>
         </header>
-        <div className="statistics-controls statistics-filter-controls">
-          {view === "teams" ? (
-            <div className="statistics-filters">
-              <label>
-                <span>Pool</span>
-                <select
-                  value={poolFilter}
-                  onChange={(event) => {
-                    setPoolFilter(event.target.value);
-                  }}
-                >
-                  <option value="all">All pools</option>
-                  {["A", "B", "C", "D"].map((pool) => (
-                    <option key={pool} value={pool}>
-                      Pool {pool}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : (
-            playerDataAvailable && (
-              <div className="statistics-filters">
-                <label>
-                  <span>Team</span>
-                  <select
-                    value={teamFilter}
-                    onChange={(event) => {
-                      setTeamFilter(event.target.value);
-                    }}
-                  >
-                    <option value="all">All teams</option>
-                    {tournament.teams.map((team) => (
-                      <option key={team.id} value={team.name}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )
-          )}
-        </div>
         <p id="statistics-table-guide" className="statistics-table-guide">
-          Select any heading to sort. Scroll horizontally to see every column.
+          Use Search or Filter to narrow records. Select a heading to sort, and
+          scroll horizontally to see every column.
         </p>
         {view === "teams" ? (
           <DataTable
             key="teams"
             columns={teamColumns}
-            data={displayedTeamRows}
+            data={teamRows}
             searchPlaceholder="Search teams or pools…"
             initialSorting={[{ id: "goalDifference", desc: true }]}
             ariaLabel="Team statistics"
             descriptionId="statistics-table-guide"
-            viewportKey={`teams-${poolFilter}`}
+            filterLabels={statisticsFilterLabels}
+            viewportKey="teams"
             toolbarLeading={viewSwitcher}
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}
@@ -893,7 +886,8 @@ export function StatisticsPage() {
                 : "Field player statistics"
             }
             descriptionId="statistics-table-guide"
-            viewportKey={`${playerView}-${teamFilter}`}
+            filterLabels={statisticsFilterLabels}
+            viewportKey={playerView}
             toolbarLeading={viewSwitcher}
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}

@@ -93,11 +93,13 @@ describe("public site shell", () => {
         columns={columns}
         data={[{ name: "Australia" }]}
         searchPlaceholder="Search teams…"
+        descriptionId="table-guide"
       />,
     );
 
     expect(markup).toContain('aria-sort="none"');
     expect(markup).toContain('aria-label="Statistics table"');
+    expect(markup).toContain('aria-describedby="table-guide"');
     expect(markup).toContain('tabindex="0"');
     expect(markup).toContain(">Search<");
     expect(markup).toContain("1 records");
@@ -130,5 +132,8 @@ describe("public site shell", () => {
     expect(statisticsPage).toContain("fullscreen={tableFullscreen}");
     expect(statisticsPage).toContain("onFullscreenChange={setTableFullscreen}");
     expect(statisticsPage).toContain("toolbarLeading={viewSwitcher}");
+    expect(statisticsPage).toContain("filterLabels={statisticsFilterLabels}");
+    expect(statisticsPage).not.toContain("setTeamFilter");
+    expect(statisticsPage).not.toContain("setPoolFilter");
   });
 });
