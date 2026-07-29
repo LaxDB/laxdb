@@ -16,23 +16,50 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-type FilterKind = "number" | "select" | "text";
+type FilterKind = "multi-select" | "number" | "select" | "text";
+type ScalarFilterKind = Exclude<FilterKind, "multi-select">;
 type FilterStage = "property" | "operator" | "value";
 type FilterOperator = "contains" | "eq" | "gte" | "gt" | "lte" | "lt" | "neq";
+type TextFilterOperator = "contains" | "eq" | "neq";
+type SelectFilterOperator = "eq" | "neq";
+type NumberFilterOperator = Exclude<FilterOperator, "contains">;
 
-interface FilterDescriptor {
+interface BaseFilterDefinition {
   readonly id: string;
-  readonly kind: FilterKind;
   readonly label: string;
-  readonly options: readonly string[];
 }
 
-interface ParsedFilter {
-  readonly operator: FilterOperator;
-  readonly value: string;
-}
+export type DataTableFilterDefinition =
+  | (BaseFilterDefinition & { readonly kind: "number" })
+  | (BaseFilterDefinition & { readonly kind: "text" })
+  | (BaseFilterDefinition & {
+      readonly kind: "select";
+      readonly options: readonly string[];
+    })
+  | (BaseFilterDefinition & {
+      readonly kind: "multi-select";
+      readonly options: readonly string[];
+    });
+
+export type DataTableFilterValue =
+  | {
+      readonly kind: "text";
+      readonly operator: TextFilterOperator;
+      readonly value: string;
+    }
+  | {
+      readonly kind: "select";
+      readonly operator: SelectFilterOperator;
+      readonly value: string;
+    }
+  | {
+      readonly kind: "number";
+      readonly operator: NumberFilterOperator;
+      readonly value: number;
+    }
+  | { readonly kind: "multi-select"; readonly values: readonly string[] };
 
 const operatorLabels: Readonly<Record<FilterOperator, string>> = {
   contains: "contains",
@@ -44,15 +71,29 @@ const operatorLabels: Readonly<Record<FilterOperator, string>> = {
   lte: "is at most",
 };
 
-const operatorOptions: Readonly<Record<FilterKind, readonly FilterOperator[]>> =
-  {
-    text: ["contains", "eq", "neq"],
-    select: ["eq", "neq"],
-    number: ["eq", "neq", "gt", "gte", "lt", "lte"],
-  };
+const operatorOptions: Readonly<
+  Record<ScalarFilterKind, readonly FilterOperator[]>
+> = {
+  text: ["contains", "eq", "neq"],
+  select: ["eq", "neq"],
+  number: ["eq", "neq", "gt", "gte", "lt", "lte"],
+};
 
-const isFilterOperator = (value: string): value is FilterOperator =>
-  value === "contains" ||
+const operatorsForFilter = (
+  descriptor: Readonly<DataTableFilterDefinition>,
+): readonly FilterOperator[] =>
+  descriptor.kind === "multi-select" ? [] : operatorOptions[descriptor.kind];
+
+const isTextFilterOperator = (value: unknown): value is TextFilterOperator =>
+  value === "contains" || value === "eq" || value === "neq";
+
+const isSelectFilterOperator = (
+  value: unknown,
+): value is SelectFilterOperator => value === "eq" || value === "neq";
+
+const isNumberFilterOperator = (
+  value: unknown,
+): value is NumberFilterOperator =>
   value === "eq" ||
   value === "neq" ||
   value === "gt" ||
@@ -60,14 +101,93 @@ const isFilterOperator = (value: string): value is FilterOperator =>
   value === "lt" ||
   value === "lte";
 
-const parseFilter = (filterValue: unknown): ParsedFilter | null => {
-  if (typeof filterValue !== "string") return null;
-  const separator = filterValue.indexOf(":");
-  if (separator < 1) return null;
-  const operator = filterValue.slice(0, separator);
-  const value = filterValue.slice(separator + 1);
-  if (!isFilterOperator(operator) || value === "") return null;
-  return { operator, value };
+const isFilterOperator = (value: unknown): value is FilterOperator =>
+  isTextFilterOperator(value) || isNumberFilterOperator(value);
+
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null;
+
+const isStringArray = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) &&
+  value.every((candidate: unknown) => typeof candidate === "string");
+
+const parseFilter = (filterValue: unknown): DataTableFilterValue | null => {
+  if (!isRecord(filterValue) || typeof filterValue.kind !== "string")
+    return null;
+
+  if (
+    filterValue.kind === "text" &&
+    isTextFilterOperator(filterValue.operator) &&
+    typeof filterValue.value === "string" &&
+    filterValue.value !== ""
+  )
+    return {
+      kind: "text",
+      operator: filterValue.operator,
+      value: filterValue.value,
+    };
+
+  if (
+    filterValue.kind === "select" &&
+    isSelectFilterOperator(filterValue.operator) &&
+    typeof filterValue.value === "string" &&
+    filterValue.value !== ""
+  )
+    return {
+      kind: "select",
+      operator: filterValue.operator,
+      value: filterValue.value,
+    };
+
+  if (
+    filterValue.kind === "number" &&
+    isNumberFilterOperator(filterValue.operator) &&
+    typeof filterValue.value === "number" &&
+    Number.isFinite(filterValue.value)
+  )
+    return {
+      kind: "number",
+      operator: filterValue.operator,
+      value: filterValue.value,
+    };
+
+  if (
+    filterValue.kind === "multi-select" &&
+    isStringArray(filterValue.values) &&
+    filterValue.values.length > 0
+  )
+    return { kind: "multi-select", values: filterValue.values };
+
+  return null;
+};
+
+const filterMatchesDefinition = (
+  filter: Readonly<DataTableFilterValue>,
+  descriptor: Readonly<DataTableFilterDefinition>,
+): boolean => filter.kind === descriptor.kind;
+
+const createScalarFilter = (
+  descriptor: Readonly<DataTableFilterDefinition>,
+  operator: FilterOperator,
+  rawValue: string,
+): DataTableFilterValue | null => {
+  const value = rawValue.trim();
+  if (value === "" || descriptor.kind === "multi-select") return null;
+
+  if (descriptor.kind === "text" && isTextFilterOperator(operator))
+    return { kind: "text", operator, value };
+
+  if (descriptor.kind === "select" && isSelectFilterOperator(operator))
+    return { kind: "select", operator, value };
+
+  if (descriptor.kind === "number" && isNumberFilterOperator(operator)) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue)
+      ? { kind: "number", operator, value: numericValue }
+      : null;
+  }
+
+  return null;
 };
 
 export const dataValueMatchesFilter = (
@@ -79,30 +199,31 @@ export const dataValueMatchesFilter = (
   const filter = parseFilter(filterValue);
   if (filter === null) return false;
 
-  if (typeof value === "number") {
-    const target = Number(filter.value);
-    if (!Number.isFinite(target)) return false;
+  if (filter.kind === "number") {
+    if (typeof value !== "number") return false;
     switch (filter.operator) {
       case "eq":
-        return value === target;
+        return value === filter.value;
       case "neq":
-        return value !== target;
+        return value !== filter.value;
       case "gt":
-        return value > target;
+        return value > filter.value;
       case "gte":
-        return value >= target;
+        return value >= filter.value;
       case "lt":
-        return value < target;
+        return value < filter.value;
       case "lte":
-        return value <= target;
-      case "contains":
-        return false;
+        return value <= filter.value;
     }
-    return false;
   }
 
   if (typeof value !== "string") return false;
   const normalizedValue = value.toLocaleLowerCase();
+  if (filter.kind === "multi-select")
+    return filter.values.some(
+      (target) => normalizedValue === target.toLocaleLowerCase(),
+    );
+
   const normalizedTarget = filter.value.toLocaleLowerCase();
   switch (filter.operator) {
     case "contains":
@@ -111,11 +232,6 @@ export const dataValueMatchesFilter = (
       return normalizedValue === normalizedTarget;
     case "neq":
       return normalizedValue !== normalizedTarget;
-    case "gt":
-    case "gte":
-    case "lt":
-    case "lte":
-      return false;
   }
   return false;
 };
@@ -127,13 +243,6 @@ const dataAnalysisFilter = <T,>(
 ): boolean =>
   dataValueMatchesFilter(row.getValue<unknown>(columnId), filterValue);
 
-const defaultColumnLabel = (id: string): string => {
-  const words = id
-    .replaceAll(/([a-z\d])([A-Z])/gu, "$1 $2")
-    .replaceAll("Id", "ID");
-  return `${words.charAt(0).toLocaleUpperCase()}${words.slice(1)}`;
-};
-
 const isEditableTarget = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement &&
   (target.isContentEditable ||
@@ -141,13 +250,18 @@ const isEditableTarget = (target: EventTarget | null): boolean =>
     target.tagName === "TEXTAREA" ||
     target.tagName === "SELECT");
 
+const summarizeSelectedValues = (values: readonly string[]): string =>
+  values.length <= 2
+    ? values.join(", ")
+    : `${values[0] ?? ""} and ${values.length - 1} more`;
+
 export function DataTable<T>({
   columns,
   data,
   searchPlaceholder,
   initialSorting = [],
   ariaLabel = "Statistics table",
-  filterLabels = {},
+  filters = [],
   viewportKey,
   toolbarLeading,
   toolbarActions,
@@ -159,7 +273,7 @@ export function DataTable<T>({
   searchPlaceholder: string;
   initialSorting?: SortingState;
   ariaLabel?: string;
-  filterLabels?: Readonly<Record<string, string>>;
+  filters?: readonly DataTableFilterDefinition[];
   viewportKey?: string;
   toolbarLeading?: ReactNode;
   toolbarActions?: ReactNode;
@@ -176,9 +290,12 @@ export function DataTable<T>({
   const [draftColumnId, setDraftColumnId] = useState("");
   const [draftOperator, setDraftOperator] = useState<FilterOperator>("eq");
   const [draftValue, setDraftValue] = useState("");
+  const [draftSelectedValues, setDraftSelectedValues] = useState<string[]>([]);
   const tableRoot = useRef<HTMLDivElement>(null);
   const tableViewport = useRef<HTMLDivElement>(null);
   const searchTrigger = useRef<HTMLButtonElement>(null);
+  const filterTrigger = useRef<HTMLButtonElement>(null);
+  const filterReturnFocus = useRef<HTMLButtonElement>(null);
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
   const filterStagePanel = useRef<HTMLDivElement>(null);
   const wasSearchOpen = useRef(false);
@@ -268,37 +385,8 @@ export function DataTable<T>({
     initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
   });
 
-  const filterDescriptors = useMemo<readonly FilterDescriptor[]>(
-    () =>
-      table.getAllLeafColumns().map((column) => {
-        const values = table
-          .getCoreRowModel()
-          .flatRows.map((row) => row.getValue<unknown>(column.id))
-          .filter((value) => value !== null && value !== undefined);
-        const sampleValue = values[0];
-        const kind: FilterKind =
-          column.id === "pool"
-            ? "select"
-            : typeof sampleValue === "number"
-              ? "number"
-              : "text";
-        return {
-          id: column.id,
-          kind,
-          label: filterLabels[column.id] ?? defaultColumnLabel(column.id),
-          options:
-            kind === "select"
-              ? [
-                  ...new Set(
-                    values.filter(
-                      (value): value is string => typeof value === "string",
-                    ),
-                  ),
-                ].toSorted()
-              : [],
-        };
-      }),
-    [columns, data, filterLabels, table],
+  const filterDescriptors = filters.filter(
+    (descriptor) => table.getColumn(descriptor.id) !== undefined,
   );
   const selectedDescriptor = filterDescriptors.find(
     (descriptor) => descriptor.id === draftColumnId,
@@ -306,13 +394,15 @@ export function DataTable<T>({
   const draftOperatorOptions: readonly FilterOperator[] =
     selectedDescriptor === undefined
       ? ["eq"]
-      : operatorOptions[selectedDescriptor.kind];
+      : operatorsForFilter(selectedDescriptor);
   const activeFilters = columnFilters.flatMap((columnFilter) => {
     const filter = parseFilter(columnFilter.value);
     const descriptor = filterDescriptors.find(
       (candidate) => candidate.id === columnFilter.id,
     );
-    return filter === null || descriptor === undefined
+    return filter === null ||
+      descriptor === undefined ||
+      !filterMatchesDefinition(filter, descriptor)
       ? []
       : [{ descriptor, filter }];
   });
@@ -322,30 +412,85 @@ export function DataTable<T>({
       .includes(filterQuery.toLocaleLowerCase()),
   );
   const startNewFilter = (): void => {
+    filterReturnFocus.current = filterTrigger.current;
     setFilterStage("property");
     setFilterQuery("");
     setDraftColumnId("");
     setDraftOperator("eq");
     setDraftValue("");
+    setDraftSelectedValues([]);
   };
   const chooseFilterProperty = (
-    descriptor: Readonly<FilterDescriptor>,
+    descriptor: Readonly<DataTableFilterDefinition>,
   ): void => {
+    const currentFilter = parseFilter(
+      table.getColumn(descriptor.id)?.getFilterValue(),
+    );
+    const matchingFilter =
+      currentFilter !== null &&
+      filterMatchesDefinition(currentFilter, descriptor)
+        ? currentFilter
+        : null;
     setDraftColumnId(descriptor.id);
-    setDraftOperator(descriptor.kind === "text" ? "contains" : "eq");
-    setDraftValue("");
+
+    if (descriptor.kind === "multi-select") {
+      setDraftSelectedValues(
+        matchingFilter?.kind === "multi-select"
+          ? [...matchingFilter.values]
+          : [],
+      );
+      setFilterStage("value");
+      return;
+    }
+
+    setDraftOperator(
+      matchingFilter !== null && matchingFilter.kind !== "multi-select"
+        ? matchingFilter.operator
+        : descriptor.kind === "text"
+          ? "contains"
+          : "eq",
+    );
+    setDraftValue(
+      matchingFilter !== null && matchingFilter.kind !== "multi-select"
+        ? String(matchingFilter.value)
+        : "",
+    );
     setFilterStage("operator");
   };
   const saveFilter = (
-    columnId: string,
+    descriptor: Readonly<DataTableFilterDefinition>,
     operator: FilterOperator,
     value: string,
   ): void => {
-    const normalizedValue = value.trim();
-    if (columnId === "" || normalizedValue === "") return;
-    table.getColumn(columnId)?.setFilterValue(`${operator}:${normalizedValue}`);
+    const filter = createScalarFilter(descriptor, operator, value);
+    if (filter === null) return;
+    table.getColumn(descriptor.id)?.setFilterValue(filter);
     resetVerticalScroll();
     setFilterOpen(false);
+  };
+  const saveMultiSelectFilter = (
+    descriptor: Readonly<DataTableFilterDefinition>,
+    values: readonly string[],
+  ): void => {
+    if (descriptor.kind !== "multi-select" || values.length === 0) return;
+    table
+      .getColumn(descriptor.id)
+      ?.setFilterValue({ kind: "multi-select", values });
+    resetVerticalScroll();
+    setFilterOpen(false);
+  };
+  const openMultiSelectFilter = (
+    descriptor: Readonly<DataTableFilterDefinition>,
+    filter: Readonly<DataTableFilterValue>,
+    returnFocus: HTMLButtonElement,
+  ): void => {
+    if (descriptor.kind !== "multi-select" || filter.kind !== "multi-select")
+      return;
+    filterReturnFocus.current = returnFocus;
+    setDraftColumnId(descriptor.id);
+    setDraftSelectedValues([...filter.values]);
+    setFilterStage("value");
+    setFilterOpen(true);
   };
 
   return (
@@ -413,6 +558,7 @@ export function DataTable<T>({
             <PopoverTrigger
               render={
                 <button
+                  ref={filterTrigger}
                   className="data-table-toolbar-button"
                   type="button"
                   onClick={startNewFilter}
@@ -429,6 +575,7 @@ export function DataTable<T>({
               align="end"
               aria-label="Add table filter"
               className="data-table-filter-popover"
+              finalFocus={() => filterReturnFocus.current}
               sideOffset={6}
             >
               <div ref={filterStagePanel}>
@@ -477,7 +624,10 @@ export function DataTable<T>({
                         aria-label="Go back"
                         onClick={() => {
                           setFilterStage(
-                            filterStage === "value" ? "operator" : "property",
+                            filterStage === "value" &&
+                              selectedDescriptor?.kind !== "multi-select"
+                              ? "operator"
+                              : "property",
                           );
                         }}
                       >
@@ -507,6 +657,51 @@ export function DataTable<T>({
                           </button>
                         ))}
                       </div>
+                    ) : selectedDescriptor?.kind === "multi-select" ? (
+                      <form
+                        className="data-table-filter-multi-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          saveMultiSelectFilter(
+                            selectedDescriptor,
+                            draftSelectedValues,
+                          );
+                        }}
+                      >
+                        <fieldset className="data-table-filter-options">
+                          <legend className="sr-only">
+                            Select {selectedDescriptor.label}
+                          </legend>
+                          {selectedDescriptor.options.map((option) => (
+                            <label key={option}>
+                              <input
+                                data-filter-choice
+                                type="checkbox"
+                                checked={draftSelectedValues.includes(option)}
+                                onChange={(event) => {
+                                  setDraftSelectedValues((current) =>
+                                    event.target.checked
+                                      ? [...current, option]
+                                      : current.filter(
+                                          (value) => value !== option,
+                                        ),
+                                  );
+                                }}
+                              />
+                              <span>{option}</span>
+                            </label>
+                          ))}
+                        </fieldset>
+                        <div className="data-table-filter-multi-actions">
+                          <span>{draftSelectedValues.length} selected</span>
+                          <button
+                            type="submit"
+                            disabled={draftSelectedValues.length === 0}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </form>
                     ) : selectedDescriptor?.kind === "select" ? (
                       <div className="data-table-filter-menu">
                         {selectedDescriptor.options.map((option) => (
@@ -516,7 +711,7 @@ export function DataTable<T>({
                             data-filter-choice
                             onClick={() => {
                               saveFilter(
-                                selectedDescriptor.id,
+                                selectedDescriptor,
                                 draftOperator,
                                 option,
                               );
@@ -531,7 +726,12 @@ export function DataTable<T>({
                         className="data-table-filter-value-form"
                         onSubmit={(event) => {
                           event.preventDefault();
-                          saveFilter(draftColumnId, draftOperator, draftValue);
+                          if (selectedDescriptor !== undefined)
+                            saveFilter(
+                              selectedDescriptor,
+                              draftOperator,
+                              draftValue,
+                            );
                         }}
                       >
                         <input
@@ -605,93 +805,134 @@ export function DataTable<T>({
           aria-label="Active filters"
         >
           <div className="data-table-filter-formulas">
-            {activeFilters.map(({ descriptor, filter }) => (
-              <div key={descriptor.id} className="data-table-filter-formula">
-                <span className="data-table-filter-property">
-                  {descriptor.label}
-                </span>
-                <label>
-                  <span className="sr-only">
-                    Change {descriptor.label} condition
+            {activeFilters.map(({ descriptor, filter }) => {
+              const scalarValue =
+                filter.kind === "multi-select" ? "" : String(filter.value);
+              return (
+                <div key={descriptor.id} className="data-table-filter-formula">
+                  <span className="data-table-filter-property">
+                    {descriptor.label}
                   </span>
-                  <select
-                    value={filter.operator}
-                    onChange={(event) => {
-                      const nextOperator = event.target.value;
-                      if (isFilterOperator(nextOperator))
-                        saveFilter(descriptor.id, nextOperator, filter.value);
+                  {filter.kind === "multi-select" ? (
+                    <>
+                      <span className="data-table-filter-operator">
+                        is any of
+                      </span>
+                      <button
+                        className="data-table-filter-multi-value"
+                        type="button"
+                        aria-label={`Change ${descriptor.label} values: ${filter.values.join(", ")}`}
+                        onClick={(event) => {
+                          openMultiSelectFilter(
+                            descriptor,
+                            filter,
+                            event.currentTarget,
+                          );
+                        }}
+                      >
+                        {summarizeSelectedValues(filter.values)}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        <span className="sr-only">
+                          Change {descriptor.label} condition
+                        </span>
+                        <select
+                          value={filter.operator}
+                          onChange={(event) => {
+                            const nextOperator = event.target.value;
+                            if (isFilterOperator(nextOperator))
+                              saveFilter(descriptor, nextOperator, scalarValue);
+                          }}
+                        >
+                          {operatorsForFilter(descriptor).map((operator) => (
+                            <option key={operator} value={operator}>
+                              {operatorLabels[operator]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span className="sr-only">
+                          Change {descriptor.label} value
+                        </span>
+                        {descriptor.kind === "select" &&
+                        filter.kind === "select" ? (
+                          <select
+                            value={filter.value}
+                            onChange={(event) => {
+                              saveFilter(
+                                descriptor,
+                                filter.operator,
+                                event.target.value,
+                              );
+                            }}
+                          >
+                            {descriptor.options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            key={`${descriptor.id}-${scalarValue}`}
+                            defaultValue={scalarValue}
+                            inputMode={
+                              descriptor.kind === "number"
+                                ? "decimal"
+                                : undefined
+                            }
+                            type={
+                              descriptor.kind === "number" ? "number" : "text"
+                            }
+                            step={
+                              descriptor.kind === "number" ? "any" : undefined
+                            }
+                            size={Math.max(6, Math.min(scalarValue.length, 18))}
+                            onBlur={(event) => {
+                              const nextValue = event.target.value.trim();
+                              if (nextValue === "") {
+                                table
+                                  .getColumn(descriptor.id)
+                                  ?.setFilterValue(undefined);
+                              } else {
+                                saveFilter(
+                                  descriptor,
+                                  filter.operator,
+                                  nextValue,
+                                );
+                              }
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter")
+                                event.currentTarget.blur();
+                              if (event.key === "Escape") {
+                                event.currentTarget.value = scalarValue;
+                                event.currentTarget.blur();
+                              }
+                            }}
+                          />
+                        )}
+                      </label>
+                    </>
+                  )}
+                  <button
+                    className="data-table-filter-remove"
+                    type="button"
+                    aria-label={`Remove ${descriptor.label} filter`}
+                    onClick={() => {
+                      table.getColumn(descriptor.id)?.setFilterValue(undefined);
+                      resetVerticalScroll();
                     }}
                   >
-                    {operatorOptions[descriptor.kind].map((operator) => (
-                      <option key={operator} value={operator}>
-                        {operatorLabels[operator]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="sr-only">
-                    Change {descriptor.label} value
-                  </span>
-                  {descriptor.kind === "select" ? (
-                    <select
-                      value={filter.value}
-                      onChange={(event) => {
-                        saveFilter(
-                          descriptor.id,
-                          filter.operator,
-                          event.target.value,
-                        );
-                      }}
-                    >
-                      {descriptor.options.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      key={`${descriptor.id}-${filter.value}`}
-                      defaultValue={filter.value}
-                      inputMode={
-                        descriptor.kind === "number" ? "decimal" : undefined
-                      }
-                      type={descriptor.kind === "number" ? "number" : "text"}
-                      step={descriptor.kind === "number" ? "any" : undefined}
-                      size={Math.max(6, Math.min(filter.value.length, 18))}
-                      onBlur={(event) => {
-                        const nextValue = event.target.value.trim();
-                        if (nextValue === "") {
-                          table
-                            .getColumn(descriptor.id)
-                            ?.setFilterValue(undefined);
-                        } else {
-                          saveFilter(descriptor.id, filter.operator, nextValue);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") event.currentTarget.blur();
-                        if (event.key === "Escape") {
-                          event.currentTarget.value = filter.value;
-                          event.currentTarget.blur();
-                        }
-                      }}
-                    />
-                  )}
-                </label>
-                <button
-                  type="button"
-                  aria-label={`Remove ${descriptor.label} filter`}
-                  onClick={() => {
-                    table.getColumn(descriptor.id)?.setFilterValue(undefined);
-                    resetVerticalScroll();
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+                    ×
+                  </button>
+                </div>
+              );
+            })}
             {activeFilters.length > 1 && (
               <button
                 className="data-table-clear-filters"

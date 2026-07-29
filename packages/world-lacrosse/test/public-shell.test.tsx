@@ -138,7 +138,9 @@ describe("public site shell", () => {
     expect(statisticsPage).toContain("fullscreen={tableFullscreen}");
     expect(statisticsPage).toContain("onFullscreenChange={setTableFullscreen}");
     expect(statisticsPage).toContain("toolbarLeading={viewSwitcher}");
-    expect(statisticsPage).toContain("filterLabels={statisticsFilterLabels}");
+    expect(statisticsPage).toContain("filters={teamFilters}");
+    expect(statisticsPage).toContain("filters={currentPlayerFilters}");
+    expect(statisticsPage).not.toContain("filterLabels=");
     expect(statisticsPage).not.toContain("setTeamFilter");
     expect(statisticsPage).not.toContain("setPoolFilter");
     expect(statisticsPage).not.toContain("statistics-table-guide");

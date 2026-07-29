@@ -3252,6 +3252,21 @@ html:has(.data-table[data-fullscreen="true"]) {
 .data-table-filter-formula > button:hover {
   color: oklch(var(--foreground));
 }
+.data-table-filter-formula > .data-table-filter-operator {
+  color: oklch(var(--muted-foreground));
+  font-weight: 400;
+}
+.data-table-filter-formula > .data-table-filter-multi-value {
+  display: block;
+  width: auto;
+  max-width: 180px;
+  padding: 0 8px;
+  overflow: hidden;
+  color: oklch(var(--muted-foreground));
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .data-table-clear-filters {
   flex: none;
   height: 32px;
@@ -3395,6 +3410,71 @@ html:has(.data-table[data-fullscreen="true"]) {
 .data-table-filter-menu-heading strong {
   font-size: 12px;
   font-weight: 600;
+}
+.data-table-filter-multi-form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.data-table-filter-options {
+  display: grid;
+  min-height: 0;
+  max-height: 330px;
+  gap: 1px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  border: 0;
+}
+.data-table-filter-options label {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.data-table-filter-options label:hover,
+.data-table-filter-options label:focus-within {
+  background: oklch(var(--muted) / 0.72);
+}
+.data-table-filter-options input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: oklch(var(--foreground));
+}
+.data-table-filter-multi-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 4px 2px 8px;
+  border-top: 1px solid oklch(var(--border));
+}
+.data-table-filter-multi-actions > span {
+  color: oklch(var(--muted-foreground));
+  font-size: 10px;
+}
+.data-table-filter-multi-actions button {
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 5px;
+  background: oklch(var(--foreground));
+  color: oklch(var(--background));
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.data-table-filter-multi-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 .data-table-filter-value-form {
   display: flex;
