@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
+import { TournamentDataBoundary } from "../components/tournament-data-state";
 import { StatisticsPage } from "../pages/statistics-page";
 import type { StatisticsThrough } from "../statistics-scope";
 
@@ -35,15 +36,17 @@ function StatisticsRoute() {
   const through: StatisticsThrough = search.through ?? "latest";
 
   return (
-    <StatisticsPage
-      through={through}
-      onThroughChange={(nextThrough) => {
-        void navigate({
-          to: "/statistics",
-          search: nextThrough === "latest" ? {} : { through: nextThrough },
-          replace: true,
-        });
-      }}
-    />
+    <TournamentDataBoundary>
+      <StatisticsPage
+        through={through}
+        onThroughChange={(nextThrough) => {
+          void navigate({
+            to: "/statistics",
+            search: nextThrough === "latest" ? {} : { through: nextThrough },
+            replace: true,
+          });
+        }}
+      />
+    </TournamentDataBoundary>
   );
 }

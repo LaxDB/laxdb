@@ -6,6 +6,7 @@ import {
   isActiveGameStatus,
   isCompletedGame,
   isFinalGameStatus,
+  isInProgressGameStatus,
   isUpcomingGameStatus,
 } from "../src/game-status";
 
@@ -15,6 +16,13 @@ describe("game status", () => {
     expect(isActiveGameStatus("RUNNING")).toBe(true);
     expect(isActiveGameStatus("BREAK")).toBe(true);
     expect(isActiveGameStatus("GETTING READY")).toBe(true);
+  });
+
+  it("distinguishes in-progress play from pregame activity", () => {
+    expect(isInProgressGameStatus("LIVE")).toBe(true);
+    expect(isInProgressGameStatus("RUNNING")).toBe(true);
+    expect(isInProgressGameStatus("BREAK")).toBe(true);
+    expect(isInProgressGameStatus("GETTING READY")).toBe(false);
   });
 
   it("does not poll upcoming or final games as active", () => {

@@ -1,32 +1,48 @@
+import { useQuery } from "@tanstack/react-query";
 import { Schema } from "effect";
-import { useMemo } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
-import { championship } from "./championship-data";
+import type { ArchivedTournamentData } from "./archived-tournament-data";
 import { gameDetailMatchesSchedule } from "./game-evidence";
-import { isCompletedGame, isUpcomingGameStatus } from "./game-status";
+import {
+  isCompletedGame,
+  isFinalGameStatus,
+  isUpcomingGameStatus,
+} from "./game-status";
 import { useLiveSchedule } from "./live-schedule";
-import { GameDetails, GameId, ScheduledGame } from "./schema";
+import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
+import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
 import type { LiveSchedule } from "./schema";
-import { tournament } from "./tournament-data";
+import { expectedTournamentGames, tournamentMode } from "./tournament-mode";
 
 const SnapshotSource = Schema.Union([
   Schema.Literal("live"),
-  Schema.Literal("bundled"),
+  Schema.Literal("archive"),
 ]);
-const SnapshotFreshness = Schema.Union([
-  Schema.Literal("fresh"),
-  Schema.Literal("degraded"),
-  Schema.Literal("fallback"),
+const SnapshotIntegrity = Schema.Union([
+  Schema.Literal("complete"),
+  Schema.Literal("partial"),
 ]);
 
 export class CurrentTournamentSnapshot extends Schema.Class<CurrentTournamentSnapshot>(
   "WorldLacrosseCurrentTournamentSnapshot",
 )({
   source: SnapshotSource,
-  freshness: SnapshotFreshness,
+  integrity: SnapshotIntegrity,
   updatedAt: Schema.String,
+  nextRefreshAt: Schema.NullOr(Schema.String),
   schedule: Schema.Array(ScheduledGame),
   games: Schema.Array(GameDetails),
+  players: Schema.Array(PlayerDetails),
   completedGames: Schema.Number.check(
     Schema.isInt(),
     Schema.isGreaterThanOrEqualTo(0),
@@ -55,18 +71,18 @@ const duplicateIds = <T extends { readonly id: string }>(
 
 const createSnapshot = ({
   source,
-  freshness,
   updatedAt,
+  nextRefreshAt,
   schedule,
   candidateGames,
-  initialIssues,
+  players,
 }: {
-  readonly source: "live" | "bundled";
-  readonly freshness: "fresh" | "degraded" | "fallback";
+  readonly source: "live" | "archive";
   readonly updatedAt: string;
+  readonly nextRefreshAt: string | null;
   readonly schedule: readonly ScheduledGame[];
   readonly candidateGames: readonly GameDetails[];
-  readonly initialIssues: readonly string[];
+  readonly players: readonly PlayerDetails[];
 }): CurrentTournamentSnapshot => {
   const scheduleById = new Map(schedule.map((game) => [game.id, game]));
   const duplicateDetailIds = duplicateIds(candidateGames);
@@ -90,22 +106,19 @@ const createSnapshot = ({
   const missingDetailGameIds = completed
     .filter((game) => !detailIds.has(game.id))
     .map((game) => game.id);
-  const issues = [...initialIssues];
+  const issues: string[] = [];
   if (duplicateDetailIds.size > 0) issues.push("duplicate-detail-game-ids");
   if (conflicts.size > 0) issues.push("schedule-detail-conflict");
   if (missingDetailGameIds.length > 0)
     issues.push("completed-game-details-missing");
   return CurrentTournamentSnapshot.make({
     source,
-    freshness:
-      issues.length === 0
-        ? freshness
-        : source === "bundled"
-          ? "fallback"
-          : "degraded",
+    integrity: issues.length === 0 ? "complete" : "partial",
     updatedAt,
+    nextRefreshAt,
     schedule,
     games,
+    players,
     completedGames: completed.length,
     detailedGames: completed.filter((game) => detailIds.has(game.id)).length,
     missingDetailGameIds,
@@ -117,53 +130,285 @@ const createSnapshot = ({
   });
 };
 
-export const buildCurrentTournamentSnapshot = (
+export const buildLiveTournamentSnapshot = (
   liveSchedule: Readonly<LiveSchedule>,
-  liveReady: boolean,
 ): CurrentTournamentSnapshot => {
-  if (!liveReady)
-    return createSnapshot({
-      source: "bundled",
-      freshness: "fallback",
-      updatedAt: championship.scrapedAt,
-      schedule: tournament.schedule,
-      candidateGames: championship.games,
-      initialIssues: ["live-feed-not-ready"],
-    });
-
-  const scheduleDuplicates = duplicateIds(liveSchedule.schedule);
-  const bundledIds = new Set(tournament.schedule.map((game) => game.id));
-  const liveIds = new Set(liveSchedule.schedule.map((game) => game.id));
-  const missingBundledIds = [...bundledIds].filter((id) => !liveIds.has(id));
-  if (scheduleDuplicates.size > 0 || missingBundledIds.length > 0)
-    return createSnapshot({
-      source: "bundled",
-      freshness: "fallback",
-      updatedAt: championship.scrapedAt,
-      schedule: tournament.schedule,
-      candidateGames: championship.games,
-      initialIssues: [
-        scheduleDuplicates.size > 0
-          ? "live-schedule-duplicate-game-ids"
-          : "live-schedule-missing-known-games",
-      ],
-    });
-
+  validateLiveScheduleCandidate(liveSchedule);
   return createSnapshot({
     source: "live",
-    freshness: "fresh",
     updatedAt: liveSchedule.updatedAt,
+    nextRefreshAt: liveSchedule.nextRefreshAt,
     schedule: liveSchedule.schedule,
     candidateGames: liveSchedule.games,
-    initialIssues: [],
+    players: [],
   });
 };
 
-export const useCurrentTournamentSnapshot = (): CurrentTournamentSnapshot => {
-  const query = useLiveSchedule();
-  const liveReady = query.dataUpdatedAt > 0;
-  return useMemo(
-    () => buildCurrentTournamentSnapshot(query.data, liveReady),
-    [liveReady, query.data],
+export class ArchiveNotReadyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ArchiveNotReadyError";
+  }
+}
+
+export const archivePlayerProfilesAreComplete = (
+  players: readonly Readonly<Pick<PlayerDetails, "id">>[],
+  expectedPlayerIds: readonly string[],
+): boolean => {
+  const playerIds = new Set<string>(players.map((player) => player.id));
+  const expectedIds = new Set(expectedPlayerIds);
+  return (
+    playerIds.size === players.length &&
+    expectedIds.size === expectedPlayerIds.length &&
+    playerIds.size === expectedIds.size &&
+    expectedPlayerIds.every((id) => playerIds.has(id))
   );
 };
+
+export const validateArchivedTournamentSnapshot = (
+  snapshot: Readonly<CurrentTournamentSnapshot>,
+  expectedPlayerIds: readonly string[],
+): CurrentTournamentSnapshot => {
+  const unresolvedGames = snapshot.schedule.filter(
+    (game) => !isFinalGameStatus(game.status),
+  );
+  const playerProfilesComplete = archivePlayerProfilesAreComplete(
+    snapshot.players,
+    expectedPlayerIds,
+  );
+  const ready =
+    snapshot.source === "archive" &&
+    snapshot.schedule.length === expectedTournamentGames &&
+    unresolvedGames.length === 0 &&
+    snapshot.games.length === expectedTournamentGames &&
+    snapshot.completedGames === expectedTournamentGames &&
+    snapshot.detailedGames === expectedTournamentGames &&
+    snapshot.integrity === "complete" &&
+    snapshot.missingDetailGameIds.length === 0 &&
+    snapshot.conflictedDetailGameIds.length === 0 &&
+    !snapshot.provisional &&
+    playerProfilesComplete;
+  if (!ready)
+    throw new ArchiveNotReadyError(
+      `Tournament archive is incomplete: ${unresolvedGames.length} unresolved games, ${snapshot.detailedGames}/${expectedTournamentGames} verified details, ${snapshot.players.length}/${expectedPlayerIds.length} player profiles`,
+    );
+  return snapshot;
+};
+
+export const buildArchivedTournamentSnapshot = (
+  archive: Readonly<ArchivedTournamentData>,
+): CurrentTournamentSnapshot =>
+  validateArchivedTournamentSnapshot(
+    createSnapshot({
+      source: "archive",
+      updatedAt: archive.updatedAt,
+      nextRefreshAt: null,
+      schedule: archive.schedule,
+      candidateGames: archive.games,
+      players: archive.players,
+    }),
+    archive.expectedPlayerIds,
+  );
+
+export type LiveSnapshotFreshness = "fresh" | "stale";
+
+const staleGraceMs = 60_000;
+const maximumSnapshotAgeMs = 5 * 60_000;
+
+type LiveSnapshotTimestamps = Readonly<
+  Pick<LiveSchedule, "updatedAt" | "nextRefreshAt">
+>;
+
+export const nextLiveFreshnessCheckAt = (
+  schedule: LiveSnapshotTimestamps,
+): number => {
+  const updatedAt = Date.parse(schedule.updatedAt);
+  const nextRefreshAt = Date.parse(schedule.nextRefreshAt);
+  if (!Number.isFinite(updatedAt) || !Number.isFinite(nextRefreshAt)) return 0;
+  return (
+    Math.min(nextRefreshAt + staleGraceMs, updatedAt + maximumSnapshotAgeMs) + 1
+  );
+};
+
+export const classifyLiveSnapshotFreshness = (
+  schedule: LiveSnapshotTimestamps,
+  now: number = Date.now(),
+): LiveSnapshotFreshness =>
+  now >= nextLiveFreshnessCheckAt(schedule) ? "stale" : "fresh";
+
+const useLiveFreshnessClock = (
+  schedule: LiveSnapshotTimestamps | null,
+): number => {
+  const [now, setNow] = useState(Date.now);
+  const updatedAt = schedule?.updatedAt;
+  const nextRefreshAt = schedule?.nextRefreshAt;
+  useEffect(() => {
+    if (updatedAt === undefined || nextRefreshAt === undefined) return;
+    const timestamps = { updatedAt, nextRefreshAt };
+    const delay = Math.max(
+      0,
+      nextLiveFreshnessCheckAt(timestamps) - Date.now(),
+    );
+    const refreshClock = (): void => {
+      setNow(Date.now());
+    };
+    const timer = window.setTimeout(refreshClock, delay);
+    document.addEventListener("visibilitychange", refreshClock);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", refreshClock);
+    };
+  }, [nextRefreshAt, updatedAt]);
+  return now;
+};
+
+export interface TournamentLoadingState {
+  readonly mode: "live" | "archived";
+  readonly status: "loading";
+}
+
+export interface TournamentUnavailableState {
+  readonly mode: "live" | "archived";
+  readonly status: "unavailable";
+  readonly retry: () => void;
+}
+
+export interface LiveTournamentReadyState {
+  readonly mode: "live";
+  readonly status: "ready";
+  readonly snapshot: CurrentTournamentSnapshot;
+  readonly freshness: LiveSnapshotFreshness;
+  readonly refresh: "idle" | "refreshing" | "failed";
+  readonly retry: () => void;
+}
+
+export interface ArchivedTournamentReadyState {
+  readonly mode: "archived";
+  readonly status: "ready";
+  readonly snapshot: CurrentTournamentSnapshot;
+  readonly freshness: "archived";
+  readonly refresh: "disabled";
+}
+
+export type CurrentTournamentState =
+  | TournamentLoadingState
+  | TournamentUnavailableState
+  | LiveTournamentReadyState
+  | ArchivedTournamentReadyState;
+
+const useArchivedTournamentSnapshot = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["world-lacrosse", "archived-tournament"] as const,
+    queryFn: async () => {
+      const { archivedTournamentData } =
+        await import("./archived-tournament-data");
+      return buildArchivedTournamentSnapshot(archivedTournamentData);
+    },
+    enabled,
+    gcTime: Infinity,
+    retry: false,
+    staleTime: Infinity,
+  });
+
+export const useCurrentTournamentState = (): CurrentTournamentState => {
+  const liveEnabled = tournamentMode === "live";
+  const archiveEnabled = tournamentMode === "archived";
+  const liveQuery = useLiveSchedule(liveEnabled);
+  const archiveQuery = useArchivedTournamentSnapshot(archiveEnabled);
+  const liveRefetch = liveQuery.refetch;
+  const archiveRefetch = archiveQuery.refetch;
+  const retryLive = useCallback(() => {
+    void liveRefetch();
+  }, [liveRefetch]);
+  const retryArchive = useCallback(() => {
+    void archiveRefetch();
+  }, [archiveRefetch]);
+  const liveSnapshot = useMemo(
+    () =>
+      liveQuery.data === undefined
+        ? null
+        : buildLiveTournamentSnapshot(liveQuery.data),
+    [liveQuery.data],
+  );
+  const snapshot = archiveEnabled ? (archiveQuery.data ?? null) : liveSnapshot;
+  const liveTimestamps =
+    snapshot?.source === "live" && snapshot.nextRefreshAt !== null
+      ? {
+          updatedAt: snapshot.updatedAt,
+          nextRefreshAt: snapshot.nextRefreshAt,
+        }
+      : null;
+  const freshnessNow = useLiveFreshnessClock(liveTimestamps);
+
+  if (archiveEnabled) {
+    if (snapshot === null)
+      return archiveQuery.isPending || archiveQuery.isFetching
+        ? { mode: "archived", status: "loading" }
+        : {
+            mode: "archived",
+            status: "unavailable",
+            retry: retryArchive,
+          };
+    return {
+      mode: "archived",
+      status: "ready",
+      snapshot,
+      freshness: "archived",
+      refresh: "disabled",
+    };
+  }
+  if (snapshot === null) {
+    return liveQuery.isPending || liveQuery.isFetching
+      ? { mode: "live", status: "loading" }
+      : { mode: "live", status: "unavailable", retry: retryLive };
+  }
+  if (snapshot.nextRefreshAt === null)
+    throw new Error("Live tournament snapshot is missing nextRefreshAt");
+  return {
+    mode: "live",
+    status: "ready",
+    snapshot,
+    freshness: classifyLiveSnapshotFreshness(
+      {
+        updatedAt: snapshot.updatedAt,
+        nextRefreshAt: snapshot.nextRefreshAt,
+      },
+      freshnessNow,
+    ),
+    refresh: liveQuery.isError
+      ? "failed"
+      : liveQuery.isFetching
+        ? "refreshing"
+        : "idle",
+    retry: retryLive,
+  };
+};
+
+export type CurrentTournamentReadyState =
+  | LiveTournamentReadyState
+  | ArchivedTournamentReadyState;
+
+const CurrentTournamentContext =
+  createContext<CurrentTournamentReadyState | null>(null);
+
+export const CurrentTournamentProvider = ({
+  state,
+  children,
+}: {
+  readonly state: CurrentTournamentReadyState;
+  readonly children: ReactNode;
+}) =>
+  createElement(CurrentTournamentContext.Provider, { value: state }, children);
+
+export const useCurrentTournamentReadyState =
+  (): CurrentTournamentReadyState => {
+    const state = useContext(CurrentTournamentContext);
+    if (state === null)
+      throw new Error(
+        "Current tournament data must be used inside CurrentTournamentProvider",
+      );
+    return state;
+  };
+
+export const useCurrentTournamentSnapshot = (): CurrentTournamentSnapshot =>
+  useCurrentTournamentReadyState().snapshot;

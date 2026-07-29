@@ -1,4 +1,4 @@
-import { isCompletedGame } from "./game-status";
+import { isCompletedGame, isInProgressGameStatus } from "./game-status";
 import type { GameDetails, GameId, ScheduledGame } from "./schema";
 
 export type StatisticsThrough = "latest" | number;
@@ -19,6 +19,7 @@ export interface StatisticsScopeCoverage {
 export interface StatisticsScope {
   readonly through: StatisticsThrough;
   readonly maximumCompletedTeamGames: number;
+  readonly latestIncludesInProgressGames: boolean;
   readonly eligibleTeams: ReadonlySet<string>;
   readonly selectedScheduleByTeam: ReadonlyMap<
     string,
@@ -39,22 +40,30 @@ export const statisticsScopeIncludesTeamGame = (
 
 export const statisticsThroughOptions = (
   maximumCompletedTeamGames: number,
+  latestIncludesInProgressGames = false,
 ): readonly number[] =>
   Array.from(
-    { length: Math.max(0, maximumCompletedTeamGames - 1) },
+    {
+      length: Math.max(
+        0,
+        maximumCompletedTeamGames - (latestIncludesInProgressGames ? 0 : 1),
+      ),
+    },
     (_, index) => index + 1,
   );
 
 export const normalizeStatisticsThrough = (
   through: StatisticsThrough,
   maximumCompletedTeamGames: number,
+  latestIncludesInProgressGames = false,
 ): StatisticsThrough => {
   if (
     through === "latest" ||
     maximumCompletedTeamGames === 0 ||
     !Number.isSafeInteger(through) ||
     through < 1 ||
-    through >= maximumCompletedTeamGames
+    through > maximumCompletedTeamGames ||
+    (through === maximumCompletedTeamGames && !latestIncludesInProgressGames)
   )
     return "latest";
   return through;
@@ -81,9 +90,16 @@ export const buildStatisticsScope = (
     maximumCompletedTeamGames = Math.max(maximumCompletedTeamGames, count);
   }
 
+  const teamSet = new Set(teams);
+  const latestIncludesInProgressGames = source.games.some(
+    (game) =>
+      isInProgressGameStatus(game.status) &&
+      (teamSet.has(game.home.name) || teamSet.has(game.away.name)),
+  );
   const through = normalizeStatisticsThrough(
     requestedThrough,
     maximumCompletedTeamGames,
+    latestIncludesInProgressGames,
   );
   const eligibleTeams = new Set<string>();
   const selectedScheduleByTeam = new Map<string, readonly ScheduledGame[]>();
@@ -116,6 +132,7 @@ export const buildStatisticsScope = (
   return {
     through,
     maximumCompletedTeamGames,
+    latestIncludesInProgressGames,
     eligibleTeams,
     selectedScheduleByTeam,
     includedTeamGames,

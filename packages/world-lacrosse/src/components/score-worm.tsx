@@ -1,4 +1,14 @@
-import { useId } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@laxdb/ui/components/ui/tooltip";
+import {
+  useEffect,
+  useId,
+  useReducer,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import {
   buildMatchPeriodWindows,
@@ -6,6 +16,13 @@ import {
   type MatchPeriodWindow,
 } from "../match-clock";
 import type { MatchInsightGoal, MatchInsights } from "../match-insights-schema";
+
+import { nearestScoreWormGoal } from "./score-worm-geometry";
+import {
+  activeScoreWormSequence,
+  initialScoreWormInteraction,
+  reduceScoreWormInteraction,
+} from "./score-worm-interaction";
 
 const chartWidth = 900;
 const chartHeight = 280;
@@ -90,12 +107,143 @@ const stepPath = (
   return [`M ${chartLeft} ${chartCenter}`, ...segments].join(" ");
 };
 
+const goalDetails = (goal: Readonly<MatchInsightGoal>): readonly string[] => {
+  const details: string[] = [];
+  if (goal.freePosition) details.push("Free-position goal");
+  if (goal.equalizer) details.push("Equalizer");
+  if (goal.goAhead) details.push("Go-ahead goal");
+  if (goal.leadChange) details.push("Lead change");
+  if (goal.gameWinner) details.push("Winning goal");
+  return details;
+};
+
+interface TooltipChangeDetails {
+  readonly reason: string;
+}
+
+interface ScoreWormGoalProps {
+  readonly activated: boolean;
+  readonly active: boolean;
+  readonly id: string;
+  readonly insights: Readonly<MatchInsights>;
+  readonly onActivate: () => void;
+  readonly onBlur: () => void;
+  readonly onDismiss: () => void;
+  readonly onFocus: () => void;
+  readonly point: Readonly<WormPoint>;
+}
+
+function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
+  const {
+    activated,
+    active,
+    id,
+    insights,
+    onActivate,
+    onBlur,
+    onDismiss,
+    onFocus,
+    point,
+  } = props;
+  const { goal } = point;
+  const homeLabel = insights.home.code ?? insights.home.name;
+  const awayLabel = insights.away.code ?? insights.away.name;
+  const scorer = goal.scorer?.name ?? "Scorer not recorded";
+  const details = goalDetails(goal);
+  const detailLabel = details.length > 0 ? ` ${details.join(", ")}.` : "";
+  const assistLabel = goal.recordedAssist
+    ? ` Assist by ${goal.recordedAssist.name}.`
+    : "";
+  const handleOpenChange = (
+    open: boolean,
+    eventDetails: Readonly<TooltipChangeDetails>,
+  ) => {
+    if (
+      !open &&
+      ["escape-key", "outside-press"].includes(eventDetails.reason)
+    ) {
+      onDismiss();
+    }
+  };
+
+  return (
+    <Tooltip open={active} triggerId={id} onOpenChange={handleOpenChange}>
+      <TooltipTrigger
+        type="button"
+        className="score-worm-goal-trigger"
+        id={id}
+        closeOnClick={false}
+        aria-label={`${scorer} goal for ${goal.team}, ${periodLabel(goal.period)} ${goal.clock}. Score ${homeLabel} ${goal.score.home}, ${awayLabel} ${goal.score.away}.${assistLabel}${detailLabel}`}
+        aria-pressed={activated}
+        data-active={active ? "true" : undefined}
+        onBlur={onBlur}
+        onClick={onActivate}
+        onFocus={onFocus}
+        data-game-winner={goal.gameWinner ? "true" : undefined}
+        data-side={goal.side}
+        style={{
+          left: `${((point.x / chartWidth) * 100).toFixed(4)}%`,
+          top: `${((point.y / chartHeight) * 100).toFixed(4)}%`,
+        }}
+      />
+      <TooltipContent
+        className="score-worm-goal-tooltip"
+        side={point.y < chartCenter ? "bottom" : "top"}
+        sideOffset={8}
+      >
+        <header>
+          <span>
+            {periodLabel(goal.period)} · {goal.clock}
+          </span>
+          <span>{goal.team} goal</span>
+        </header>
+        <strong>{scorer}</strong>
+        {goal.recordedAssist && (
+          <p>
+            Assist · <span>{goal.recordedAssist.name}</span>
+          </p>
+        )}
+        <div className="score-worm-goal-score">
+          <span>
+            {homeLabel} {goal.score.home}
+          </span>
+          <b aria-hidden="true">—</b>
+          <span>
+            {goal.score.away} {awayLabel}
+          </span>
+        </div>
+        {details.length > 0 && <small>{details.join(" · ")}</small>}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function ScoreWorm({
   insights,
 }: {
   readonly insights: Readonly<MatchInsights>;
 }) {
   const id = useId().replaceAll(":", "");
+  const [interaction, dispatchInteraction] = useReducer(
+    reduceScoreWormInteraction,
+    initialScoreWormInteraction,
+  );
+  const activeSequence = activeScoreWormSequence(interaction);
+
+  useEffect(() => {
+    const dismissOnEscape = (event: Readonly<KeyboardEvent>) => {
+      if (event.key !== "Escape") return;
+      dispatchInteraction({ type: "dismiss" });
+    };
+
+    if (activeSequence !== null) {
+      document.addEventListener("keydown", dismissOnEscape, true);
+    }
+    return () => {
+      document.removeEventListener("keydown", dismissOnEscape, true);
+    };
+  }, [activeSequence]);
+
   const windows = buildMatchPeriodWindows(
     insights.periods.map((period) => period.period),
   );
@@ -123,6 +271,25 @@ export function ScoreWorm({
 
   const displayPeriods = displayedPeriods(windows, chartDuration);
   const points = buildPoints(insights, windows, chartDuration);
+  const hitPoints = points.map((point) => ({
+    sequence: point.goal.sequence,
+    x: point.x,
+    y: point.y,
+  }));
+  const handlePointerMove = (
+    event: Readonly<ReactPointerEvent<HTMLDivElement>>,
+  ) => {
+    if (event.pointerType === "touch") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const sequence = nearestScoreWormGoal(
+      hitPoints,
+      event.clientX - bounds.left,
+      event.clientY - bounds.top,
+      bounds.width / chartWidth,
+      bounds.height / chartHeight,
+    );
+    dispatchInteraction({ type: "hover", sequence });
+  };
   const maximumMargin = Math.max(
     1,
     ...points.map((point) => Math.abs(point.margin)),
@@ -134,7 +301,6 @@ export function ScoreWorm({
     );
   const path = stepPath(points, extendToEnd);
   const areaPath = `${path} V ${chartCenter} H ${chartLeft} Z`;
-  const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
   const homeClipId = `${id}-home-clip`;
   const awayClipId = `${id}-away-clip`;
@@ -146,7 +312,13 @@ export function ScoreWorm({
         <h3 id={`${id}-heading`}>Score worm</h3>
       </header>
       <figure className="score-worm-figure">
-        <div className="score-worm-plot">
+        <div
+          className="score-worm-plot"
+          onPointerLeave={() => {
+            dispatchInteraction({ type: "hover", sequence: null });
+          }}
+          onPointerMove={handlePointerMove}
+        >
           <div className="score-worm-y-labels" aria-hidden="true">
             <span>
               {insights.home.name} +{maximumMargin}
@@ -161,11 +333,9 @@ export function ScoreWorm({
             viewBox={`0 0 ${chartWidth} ${chartHeight}`}
             preserveAspectRatio="none"
             role="img"
-            aria-labelledby={`${titleId} ${descriptionId}`}
+            aria-label="Score margin over time"
+            aria-describedby={descriptionId}
           >
-            <title id={titleId}>
-              {`Score worm for ${insights.home.name} against ${insights.away.name}`}
-            </title>
             <desc id={descriptionId}>
               A step chart of the score margin over game-clock time. Values
               above the tied line favor {insights.home.name}; values below favor{" "}
@@ -241,23 +411,36 @@ export function ScoreWorm({
               d={path}
               clipPath={`url(#${awayClipId})`}
             />
-
-            {points
-              .filter((point) => point.goal.gameWinner)
-              .map((point) => (
-                <circle
-                  className="score-worm-winning-point"
-                  key={point.goal.sequence}
-                  cx={point.x}
-                  cy={point.y}
-                  r="6"
-                >
-                  <title>
-                    {`Winning goal: ${point.goal.scorer?.name ?? point.goal.team}, ${periodLabel(point.goal.period)} ${point.goal.clock}`}
-                  </title>
-                </circle>
-              ))}
           </svg>
+          {points.map((point) => (
+            <ScoreWormGoal
+              activated={interaction.activatedSequence === point.goal.sequence}
+              active={activeSequence === point.goal.sequence}
+              id={`${id}-goal-${point.goal.sequence}`}
+              insights={insights}
+              key={point.goal.sequence}
+              onActivate={() => {
+                dispatchInteraction({
+                  type: "activate",
+                  sequence: point.goal.sequence,
+                });
+              }}
+              onBlur={() => {
+                dispatchInteraction({ type: "blur" });
+              }}
+              onDismiss={() => {
+                dispatchInteraction({ type: "dismiss" });
+              }}
+              onFocus={() => {
+                dispatchInteraction({
+                  type: "focus",
+                  sequence: point.goal.sequence,
+                });
+              }}
+              point={point}
+            />
+          ))}
+          <div className="score-worm-hover-layer" aria-hidden="true" />
         </div>
         <div className="score-worm-periods" aria-hidden="true">
           {displayPeriods.map((period) => (
@@ -278,7 +461,10 @@ export function ScoreWorm({
             <i className="score-worm-away-key" aria-hidden="true" />
             {insights.away.name} lead
           </span>
-          <small>Distance from the center line is the goal margin.</small>
+          <small>
+            Tap, hover, or focus a goal marker for details. Distance from the
+            center line is the goal margin.
+          </small>
         </figcaption>
       </figure>
     </section>

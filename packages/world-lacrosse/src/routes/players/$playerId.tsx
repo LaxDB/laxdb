@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NotFound } from "../../components/not-found";
+import { TournamentDataBoundary } from "../../components/tournament-data-state";
 import { PlayerDetailsPage } from "../../pages/player-details-page";
 
 export const Route = createFileRoute("/players/$playerId")({
   loader: async ({ params }) => {
-    const { championship } = await import("../../championship-data");
-    return championship.players.find((item) => item.id === params.playerId);
+    const { staticTournamentMetadata } =
+      await import("../../static-tournament-data");
+    return staticTournamentMetadata.playerProfiles.find(
+      (item) => item.id === params.playerId,
+    );
   },
   component: PlayerRoutePage,
 });
@@ -14,7 +18,9 @@ export const Route = createFileRoute("/players/$playerId")({
 function PlayerRoutePage() {
   const player = Route.useLoaderData();
   return player ? (
-    <PlayerDetailsPage player={player} />
+    <TournamentDataBoundary>
+      <PlayerDetailsPage player={player} />
+    </TournamentDataBoundary>
   ) : (
     <NotFound
       resource="Player"

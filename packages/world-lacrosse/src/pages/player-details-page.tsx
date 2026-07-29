@@ -2,13 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { PageMetadata } from "../components/page-metadata";
+import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import {
   buildCurrentPlayerSummary,
   type CurrentPlayerGameLog,
 } from "../current-player";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
-import type { PlayerDetails } from "../schema";
+import type { StaticPlayerProfile } from "../static-tournament-data";
 
 const fieldStatLabels = [
   "Goals",
@@ -51,7 +52,7 @@ const gameStatValue = (game: CurrentPlayerGameLog, label: string): string => {
   return game.stats[label] ?? "—";
 };
 
-export function PlayerDetailsPage({ player }: { player: PlayerDetails }) {
+export function PlayerDetailsPage({ player }: { player: StaticPlayerProfile }) {
   const snapshot = useCurrentTournamentSnapshot();
   const current = useMemo(
     () => buildCurrentPlayerSummary(player, snapshot.games),
@@ -81,6 +82,7 @@ export function PlayerDetailsPage({ player }: { player: PlayerDetails }) {
         description={`${player.name} tournament statistics and game log for ${player.team}.`}
       />
       <TournamentHeader sourceUrl={player.url} />
+      <TournamentDataStatus />
 
       <article id="main-content" className="player-page">
         <section className="player-hero" aria-labelledby="player-name">

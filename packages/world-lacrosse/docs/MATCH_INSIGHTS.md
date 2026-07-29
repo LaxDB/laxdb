@@ -195,7 +195,7 @@ Games that have begun expose the quality state, headline flow facts, a score wor
 
 The exhaustive logs live under Play-by-play instead of expanding the insights panel. The page offers separate, mutually exclusive disclosures for the complete source-event timeline and the verified scoring timeline. Source anomalies are attached with an asterisk to the affected full-event row and explained below that log; general anomalies without a row index remain log-level notes.
 
-The score worm is a time-scaled step chart of goal margin: the home team leads above the tied baseline and the away team below it. Regulation quarters use 15-minute clocks and overtime uses 4-minute periods. Sudden-victory charts end at the terminal game clock. An invalid goal clock withholds the time-scaled worm rather than clamping the event into a plausible position.
+The score worm is a time-scaled step chart of goal margin: the home team leads above the tied baseline and the away team below it. Regulation quarters use 15-minute clocks and overtime uses 4-minute periods. Sudden-victory charts end at the terminal game clock. Every recorded goal is an interactive marker whose hover and keyboard-focus detail identifies the scorer, game clock, resulting score, recorded assist, and situational scoring flags. An invalid goal clock withholds the time-scaled worm rather than clamping the event into a plausible position.
 
 ## Deliberate non-goals
 

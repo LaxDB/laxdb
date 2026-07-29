@@ -10,6 +10,7 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 
 import { makeApiWorker } from "./packages/api/src/index.ts";
+import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/tournament-mode.ts";
 
 const config = {
   stack: "laxdb",
@@ -198,7 +199,7 @@ export default Alchemy.Stack(
       main: "./packages/world-lacrosse/src/live-scores-worker.ts",
       url: true,
       domain: `live.world.${baseDomain}`,
-      crons: stage === config.stages.prod ? ["* * * * *"] : [],
+      crons: tournamentRefreshCrons(stage, config.stages.prod),
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
         port: 1445,

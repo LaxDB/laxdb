@@ -469,7 +469,10 @@ export function MatchInsightsPanel({
               <LeadTime insights={insights} />
             </section>
 
-            <section aria-labelledby="pressure-title">
+            <section
+              className="insight-wide-section"
+              aria-labelledby="pressure-title"
+            >
               <header className="insight-subheading">
                 <span>Pressure and response</span>
                 <h3 id="pressure-title">Runs, droughts and answers</h3>
@@ -534,7 +537,10 @@ export function MatchInsightsPanel({
               />
             </section>
 
-            <section aria-labelledby="splits-title">
+            <section
+              className="insight-wide-section"
+              aria-labelledby="splits-title"
+            >
               <header className="insight-subheading">
                 <span>Closing performance</span>
                 <h3 id="splits-title">When the goals arrived</h3>
@@ -634,7 +640,10 @@ export function MatchInsightsPanel({
               />
             </section>
 
-            <section aria-labelledby="scoring-profile-title">
+            <section
+              className="insight-wide-section"
+              aria-labelledby="scoring-profile-title"
+            >
               <header className="insight-subheading">
                 <span>Scoring profile</span>
                 <h3 id="scoring-profile-title">Who finished the chances</h3>

@@ -20,6 +20,7 @@ import {
   TOURNAMENT_BASE_URL,
   WorldLacrosseScraper,
 } from "./scraper";
+import { buildStaticTournamentMetadata } from "./static-tournament-metadata";
 
 export const DEFAULT_SYNC_DIRECTORY = new URL("./generated", import.meta.url)
   .pathname;
@@ -179,6 +180,7 @@ const makeTournamentSync = Effect.gen(function* () {
     const startedAt = yield* Clock.currentTimeMillis;
     const outputDirectory = options.outputDirectory ?? DEFAULT_SYNC_DIRECTORY;
     const datasetPath = join(outputDirectory, "dataset.json");
+    const metadataPath = join(outputDirectory, "metadata.json");
     const previous = options.force
       ? null
       : yield* store
@@ -422,6 +424,10 @@ const makeTournamentSync = Effect.gen(function* () {
         : (previous?.manifest.tournamentRefreshedAt ?? syncedAt),
     });
 
+    yield* store.writeJson(
+      metadataPath,
+      buildStaticTournamentMetadata(tournament, championship),
+    );
     yield* store.writeJson(datasetPath, {
       championship,
       tournament,

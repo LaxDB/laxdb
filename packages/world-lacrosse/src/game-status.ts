@@ -1,6 +1,7 @@
 const upcomingStatuses = new Set(["UPCOMING", "SCHEDULED"]);
 const finalStatuses = new Set(["FINAL", "FINISHED", "OFFICIAL", "UNOFFICIAL"]);
-const activeStatuses = new Set(["LIVE", "RUNNING", "BREAK", "GETTING READY"]);
+const inProgressStatuses = new Set(["LIVE", "RUNNING", "BREAK"]);
+const activeStatuses = new Set([...inProgressStatuses, "GETTING READY"]);
 
 export const isUpcomingGameStatus = (status: string): boolean =>
   upcomingStatuses.has(status.toUpperCase());
@@ -10,6 +11,9 @@ export const isFinalGameStatus = (status: string): boolean =>
 
 export const isActiveGameStatus = (status: string): boolean =>
   activeStatuses.has(status.toUpperCase());
+
+export const isInProgressGameStatus = (status: string): boolean =>
+  inProgressStatuses.has(status.toUpperCase());
 
 export const isCompletedGame = (game: {
   readonly status: string;

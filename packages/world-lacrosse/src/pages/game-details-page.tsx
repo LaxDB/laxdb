@@ -6,6 +6,7 @@ import { MatchInsightsPanel } from "../components/match-insights-panel";
 import { PageMetadata } from "../components/page-metadata";
 import { PlayByPlayTimeline } from "../components/play-by-play-timeline";
 import { ScoringTimeline } from "../components/scoring-timeline";
+import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
 import { buildGamePreview } from "../game-preview";
@@ -17,16 +18,14 @@ import {
   isUpcomingGameStatus,
 } from "../game-status";
 import { buildMatchInsights } from "../match-insights";
-import type {
-  DerivedPlayerStats,
-  GameDetails,
-  PlayerDetails,
-  Roster,
-} from "../schema";
+import type { DerivedPlayerStats, Roster } from "../schema";
+import {
+  staticTournamentMetadata,
+  type StaticPlayerProfile,
+} from "../static-tournament-data";
 import { buildTournamentContext } from "../tournament-context";
-import { tournament } from "../tournament-data";
 
-const tournamentTeamPools = tournament.teams.map((team) => ({
+const tournamentTeamPools = staticTournamentMetadata.teams.map((team) => ({
   name: team.name,
   pool: team.pool,
 }));
@@ -46,7 +45,7 @@ const RosterTable = ({
 }: {
   roster: Roster;
   derivedStats: readonly DerivedPlayerStats[];
-  players: readonly PlayerDetails[];
+  players: readonly StaticPlayerProfile[];
 }) => (
   <section className="roster-table-block">
     <div className="roster-title">
@@ -235,40 +234,29 @@ const SectionHeading = ({ index, title }: { index: string; title: string }) => (
   </div>
 );
 
-export function GameDetailsPage({
-  gameId,
-  game,
-  players,
-}: {
-  gameId: string;
-  game: GameDetails | undefined;
-  players: readonly PlayerDetails[];
-}) {
+export function GameDetailsPage({ gameId }: { gameId: string }) {
   const snapshot = useCurrentTournamentSnapshot();
   const scheduledGame = snapshot.schedule.find((item) => item.id === gameId);
   const snapshotGame = snapshot.games.find((item) => item.id === gameId);
-  const currentStatus =
-    scheduledGame?.status ?? snapshotGame?.status ?? game?.status;
+  const currentStatus = scheduledGame?.status ?? snapshotGame?.status;
   const upcoming =
     currentStatus !== undefined && isUpcomingGameStatus(currentStatus);
-  const currentGame = upcoming
-    ? undefined
-    : (snapshotGame ?? (snapshot.source === "bundled" ? game : undefined));
+  const currentGame = upcoming ? undefined : snapshotGame;
   const tournamentContext = useMemo(
     () =>
       buildTournamentContext(snapshot.games, {
         sourceUpdatedAt: snapshot.updatedAt,
-        players,
+        players: snapshot.players,
         teamPools: tournamentTeamPools,
       }),
-    [players, snapshot.games, snapshot.updatedAt],
+    [snapshot.games, snapshot.updatedAt],
   );
   const preview = useMemo(
     () => buildGamePreview(gameId, snapshot, tournamentTeamPools),
     [gameId, snapshot],
   );
   if (currentGame === undefined) {
-    const current = scheduledGame ?? game;
+    const current = scheduledGame;
     if (current === undefined)
       return (
         <main className="not-found">
@@ -293,6 +281,7 @@ export function GameDetailsPage({
           description={`${current.home.name} vs ${current.away.name}: score, schedule details, and tournament form.`}
         />
         <TournamentHeader sourceUrl={current.url} />
+        <TournamentDataStatus />
         <article id="main-content">
           <section
             className="hero game-details-unavailable"
@@ -485,6 +474,7 @@ export function GameDetailsPage({
         description={`${home.name} vs ${away.name}: score, match statistics, player totals, and game analysis.`}
       />
       <TournamentHeader sourceUrl={currentGame.url} />
+      <TournamentDataStatus />
       <article id="main-content">
         <section className="hero" aria-labelledby="game-title">
           <h1 className="sr-only" id="game-title">
@@ -615,7 +605,7 @@ export function GameDetailsPage({
                 key={roster.team}
                 roster={roster}
                 derivedStats={currentGame.derivedPlayerStats}
-                players={players}
+                players={staticTournamentMetadata.playerProfiles}
               />
             ))}
           </div>
