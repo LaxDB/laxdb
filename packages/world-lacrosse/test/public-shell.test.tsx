@@ -82,6 +82,12 @@ describe("public site shell", () => {
     );
     expect(aboutRoute).toContain('createFileRoute("/about")');
 
+    const insightsRoute = readFileSync(
+      new URL("../src/routes/analysis_.insights.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(insightsRoute).toContain('createFileRoute("/analysis_/insights")');
+
     const footer = readFileSync(
       new URL("../src/components/home-footer.tsx", import.meta.url),
       "utf8",

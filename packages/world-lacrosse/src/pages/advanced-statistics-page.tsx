@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 
 import { buildAnalysisData } from "../analysis-data";
+import {
+  analyzeOutcomeGames,
+  formatOutcomeValue,
+  type MetricKey,
+} from "../analysis-insights";
+import { AnalysisViewNav } from "../components/analysis-view-nav";
 import { PageMetadata } from "../components/page-metadata";
 import { TournamentContextOverview } from "../components/tournament-context-overview";
 import { TournamentDataStatus } from "../components/tournament-data-state";
@@ -11,168 +17,6 @@ import { buildTournamentContext } from "../tournament-context";
 
 const sourceUrl =
   "https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship/tournament-stats/";
-
-type MetricKey =
-  | "shots"
-  | "shotsOnGoal"
-  | "shootingPercentage"
-  | "drawPercentage"
-  | "groundBalls"
-  | "causedTurnovers"
-  | "turnovers"
-  | "assists"
-  | "savePercentage";
-
-interface MetricDefinition {
-  readonly key: MetricKey;
-  readonly label: string;
-  readonly higherIsBetter: boolean;
-  readonly format: "number" | "percentage";
-}
-
-const metrics: readonly MetricDefinition[] = [
-  {
-    key: "shots",
-    label: "Total shots",
-    higherIsBetter: true,
-    format: "number",
-  },
-  {
-    key: "shotsOnGoal",
-    label: "Shots on goal",
-    higherIsBetter: true,
-    format: "number",
-  },
-  {
-    key: "shootingPercentage",
-    label: "Shooting percentage",
-    higherIsBetter: true,
-    format: "percentage",
-  },
-  {
-    key: "drawPercentage",
-    label: "Draw-control percentage",
-    higherIsBetter: true,
-    format: "percentage",
-  },
-  {
-    key: "groundBalls",
-    label: "Ground balls",
-    higherIsBetter: true,
-    format: "number",
-  },
-  {
-    key: "causedTurnovers",
-    label: "Caused turnovers",
-    higherIsBetter: true,
-    format: "number",
-  },
-  {
-    key: "turnovers",
-    label: "Turnovers",
-    higherIsBetter: false,
-    format: "number",
-  },
-  { key: "assists", label: "Assists", higherIsBetter: true, format: "number" },
-  {
-    key: "savePercentage",
-    label: "Save percentage",
-    higherIsBetter: true,
-    format: "percentage",
-  },
-];
-
-type AnalysisGame = ReturnType<typeof buildAnalysisData>["games"][number];
-
-const average = (values: readonly number[]): number =>
-  values.length === 0
-    ? 0
-    : values.reduce((sum, value) => sum + value, 0) / values.length;
-
-const correlation = (
-  left: readonly number[],
-  right: readonly number[],
-): number => {
-  const leftMean = average(left);
-  const rightMean = average(right);
-  const numerator = left.reduce(
-    (sum, value, index) =>
-      sum + (value - leftMean) * ((right[index] ?? 0) - rightMean),
-    0,
-  );
-  const leftScale = Math.sqrt(
-    left.reduce((sum, value) => sum + (value - leftMean) ** 2, 0),
-  );
-  const rightScale = Math.sqrt(
-    right.reduce((sum, value) => sum + (value - rightMean) ** 2, 0),
-  );
-  return leftScale === 0 || rightScale === 0
-    ? 0
-    : numerator / (leftScale * rightScale);
-};
-
-const analyzeGames = (games: readonly AnalysisGame[]) => {
-  const analysis = metrics.map((metric) => {
-    let advantageGames = 0;
-    let advantageWins = 0;
-    const winnerValues: number[] = [];
-    const loserValues: number[] = [];
-    const differences: number[] = [];
-    const outcomes: number[] = [];
-
-    for (const game of games) {
-      const homeWins = game.home.score > game.away.score;
-      const homeValue = game.home[metric.key];
-      const awayValue = game.away[metric.key];
-      const direction = metric.higherIsBetter ? 1 : -1;
-      const advantage = direction * (homeValue - awayValue);
-      if (advantage !== 0) {
-        advantageGames += 1;
-        if ((advantage > 0 && homeWins) || (advantage < 0 && !homeWins))
-          advantageWins += 1;
-      }
-      winnerValues.push(homeWins ? homeValue : awayValue);
-      loserValues.push(homeWins ? awayValue : homeValue);
-      differences.push(advantage);
-      outcomes.push(homeWins ? 1 : -1);
-    }
-
-    return {
-      ...metric,
-      advantageGames,
-      advantageWinRate:
-        advantageGames === 0 ? 0 : (advantageWins / advantageGames) * 100,
-      winnerAverage: average(winnerValues),
-      loserAverage: average(loserValues),
-      correlation: correlation(differences, outcomes),
-    };
-  });
-  const majorityDrawSides = games
-    .flatMap((game) => [
-      {
-        percentage: game.home.drawPercentage,
-        won: game.home.score > game.away.score,
-      },
-      {
-        percentage: game.away.drawPercentage,
-        won: game.away.score > game.home.score,
-      },
-    ])
-    .filter((side) => side.percentage > 50);
-  return {
-    analysis,
-    majorityDrawSides,
-    drawMajorityWinRate:
-      majorityDrawSides.length === 0
-        ? 0
-        : (majorityDrawSides.filter((side) => side.won).length /
-            majorityDrawSides.length) *
-          100,
-  };
-};
-
-const format = (value: number, type: MetricDefinition["format"]): string =>
-  type === "percentage" ? `${value.toFixed(1)}%` : value.toFixed(1);
 
 export function AdvancedStatisticsPage() {
   const snapshot = useCurrentTournamentSnapshot();
@@ -199,7 +43,7 @@ export function AdvancedStatisticsPage() {
   );
   const outcome = useMemo(() => {
     const currentAnalysis = buildAnalysisData(snapshot.games);
-    return analyzeGames(
+    return analyzeOutcomeGames(
       currentAnalysis.games.filter((game) => eligibleGameIds.has(game.id)),
     );
   }, [eligibleGameIds, snapshot.games]);
@@ -239,6 +83,7 @@ export function AdvancedStatisticsPage() {
         <header className="page-title">
           <h1>Analysis</h1>
         </header>
+        <AnalysisViewNav active="overview" />
         <nav className="game-nav" aria-label="Analysis sections">
           <a href="#overview">Overview</a>
           <a href="#records">Records</a>
@@ -303,8 +148,12 @@ export function AdvancedStatisticsPage() {
                   <tr key={metric.key}>
                     <th>{metric.label}</th>
                     <td>{metric.advantageWinRate.toFixed(1)}%</td>
-                    <td>{format(metric.winnerAverage, metric.format)}</td>
-                    <td>{format(metric.loserAverage, metric.format)}</td>
+                    <td>
+                      {formatOutcomeValue(metric.winnerAverage, metric.format)}
+                    </td>
+                    <td>
+                      {formatOutcomeValue(metric.loserAverage, metric.format)}
+                    </td>
                     <td>{metric.correlation.toFixed(2)}</td>
                     <td>{metric.advantageGames}</td>
                   </tr>
