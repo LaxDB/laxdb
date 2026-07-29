@@ -110,7 +110,7 @@ describe("public site shell", () => {
         data={[{ name: "Australia" }]}
         searchPlaceholder="Search teams…"
         fullscreen
-        onFullscreenChange={() => undefined}
+        onFullscreenChange={() => {}}
       />,
     );
 

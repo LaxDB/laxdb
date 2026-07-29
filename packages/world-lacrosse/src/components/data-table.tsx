@@ -202,7 +202,7 @@ export function DataTable<T>({
   }, [fullscreen]);
 
   useEffect(() => {
-    if (!filterOpen || filterStage === "property") return undefined;
+    if (!filterOpen || filterStage === "property") return;
     const frame = requestAnimationFrame(() => {
       filterStagePanel.current
         ?.querySelector<HTMLElement>("[data-filter-choice], input")
@@ -214,7 +214,7 @@ export function DataTable<T>({
   }, [filterOpen, filterStage]);
 
   useEffect(() => {
-    if (onFullscreenChange === undefined) return undefined;
+    if (onFullscreenChange === undefined) return;
 
     const handleFullscreenKeys = (event: KeyboardEvent): void => {
       if (event.key === "Escape" && fullscreen) {
