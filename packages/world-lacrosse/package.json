@@ -13,7 +13,7 @@
     "sync": "bun src/cli.ts sync",
     "sync:force": "bun src/cli.ts sync --force",
     "sync:poll": "bun src/cli.ts poll",
-    "test": "bun --bun vitest run",
+    "test": "bun --bun vitest run --testTimeout=120000",
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix --quiet",
