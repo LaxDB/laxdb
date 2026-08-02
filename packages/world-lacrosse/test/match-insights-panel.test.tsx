@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { championship } from "../src/championship-data";
 import { MatchInsightsPanel } from "../src/components/match-insights-panel";
 import { PlayByPlayTimeline } from "../src/components/play-by-play-timeline";
-import { nearestScoreWormGoal } from "../src/components/score-worm-geometry";
+import {
+  buildScoreWormChartModel,
+  scoreWormGoalDescription,
+  shouldExtendScoreWormToEnd,
+} from "../src/components/score-worm";
 import { ScoringTimeline } from "../src/components/scoring-timeline";
 import { buildMatchInsights } from "../src/match-insights";
 
@@ -22,27 +26,41 @@ describe("MatchInsightsPanel", () => {
     expect(markup).not.toContain("Verified final");
     expect(markup).toContain("Lead changes");
     expect(markup).toContain("Score worm");
-    expect(markup).toContain('class="score-worm"');
+    expect(markup).toContain('class="ts-chart-host score-worm"');
     expect(markup).toContain('role="img"');
+    expect(markup).toContain('aria-roledescription="chart"');
     expect(markup).toContain('aria-label="Score margin over time"');
+    expect(markup).toContain('tabindex="0"');
+    expect(markup).toContain('data-ts-key="home-lead-area"');
+    expect(markup).toContain('data-ts-key="away-lead-area"');
+    expect(markup).toContain('data-ts-key="winning-goal-rings"');
+    const goalLayer = markup.match(
+      /<g data-ts-key="goals" class="ts-chart__dot" aria-hidden="true">([\s\S]*?)<\/g>/u,
+    )?.[1];
+    expect(goalLayer?.match(/<circle/gu)).toHaveLength(insights.goals.length);
+    const homeMarginPath = markup.match(
+      /data-ts-key="home-margin:[^"]*"[\s\S]*?<path[^>]+d="([^"]+)"/u,
+    )?.[1];
+    expect(homeMarginPath).toMatch(/L([0-9.]+),[0-9.]+L\1,[0-9.]+/u);
     expect(markup).not.toContain("Score worm for Wales against Germany");
-    expect(markup).toContain(
-      'aria-label="COOMBES-ROBERTS Sophy goal for Wales, Q1 12:11. Score WAL 1, GER 0. Go-ahead goal."',
+    const openingGoal = insights.goals.find(
+      (goal) => goal.scorer?.name === "COOMBES-ROBERTS Sophy",
+    );
+    const assistedGoal = insights.goals.find(
+      (goal) => goal.scorer?.name === "LLOYD ROUT Ros",
+    );
+    expect(openingGoal).toBeDefined();
+    expect(assistedGoal).toBeDefined();
+    if (openingGoal === undefined || assistedGoal === undefined) return;
+    expect(scoreWormGoalDescription(openingGoal, insights)).toBe(
+      "COOMBES-ROBERTS Sophy goal for Wales, Q1 12:11. Score WAL 1, GER 0. Go-ahead goal.",
+    );
+    expect(scoreWormGoalDescription(assistedGoal, insights)).toBe(
+      "LLOYD ROUT Ros goal for Wales, Q1 10:11. Score WAL 2, GER 1. Assist by WILSON Alexa. Go-ahead goal.",
     );
     expect(markup).toContain(
-      'aria-label="LLOYD ROUT Ros goal for Wales, Q1 10:11. Score WAL 2, GER 1. Assist by WILSON Alexa. Go-ahead goal."',
+      "Tap or hover the chart, or focus it and use the arrow keys, for goal details.",
     );
-    expect(markup).toContain('data-game-winner="true"');
-    expect(markup.match(/class="score-worm-goal-trigger"/gu)).toHaveLength(
-      insights.goals.length,
-    );
-    expect(
-      markup.match(/<button[^>]+class="score-worm-goal-trigger"/gu),
-    ).toHaveLength(insights.goals.length);
-    expect(markup.match(/aria-pressed="false"/gu)).toHaveLength(
-      insights.goals.length,
-    );
-    expect(markup).toContain("Tap, hover, or focus a goal marker for details.");
     expect(markup).not.toContain("NaN");
     expect(markup).not.toContain("Period scoring");
     expect(markup).toContain("Time leading, trailing and tied");
@@ -66,15 +84,39 @@ describe("MatchInsightsPanel", () => {
     expect(markup).not.toContain("Score timeline");
   });
 
-  it("resolves dense hover targets to the nearest goal marker", () => {
-    const points = [
-      { sequence: 22, x: 100, y: 80 },
-      { sequence: 24, x: 103.53, y: 80 },
-    ];
+  it("prepares complete and in-progress score-worm series", () => {
+    const game = championship.games.find((source) => source.id === "63");
+    expect(game).toBeDefined();
+    if (!game) return;
 
-    expect(nearestScoreWormGoal(points, 100, 80, 1, 1)).toBe(22);
-    expect(nearestScoreWormGoal(points, 103.53, 80, 1, 1)).toBe(24);
-    expect(nearestScoreWormGoal(points, 150, 80, 1, 1)).toBeNull();
+    const insights = buildMatchInsights(game);
+    const finalModel = buildScoreWormChartModel(insights);
+    expect(finalModel).not.toBeNull();
+    if (finalModel === null) return;
+
+    expect(finalModel.goalRows).toHaveLength(insights.goals.length);
+    expect(finalModel.rows[0]).toMatchObject({
+      id: "start",
+      elapsedSeconds: 0,
+      margin: 0,
+      goal: null,
+    });
+    expect(finalModel.rows.at(-1)).toMatchObject({
+      id: "end",
+      elapsedSeconds: finalModel.chartDuration,
+      margin: insights.score.home - insights.score.away,
+      goal: null,
+    });
+    expect(finalModel.goalRows.at(-1)?.elapsedSeconds).toBeLessThan(
+      finalModel.chartDuration,
+    );
+    expect(finalModel.periodRules).toHaveLength(
+      finalModel.displayPeriods.length - 1,
+    );
+
+    expect(shouldExtendScoreWormToEnd("final-reconciled", true)).toBe(true);
+    expect(shouldExtendScoreWormToEnd("live", true)).toBe(false);
+    expect(shouldExtendScoreWormToEnd("final-reconciled", false)).toBe(false);
   });
 
   it("renders the full event log without internal source diagnostics", () => {
