@@ -16,6 +16,8 @@ Team pages now act as tournament dossiers rather than static profile dumps. They
 
 Shareable team-versus-team routes now compare the full current tournament snapshot. They reuse the official team-analysis eligibility seam, pool count and rate evidence instead of averaging percentages, retain metric-specific samples, and cover regulation halves, overtime, efficiency, event totals, game state, situational scoring, attribution, and discipline. The comparison remains descriptive and shows direct meetings only when eligible evidence exists.
 
+A team-scoped evaluation lab now compares arbitrary current-tournament game samples at team and teammate level. It supports exact inclusions/exclusions, result, phase, venue, and leave-team-out opponent-record scopes; preserves metric-local reconciliation; and derives player scoring by quarter and half. It deliberately does not create composite player grades, appearance/minute claims, causal explanations, or cross-pool strength ratings.
+
 ## Queued
 
 ### Tournament progression engine
@@ -32,13 +34,13 @@ The rules engine should be independently tested before it drives a bracket or sc
 
 ### Player and goalkeeper comparison
 
-Extend the normalized comparison model beyond teams:
+The current team evaluation lab covers team-scoped teammate totals and scoring splits. Remaining work extends beyond that scope:
 
-- Player versus player totals and per-game rates
-- Tournament-context deltas against the verified rankings
-- Goalkeeper-specific comparisons with reconciled minutes and shots faced
+- Standalone player-versus-player comparisons across teams
+- Tournament-context deltas against verified rankings
+- Goalkeeper rate comparisons with reconciled minutes and shots faced
 
-Player and goalkeeper comparisons remain separate work because their qualification and attribution samples differ from team-level game evidence.
+These remain separate because their qualification and attribution samples differ from team-scoped evidence.
 
 ### Follow-your-team utilities
 

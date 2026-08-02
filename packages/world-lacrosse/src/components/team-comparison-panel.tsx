@@ -2,13 +2,16 @@ import { Link } from "@tanstack/react-router";
 
 import type {
   TeamComparison,
-  TeamComparisonMetricAggregation,
   TeamComparisonMetricEvidence,
-  TeamComparisonMetricFormat,
   TeamComparisonMetricKey,
   TeamComparisonSectionKey,
 } from "../team-comparison-schema";
 import { teamComparisonMetricDefinitions } from "../team-comparison-schema";
+
+import {
+  formatTeamMetricEvidence,
+  formatTeamMetricValue,
+} from "./team-metric-format";
 
 interface SectionDefinition {
   readonly key: TeamComparisonSectionKey;
@@ -67,58 +70,6 @@ const sections: readonly SectionDefinition[] = [
     description: "Recorded card events and explicit suspension minutes.",
   },
 ];
-
-const formatDuration = (seconds: number): string => {
-  const rounded = Math.round(seconds);
-  const minutes = Math.floor(rounded / 60);
-  const remainder = rounded % 60;
-  return `${minutes}:${String(remainder).padStart(2, "0")}`;
-};
-
-const formatValue = (
-  value: number | null,
-  format: TeamComparisonMetricFormat,
-  key: TeamComparisonMetricKey,
-): string => {
-  if (value === null) return "—";
-  if (format === "percentage") return `${value.toFixed(1)}%`;
-  if (format === "duration") return formatDuration(value);
-  if (format === "decimal") {
-    const rendered = value.toFixed(1);
-    return key.includes("difference") && value > 0 ? `+${rendered}` : rendered;
-  }
-  const rendered = String(Math.round(value));
-  return key.includes("difference") && value > 0 ? `+${rendered}` : rendered;
-};
-
-const formatEvidenceNumber = (
-  value: number,
-  format: TeamComparisonMetricFormat,
-): string =>
-  format === "duration"
-    ? formatDuration(value)
-    : Number.isInteger(value)
-      ? String(value)
-      : value.toFixed(1);
-
-const evidence = (
-  metric: Readonly<TeamComparisonMetricEvidence>,
-  aggregation: TeamComparisonMetricAggregation,
-  format: TeamComparisonMetricFormat,
-): string => {
-  const games = `${metric.sampleGames} ${metric.sampleGames === 1 ? "game" : "games"}`;
-  if (metric.sampleGames === 0) return "No eligible evidence";
-  if (metric.value === null) return `No qualifying evidence · ${games}`;
-  const numerator = formatEvidenceNumber(metric.numerator, format);
-  if (aggregation === "unique") return `${numerator} distinct · ${games}`;
-  if (aggregation === "total")
-    return `${numerator} across ${metric.denominator} game observations · ${games}`;
-  if (aggregation === "paired-maximum")
-    return `${numerator} paired with the longest drought · ${metric.denominator} qualifying observations · ${games}`;
-  if (aggregation === "maximum" || aggregation === "minimum")
-    return `${numerator} from ${metric.denominator} qualifying observations · ${games}`;
-  return `${numerator} / ${formatEvidenceNumber(metric.denominator, "integer")} · ${games}`;
-};
 
 const metricFor = (
   comparison: Readonly<TeamComparison>,
@@ -193,7 +144,7 @@ const ComparisonSection = ({
                 <tr key={definition.key}>
                   <td>
                     <strong>
-                      {formatValue(
+                      {formatTeamMetricValue(
                         left?.value ?? null,
                         definition.format,
                         definition.key,
@@ -201,7 +152,7 @@ const ComparisonSection = ({
                     </strong>
                     <small>
                       {left
-                        ? evidence(
+                        ? formatTeamMetricEvidence(
                             left,
                             definition.aggregation,
                             definition.format,
@@ -212,7 +163,7 @@ const ComparisonSection = ({
                   <th scope="row">{definition.label}</th>
                   <td>
                     <strong>
-                      {formatValue(
+                      {formatTeamMetricValue(
                         right?.value ?? null,
                         definition.format,
                         definition.key,
@@ -220,7 +171,7 @@ const ComparisonSection = ({
                     </strong>
                     <small>
                       {right
-                        ? evidence(
+                        ? formatTeamMetricEvidence(
                             right,
                             definition.aggregation,
                             definition.format,

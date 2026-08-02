@@ -19,13 +19,13 @@ import {
   teamComparisonMetricDefinitions,
 } from "./team-comparison-schema";
 
-interface TeamComparisonSource {
+export interface TeamComparisonSource {
   readonly updatedAt: string;
   readonly schedule: readonly ScheduledGame[];
   readonly games: readonly GameDetails[];
 }
 
-interface TeamComparisonTeamSource {
+export interface TeamComparisonTeamSource {
   readonly id: string;
   readonly code: string;
   readonly name: string;
@@ -715,6 +715,24 @@ const buildDirectMeetings = (
       }),
     ];
   });
+};
+
+export const buildTeamMetricSample = (
+  teamId: string,
+  gameIds: readonly string[],
+  source: Readonly<TeamComparisonSource>,
+  teams: readonly TeamComparisonTeamSource[],
+): readonly TeamComparisonMetricEvidence[] | null => {
+  const selected = exactTeam(teams, teamId);
+  if (selected === null) return null;
+  const selectedIds = new Set(gameIds);
+  const filtered = {
+    updatedAt: source.updatedAt,
+    schedule: source.schedule.filter((game) => selectedIds.has(game.id)),
+    games: source.games.filter((game) => selectedIds.has(game.id)),
+  };
+  const teamPools = teams.map((team) => ({ name: team.name, pool: team.pool }));
+  return buildTeam(selected, filtered, teamPools).team.metrics;
 };
 
 export const buildTeamComparison = (

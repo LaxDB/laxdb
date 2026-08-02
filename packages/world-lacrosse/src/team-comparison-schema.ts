@@ -713,6 +713,147 @@ const signedMetricKeys: ReadonlySet<TeamComparisonMetricKey> = new Set([
   "goal-difference-per-game",
 ]);
 
+export const teamComparisonMetricEvidenceIssues = (
+  metrics: readonly TeamComparisonMetricEvidence[],
+  eligibleGames: number,
+  path: readonly (string | number)[],
+  expectedKeys: readonly TeamComparisonMetricKey[] = teamComparisonMetricDefinitions.map(
+    (definition) => definition.key,
+  ),
+): readonly Schema.FilterIssue[] => {
+  const issues: Schema.FilterIssue[] = [];
+  const keys = metrics.map((entry) => entry.key);
+  if (
+    keys.length !== expectedKeys.length ||
+    keys.some((key, index) => key !== expectedKeys[index])
+  )
+    issues.push({
+      path,
+      issue: "metrics must match the closed catalog in display order",
+    });
+  for (const [index, entry] of metrics.entries()) {
+    const definition = teamComparisonMetricDefinitions.find(
+      (candidate) => candidate.key === entry.key,
+    );
+    if (definition === undefined) continue;
+    if (entry.sampleGames > eligibleGames)
+      issues.push({
+        path: [...path, index, "sampleGames"],
+        issue: "metric sample must not exceed eligible games",
+      });
+    if (
+      (definition.aggregation === "total" ||
+        definition.aggregation === "per-game" ||
+        definition.aggregation === "unique") &&
+      entry.denominator !== entry.sampleGames
+    )
+      issues.push({
+        path: [...path, index, "denominator"],
+        issue:
+          "total, unique, and per-game denominators must match their game sample",
+      });
+    if (
+      (definition.aggregation === "maximum" ||
+        definition.aggregation === "minimum" ||
+        definition.aggregation === "paired-maximum") &&
+      entry.denominator > entry.sampleGames
+    )
+      issues.push({
+        path: [...path, index, "denominator"],
+        issue: "qualifying observations must fit the metric game sample",
+      });
+    if (!signedMetricKeys.has(entry.key) && entry.numerator < 0)
+      issues.push({
+        path: [...path, index, "numerator"],
+        issue: "unsigned metric evidence must not be negative",
+      });
+    if (definition.integerEvidence && !Number.isInteger(entry.numerator))
+      issues.push({
+        path: [...path, index, "numerator"],
+        issue: "integer metric evidence must be a whole number",
+      });
+    if (
+      definition.format === "integer" &&
+      entry.value !== null &&
+      !Number.isInteger(entry.value)
+    )
+      issues.push({
+        path: [...path, index, "value"],
+        issue: "integer metric values must be whole numbers",
+      });
+    if (
+      definition.aggregation === "percentage" &&
+      (entry.numerator < 0 || entry.numerator > entry.denominator)
+    )
+      issues.push({
+        path: [...path, index, "numerator"],
+        issue:
+          "percentage evidence must remain between zero and its denominator",
+      });
+    if (entry.denominator === 0 && entry.numerator !== 0)
+      issues.push({
+        path: [...path, index, "numerator"],
+        issue: "zero-denominator evidence must have a zero numerator",
+      });
+    if (
+      entry.sampleGames === 0 &&
+      (entry.numerator !== 0 || entry.denominator !== 0)
+    )
+      issues.push({
+        path: [...path, index],
+        issue: "empty metric samples must not retain evidence",
+      });
+    const expectedValue =
+      definition.aggregation === "percentage"
+        ? entry.denominator === 0
+          ? null
+          : (entry.numerator / entry.denominator) * 100
+        : definition.aggregation === "per-game" ||
+            definition.aggregation === "average"
+          ? entry.denominator === 0
+            ? null
+            : entry.numerator / entry.denominator
+          : definition.aggregation === "maximum" ||
+              definition.aggregation === "minimum" ||
+              definition.aggregation === "paired-maximum"
+            ? entry.denominator === 0
+              ? null
+              : entry.numerator
+            : entry.sampleGames === 0
+              ? null
+              : entry.numerator;
+    if (
+      (expectedValue === null && entry.value !== null) ||
+      (expectedValue !== null &&
+        (entry.value === null ||
+          Math.abs(entry.value - expectedValue) > 0.000_001))
+    )
+      issues.push({
+        path: [...path, index, "value"],
+        issue: "metric value must match its aggregation evidence",
+      });
+  }
+  const longestDrought = metrics.find(
+    (entry) => entry.key === "longest-drought",
+  );
+  const droughtDamage = metrics.find(
+    (entry) => entry.key === "drought-goals-conceded",
+  );
+  if (
+    longestDrought !== undefined &&
+    droughtDamage !== undefined &&
+    (longestDrought.sampleGames !== droughtDamage.sampleGames ||
+      longestDrought.denominator !== droughtDamage.denominator ||
+      (longestDrought.value === null) !== (droughtDamage.value === null))
+  )
+    issues.push({
+      path,
+      issue:
+        "longest drought and its paired goals conceded must share one sample",
+    });
+  return issues;
+};
+
 export const TeamComparison = Schema.Struct({
   generatedFrom: Schema.String,
   left: TeamComparisonTeam,
@@ -726,9 +867,6 @@ export const TeamComparison = Schema.Struct({
         path: ["right", "id"],
         issue: "comparison teams must be distinct",
       });
-    const expectedKeys = teamComparisonMetricDefinitions.map(
-      (definition) => definition.key,
-    );
     const sides: readonly ("left" | "right")[] = ["left", "right"];
     for (const side of sides) {
       const team = comparison[side];
@@ -745,133 +883,13 @@ export const TeamComparison = Schema.Struct({
           path: [side, "wins"],
           issue: "eligible sample must split into wins and losses",
         });
-      const keys = team.metrics.map((entry) => entry.key);
-      if (
-        keys.length !== expectedKeys.length ||
-        keys.some((key, index) => key !== expectedKeys[index])
-      )
-        issues.push({
-          path: [side, "metrics"],
-          issue: "metrics must match the closed catalog in display order",
-        });
-      for (const [index, entry] of team.metrics.entries()) {
-        const definition = teamComparisonMetricDefinitions[index];
-        if (definition === undefined) continue;
-        if (entry.sampleGames > team.eligibleGames)
-          issues.push({
-            path: [side, "metrics", index, "sampleGames"],
-            issue: "metric sample must not exceed eligible games",
-          });
-        if (
-          (definition.aggregation === "total" ||
-            definition.aggregation === "per-game" ||
-            definition.aggregation === "unique") &&
-          entry.denominator !== entry.sampleGames
-        )
-          issues.push({
-            path: [side, "metrics", index, "denominator"],
-            issue:
-              "total, unique, and per-game denominators must match their game sample",
-          });
-        if (
-          (definition.aggregation === "maximum" ||
-            definition.aggregation === "minimum" ||
-            definition.aggregation === "paired-maximum") &&
-          entry.denominator > entry.sampleGames
-        )
-          issues.push({
-            path: [side, "metrics", index, "denominator"],
-            issue: "qualifying observations must fit the metric game sample",
-          });
-        if (!signedMetricKeys.has(entry.key) && entry.numerator < 0)
-          issues.push({
-            path: [side, "metrics", index, "numerator"],
-            issue: "unsigned metric evidence must not be negative",
-          });
-        if (definition.integerEvidence && !Number.isInteger(entry.numerator))
-          issues.push({
-            path: [side, "metrics", index, "numerator"],
-            issue: "integer metric evidence must be a whole number",
-          });
-        if (
-          definition.format === "integer" &&
-          entry.value !== null &&
-          !Number.isInteger(entry.value)
-        )
-          issues.push({
-            path: [side, "metrics", index, "value"],
-            issue: "integer metric values must be whole numbers",
-          });
-        if (
-          definition.aggregation === "percentage" &&
-          (entry.numerator < 0 || entry.numerator > entry.denominator)
-        )
-          issues.push({
-            path: [side, "metrics", index, "numerator"],
-            issue:
-              "percentage evidence must remain between zero and its denominator",
-          });
-        if (entry.denominator === 0 && entry.numerator !== 0)
-          issues.push({
-            path: [side, "metrics", index, "numerator"],
-            issue: "zero-denominator evidence must have a zero numerator",
-          });
-        if (
-          entry.sampleGames === 0 &&
-          (entry.numerator !== 0 || entry.denominator !== 0)
-        )
-          issues.push({
-            path: [side, "metrics", index],
-            issue: "empty metric samples must not retain evidence",
-          });
-        const expectedValue =
-          definition.aggregation === "percentage"
-            ? entry.denominator === 0
-              ? null
-              : (entry.numerator / entry.denominator) * 100
-            : definition.aggregation === "per-game" ||
-                definition.aggregation === "average"
-              ? entry.denominator === 0
-                ? null
-                : entry.numerator / entry.denominator
-              : definition.aggregation === "maximum" ||
-                  definition.aggregation === "minimum" ||
-                  definition.aggregation === "paired-maximum"
-                ? entry.denominator === 0
-                  ? null
-                  : entry.numerator
-                : entry.sampleGames === 0
-                  ? null
-                  : entry.numerator;
-        if (
-          (expectedValue === null && entry.value !== null) ||
-          (expectedValue !== null &&
-            (entry.value === null ||
-              Math.abs(entry.value - expectedValue) > 0.000_001))
-        )
-          issues.push({
-            path: [side, "metrics", index, "value"],
-            issue: "metric value must match its aggregation evidence",
-          });
-      }
-      const longestDrought = team.metrics.find(
-        (entry) => entry.key === "longest-drought",
+      issues.push(
+        ...teamComparisonMetricEvidenceIssues(
+          team.metrics,
+          team.eligibleGames,
+          [side, "metrics"],
+        ),
       );
-      const droughtDamage = team.metrics.find(
-        (entry) => entry.key === "drought-goals-conceded",
-      );
-      if (
-        longestDrought !== undefined &&
-        droughtDamage !== undefined &&
-        (longestDrought.sampleGames !== droughtDamage.sampleGames ||
-          longestDrought.denominator !== droughtDamage.denominator ||
-          (longestDrought.value === null) !== (droughtDamage.value === null))
-      )
-        issues.push({
-          path: [side, "metrics"],
-          issue:
-            "longest drought and its paired goals conceded must share one sample",
-        });
     }
     const meetingIds = comparison.directMeetings.map(
       (meeting) => meeting.gameId,

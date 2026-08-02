@@ -125,6 +125,15 @@ export function PlayerDetailsPage({ player }: { player: StaticPlayerProfile }) {
         <nav className="game-nav" aria-label="Player details sections">
           <a href="#tournament-stats">Stats</a>
           <a href="#game-log">Game log</a>
+          {player.teamId && (
+            <Link
+              to="/evaluate/$teamId"
+              params={{ teamId: player.teamId }}
+              search={{ player: player.id }}
+            >
+              Evaluate splits
+            </Link>
+          )}
         </nav>
 
         <section className="data-section" id="tournament-stats">
