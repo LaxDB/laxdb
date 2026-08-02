@@ -7,6 +7,418 @@ html {
   overflow-x: clip;
   scroll-behavior: smooth;
 }
+.team-evaluation-page {
+  width: min(100%, 1600px);
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
+  color: oklch(var(--foreground));
+}
+
+.team-evaluation-hero {
+  display: grid;
+  gap: 16px;
+  padding: clamp(24px, 5vw, 72px) 0 40px;
+  border-bottom: 2px solid oklch(var(--foreground));
+}
+
+.team-evaluation-hero > span,
+.team-evaluation-section-heading > span,
+.team-evaluation-controls > header > span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.team-evaluation-hero > div {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.team-evaluation-hero img {
+  width: 64px;
+  height: 42px;
+  object-fit: cover;
+  border: 1px solid oklch(var(--border));
+}
+
+.team-evaluation-hero h1 {
+  max-width: 900px;
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(2.6rem, 7vw, 6.8rem);
+  line-height: 0.9;
+}
+
+.team-evaluation-hero > p {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.team-evaluation-hero dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 16px 0 0;
+  border: 1px solid oklch(var(--border));
+}
+
+.team-evaluation-hero dl > div {
+  min-width: 0;
+  padding: 14px;
+  border-right: 1px solid oklch(var(--border));
+}
+
+.team-evaluation-hero dl > div:last-child {
+  border-right: 0;
+}
+.team-evaluation-hero dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.team-evaluation-hero dd {
+  margin: 5px 0 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.team-evaluation-report {
+  display: grid;
+  gap: 64px;
+  padding-top: 48px;
+}
+.team-evaluation-controls,
+.team-evaluation-team,
+.team-evaluation-players {
+  min-width: 0;
+}
+
+.team-evaluation-controls > header,
+.team-evaluation-section-heading {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 760px);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.team-evaluation-controls h2,
+.team-evaluation-section-heading h2,
+.team-evaluation-method h2 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1;
+}
+
+.team-evaluation-controls header p,
+.team-evaluation-section-heading p {
+  margin: 8px 0 0;
+  color: oklch(var(--muted-foreground));
+}
+
+.team-evaluation-team-picker,
+.team-evaluation-presets,
+.team-evaluation-player-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.team-evaluation-team-picker {
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  align-items: end;
+}
+.team-evaluation-team-picker > p {
+  margin: 0;
+  color: oklch(var(--muted-foreground));
+}
+.team-evaluation-team-links {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.team-evaluation-team-links a {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(var(--border));
+  text-decoration: none;
+  font-weight: 700;
+}
+.team-evaluation-team-links a[aria-current="page"] {
+  background: oklch(var(--foreground));
+  color: oklch(var(--background));
+}
+
+.team-evaluation-controls label,
+.team-evaluation-player-controls label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.team-evaluation-controls select,
+.team-evaluation-player-controls select {
+  min-height: 44px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid oklch(var(--border));
+  border-radius: 4px;
+  background: oklch(var(--card));
+  color: oklch(var(--foreground));
+  font: inherit;
+  text-transform: none;
+}
+
+.team-evaluation-game-scope {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.team-evaluation-game-scope > legend {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.team-evaluation-table-shell {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid oklch(var(--border));
+  background: oklch(var(--card));
+}
+.team-evaluation-table-shell:focus-visible {
+  outline: 3px solid oklch(var(--accent));
+  outline-offset: 3px;
+}
+.team-evaluation-table-shell table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.team-evaluation-table-shell caption {
+  padding: 12px 14px;
+  text-align: left;
+  color: oklch(var(--muted-foreground));
+}
+.team-evaluation-table-shell th,
+.team-evaluation-table-shell td {
+  padding: 12px 14px;
+  border-top: 1px solid oklch(var(--border));
+  text-align: left;
+  vertical-align: top;
+}
+.team-evaluation-table-shell thead th {
+  border-top: 0;
+  background: oklch(var(--muted));
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.team-evaluation-table-shell th small,
+.team-evaluation-table-shell td small {
+  display: block;
+  margin-top: 4px;
+  color: oklch(var(--muted-foreground));
+  font-weight: 400;
+}
+.team-evaluation-table-shell input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  accent-color: oklch(var(--accent));
+}
+.team-evaluation-table-shell tr[data-selected] {
+  box-shadow: inset 4px 0 0 oklch(var(--accent));
+  background: color-mix(in srgb, oklch(var(--accent)) 8%, transparent);
+}
+
+.team-evaluation-sample-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.team-evaluation-sample-summary span {
+  padding: 8px 12px;
+  border: 1px solid oklch(var(--border));
+}
+.team-evaluation-sample-summary b {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
+  background: oklch(var(--foreground));
+  color: oklch(var(--background));
+}
+
+.team-evaluation-game-ledger {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.team-evaluation-game-ledger article {
+  padding: 16px;
+  border: 1px solid oklch(var(--border));
+  background: oklch(var(--card));
+}
+.team-evaluation-game-ledger article > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+}
+.team-evaluation-game-ledger h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 1.5rem;
+}
+.team-evaluation-game-ledger dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.team-evaluation-game-ledger dl div {
+  padding-top: 8px;
+  border-top: 1px solid oklch(var(--border));
+}
+.team-evaluation-game-ledger dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+.team-evaluation-game-ledger dd {
+  margin: 3px 0 0;
+  font-weight: 700;
+}
+.team-evaluation-membership {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 7px;
+  border: 1px solid oklch(var(--border-strong));
+  color: oklch(var(--muted-foreground));
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.team-evaluation-metric-section {
+  margin-top: 28px;
+}
+.team-evaluation-metric-section > header {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding-bottom: 10px;
+}
+.team-evaluation-metric-section h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 1.8rem;
+}
+.team-evaluation-metric-section td:first-child,
+.team-evaluation-metric-section td:nth-child(3) {
+  width: 29%;
+}
+.team-evaluation-metric-section td:nth-child(4) {
+  white-space: nowrap;
+  font-weight: 700;
+}
+.team-evaluation-metric-section td > strong {
+  font-size: 1.15rem;
+}
+
+.team-evaluation-players > h3 {
+  margin: 28px 0 10px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 2rem;
+}
+.team-evaluation-player-ledger,
+.team-evaluation-period-matrix {
+  margin-top: 24px;
+  border: 1px solid oklch(var(--border));
+  background: oklch(var(--card));
+}
+.team-evaluation-player-ledger summary,
+.team-evaluation-period-matrix summary {
+  min-height: 48px;
+  padding: 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.team-evaluation-note,
+.team-evaluation-method {
+  padding: 16px;
+  border-left: 4px solid oklch(var(--accent));
+  background: oklch(var(--muted));
+}
+.team-evaluation-method {
+  margin-top: 64px;
+}
+.team-evaluation-method p {
+  max-width: 900px;
+}
+.team-evaluation-entry {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 10px 14px;
+  background: oklch(var(--foreground));
+  color: oklch(var(--background));
+  text-decoration: none;
+  font-weight: 700;
+}
+.team-roster-player-links {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.team-roster-player-links a:last-child {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+.team-evaluation-recovery > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.team-evaluation-recovery a {
+  padding: 10px;
+  border: 1px solid oklch(var(--border));
+}
+
+@media (max-width: 700px) {
+  .team-evaluation-page {
+    padding: 20px 12px 48px;
+  }
+  .team-evaluation-hero dl {
+    grid-template-columns: 1fr 1fr;
+  }
+  .team-evaluation-hero dl > div:nth-child(2) {
+    border-right: 0;
+  }
+  .team-evaluation-hero dl > div:nth-child(-n + 2) {
+    border-bottom: 1px solid oklch(var(--border));
+  }
+  .team-evaluation-controls > header,
+  .team-evaluation-section-heading {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .team-evaluation-team-picker,
+  .team-evaluation-presets,
+  .team-evaluation-player-controls {
+    grid-template-columns: 1fr;
+  }
+  .team-evaluation-table-shell table {
+    min-width: 680px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -3252,6 +3664,21 @@ html:has(.data-table[data-fullscreen="true"]) {
 .data-table-filter-formula > button:hover {
   color: oklch(var(--foreground));
 }
+.data-table-filter-formula > .data-table-filter-operator {
+  color: oklch(var(--muted-foreground));
+  font-weight: 400;
+}
+.data-table-filter-formula > .data-table-filter-multi-value {
+  display: block;
+  width: auto;
+  max-width: 180px;
+  padding: 0 8px;
+  overflow: hidden;
+  color: oklch(var(--muted-foreground));
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .data-table-clear-filters {
   flex: none;
   height: 32px;
@@ -3395,6 +3822,71 @@ html:has(.data-table[data-fullscreen="true"]) {
 .data-table-filter-menu-heading strong {
   font-size: 12px;
   font-weight: 600;
+}
+.data-table-filter-multi-form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.data-table-filter-options {
+  display: grid;
+  min-height: 0;
+  max-height: 330px;
+  gap: 1px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  border: 0;
+}
+.data-table-filter-options label {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.data-table-filter-options label:hover,
+.data-table-filter-options label:focus-within {
+  background: oklch(var(--muted) / 0.72);
+}
+.data-table-filter-options input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: oklch(var(--foreground));
+}
+.data-table-filter-multi-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 4px 2px 8px;
+  border-top: 1px solid oklch(var(--border));
+}
+.data-table-filter-multi-actions > span {
+  color: oklch(var(--muted-foreground));
+  font-size: 10px;
+}
+.data-table-filter-multi-actions button {
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 5px;
+  background: oklch(var(--foreground));
+  color: oklch(var(--background));
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.data-table-filter-multi-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 .data-table-filter-value-form {
   display: flex;

@@ -20,6 +20,7 @@ import { Route as TeamsIndexRouteImport } from './routes/teams/index'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams/$teamId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
 import { Route as GamesGameIdRouteImport } from './routes/games/$gameId'
+import { Route as EvaluateTeamIdRouteImport } from './routes/evaluate/$teamId'
 import { Route as AnalysisInsightsRouteImport } from './routes/analysis_.insights'
 import { Route as CompareLeftTeamIdRightTeamIdRouteImport } from './routes/compare/$leftTeamId/$rightTeamId'
 
@@ -78,6 +79,11 @@ const GamesGameIdRoute = GamesGameIdRouteImport.update({
   path: '/games/$gameId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EvaluateTeamIdRoute = EvaluateTeamIdRouteImport.update({
+  id: '/evaluate/$teamId',
+  path: '/evaluate/$teamId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalysisInsightsRoute = AnalysisInsightsRouteImport.update({
   id: '/analysis_/insights',
   path: '/analysis/insights',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/standings': typeof StandingsRoute
   '/statistics': typeof StatisticsRoute
   '/analysis/insights': typeof AnalysisInsightsRoute
+  '/evaluate/$teamId': typeof EvaluateTeamIdRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/standings': typeof StandingsRoute
   '/statistics': typeof StatisticsRoute
   '/analysis/insights': typeof AnalysisInsightsRoute
+  '/evaluate/$teamId': typeof EvaluateTeamIdRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/standings': typeof StandingsRoute
   '/statistics': typeof StatisticsRoute
   '/analysis_/insights': typeof AnalysisInsightsRoute
+  '/evaluate/$teamId': typeof EvaluateTeamIdRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/statistics'
     | '/analysis/insights'
+    | '/evaluate/$teamId'
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/statistics'
     | '/analysis/insights'
+    | '/evaluate/$teamId'
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/standings'
     | '/statistics'
     | '/analysis_/insights'
+    | '/evaluate/$teamId'
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   StandingsRoute: typeof StandingsRoute
   StatisticsRoute: typeof StatisticsRoute
   AnalysisInsightsRoute: typeof AnalysisInsightsRoute
+  EvaluateTeamIdRoute: typeof EvaluateTeamIdRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRoute
@@ -279,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesGameIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/evaluate/$teamId': {
+      id: '/evaluate/$teamId'
+      path: '/evaluate/$teamId'
+      fullPath: '/evaluate/$teamId'
+      preLoaderRoute: typeof EvaluateTeamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analysis_/insights': {
       id: '/analysis_/insights'
       path: '/analysis/insights'
@@ -305,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   StandingsRoute: StandingsRoute,
   StatisticsRoute: StatisticsRoute,
   AnalysisInsightsRoute: AnalysisInsightsRoute,
+  EvaluateTeamIdRoute: EvaluateTeamIdRoute,
   GamesGameIdRoute: GamesGameIdRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   TeamsTeamIdRoute: TeamsTeamIdRoute,

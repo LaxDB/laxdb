@@ -9,8 +9,11 @@ import {
 import {
   buildPlayerColumns,
   buildPlayerRows,
+  fieldPlayerFilters,
+  goalkeeperFilters,
   penaltyMinutesStat,
   playerDataCoverageComplete,
+  teamFilters,
   teamSavePercentage,
 } from "../src/pages/statistics-page";
 import { parseStatisticsSearch } from "../src/routes/statistics";
@@ -90,16 +93,112 @@ describe("statistics page player rows", () => {
     expect(parseStatisticsSearch({ through: "latest" })).toEqual({});
   });
 
-  it("supports readable text and numeric filter conditions", () => {
-    expect(dataValueMatchesFilter("Pool D", "contains:pool")).toBe(true);
-    expect(dataValueMatchesFilter("D", "eq:D")).toBe(true);
-    expect(dataValueMatchesFilter("D", "neq:D")).toBe(false);
-    expect(dataValueMatchesFilter(54.2, "gt:50")).toBe(true);
-    expect(dataValueMatchesFilter(20, "gte:20")).toBe(true);
-    expect(dataValueMatchesFilter(20, "lt:20")).toBe(false);
-    expect(dataValueMatchesFilter(20, "contains:2")).toBe(false);
-    expect(dataValueMatchesFilter(20, "eq:not-a-number")).toBe(false);
-    expect(dataValueMatchesFilter("D", "toString:D")).toBe(false);
+  it("supports structured text, select, multi-select, and numeric filters", () => {
+    expect(
+      dataValueMatchesFilter("Pool D", {
+        kind: "text",
+        operator: "contains",
+        value: "pool",
+      }),
+    ).toBe(true);
+    expect(
+      dataValueMatchesFilter("Attack", {
+        kind: "select",
+        operator: "eq",
+        value: "Attack",
+      }),
+    ).toBe(true);
+    expect(
+      dataValueMatchesFilter("Attack", {
+        kind: "select",
+        operator: "neq",
+        value: "Attack",
+      }),
+    ).toBe(false);
+    expect(
+      dataValueMatchesFilter("Japan", {
+        kind: "multi-select",
+        values: ["Japan", "Wales"],
+      }),
+    ).toBe(true);
+    expect(
+      dataValueMatchesFilter("Canada", {
+        kind: "multi-select",
+        values: ["Japan", "Wales"],
+      }),
+    ).toBe(false);
+    expect(
+      dataValueMatchesFilter(54.2, {
+        kind: "number",
+        operator: "gt",
+        value: 50,
+      }),
+    ).toBe(true);
+    expect(
+      dataValueMatchesFilter(20, {
+        kind: "number",
+        operator: "gte",
+        value: 20,
+      }),
+    ).toBe(true);
+    expect(
+      dataValueMatchesFilter(20, {
+        kind: "number",
+        operator: "lt",
+        value: 20,
+      }),
+    ).toBe(false);
+    expect(
+      dataValueMatchesFilter(20, {
+        kind: "number",
+        operator: "contains",
+        value: 2,
+      }),
+    ).toBe(false);
+    expect(
+      dataValueMatchesFilter("Japan", {
+        kind: "multi-select",
+        values: [],
+      }),
+    ).toBe(false);
+    expect(dataValueMatchesFilter("Japan", null)).toBe(true);
+  });
+
+  it("declares only useful filters with structured categorical controls", () => {
+    const fieldFiltersById = new Map(
+      fieldPlayerFilters.map((filter) => [filter.id, filter]),
+    );
+    const goalkeeperFiltersById = new Map(
+      goalkeeperFilters.map((filter) => [filter.id, filter]),
+    );
+    const teamFiltersById = new Map(
+      teamFilters.map((filter) => [filter.id, filter]),
+    );
+
+    expect(fieldFiltersById.has("name")).toBe(false);
+    expect(fieldFiltersById.has("number")).toBe(false);
+    expect(fieldFiltersById.get("team")).toMatchObject({
+      kind: "multi-select",
+    });
+    expect(fieldFiltersById.get("position")).toMatchObject({
+      kind: "select",
+      options: ["Attack", "Midfield", "Defense"],
+    });
+    expect(fieldFiltersById.get("gamesPlayed")).toMatchObject({
+      kind: "number",
+    });
+    expect(fieldFiltersById.get("points")).toMatchObject({ kind: "number" });
+    expect(goalkeeperFiltersById.has("position")).toBe(false);
+    expect(goalkeeperFiltersById.get("saves")).toMatchObject({
+      kind: "number",
+    });
+    expect(teamFiltersById.get("team")).toMatchObject({
+      kind: "multi-select",
+    });
+    expect(teamFiltersById.get("pool")).toMatchObject({
+      kind: "multi-select",
+      options: ["A", "B", "C", "D"],
+    });
   });
 
   it("fails closed when a completed game has no accepted details", () => {

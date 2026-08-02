@@ -778,6 +778,14 @@ function TeamDetailsContent({
         {showOrganization && (
           <p className="team-organization">{organization}</p>
         )}
+        <Link
+          className="team-evaluation-entry"
+          to="/evaluate/$teamId"
+          params={{ teamId: team.id }}
+          search={{}}
+        >
+          Open evaluation lab →
+        </Link>
       </section>
       <nav
         className="team-page-index"
@@ -827,9 +835,18 @@ function TeamDetailsContent({
                     <td>{player.Number}</td>
                     <th scope="row">
                       {playerId ? (
-                        <Link to="/players/$playerId" params={{ playerId }}>
-                          {playerName}
-                        </Link>
+                        <span className="team-roster-player-links">
+                          <Link to="/players/$playerId" params={{ playerId }}>
+                            {playerName}
+                          </Link>
+                          <Link
+                            to="/evaluate/$teamId"
+                            params={{ teamId: team.id }}
+                            search={{ player: playerId }}
+                          >
+                            Evaluate
+                          </Link>
+                        </span>
                       ) : (
                         playerName
                       )}

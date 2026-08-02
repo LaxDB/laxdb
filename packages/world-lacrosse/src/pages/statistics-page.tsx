@@ -12,7 +12,10 @@ import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 
-import { DataTable } from "../components/data-table";
+import {
+  DataTable,
+  type DataTableFilterDefinition,
+} from "../components/data-table";
 import { PageMetadata } from "../components/page-metadata";
 import { TournamentDataStatus } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
@@ -81,6 +84,121 @@ const statisticsFilterLabels: Readonly<Record<string, string>> = {
 };
 
 type StatisticsView = "field" | "goalkeepers" | "teams";
+
+const numberFilter = (id: string): DataTableFilterDefinition => ({
+  id,
+  kind: "number",
+  label: statisticsFilterLabels[id] ?? id,
+});
+
+const tournamentTeamNames = staticTournamentMetadata.teamProfiles.map(
+  (team) => team.name,
+);
+const poolFilterOptions = [
+  ...new Set(staticTournamentMetadata.teamProfiles.map((team) => team.pool)),
+];
+const positionFilterOptions: readonly string[] = [
+  "Attack",
+  "Midfield",
+  "Defense",
+];
+
+const playerCountingFilterIds: readonly string[] = [
+  "gamesPlayed",
+  "points",
+  "goals",
+  "assists",
+  "shots",
+  "shotsOnGoal",
+  "shotsOffTarget",
+  "goalsWithoutRecordedAssist",
+  "freePositionGoals",
+  "freePositionAttempts",
+  "groundBalls",
+  "drawControls",
+  "turnovers",
+  "causedTurnovers",
+  "yellowCards",
+  "redCards",
+];
+
+export const fieldPlayerFilters: readonly DataTableFilterDefinition[] = [
+  {
+    id: "team",
+    kind: "multi-select",
+    label: "Team",
+    options: tournamentTeamNames,
+  },
+  {
+    id: "position",
+    kind: "select",
+    label: "Position",
+    options: positionFilterOptions,
+  },
+  ...playerCountingFilterIds.map(numberFilter),
+];
+
+export const goalkeeperFilters: readonly DataTableFilterDefinition[] = [
+  {
+    id: "team",
+    kind: "multi-select",
+    label: "Team",
+    options: tournamentTeamNames,
+  },
+  numberFilter("starts"),
+  numberFilter("goalkeeperPeriodStarts"),
+  numberFilter("saves"),
+  ...playerCountingFilterIds.map(numberFilter),
+];
+
+const teamNumberFilterIds: readonly string[] = [
+  "played",
+  "wins",
+  "losses",
+  "winPercentage",
+  "goalsFor",
+  "goalsAgainst",
+  "goalDifference",
+  "goalsPerGame",
+  "goalsAgainstPerGame",
+  "assists",
+  "assistsPerGame",
+  "totalShots",
+  "shotsPerGame",
+  "shotsOnGoal",
+  "shotsOnGoalPerGame",
+  "shootingPercentage",
+  "groundBalls",
+  "groundBallsPerGame",
+  "turnovers",
+  "turnoversPerGame",
+  "causedTurnovers",
+  "causedTurnoversPerGame",
+  "drawControls",
+  "drawPercentage",
+  "saves",
+  "savesPerGame",
+  "savePercentage",
+  "penaltyMinutes",
+  "yellowCards",
+  "redCards",
+];
+
+export const teamFilters: readonly DataTableFilterDefinition[] = [
+  {
+    id: "team",
+    kind: "multi-select",
+    label: "Team",
+    options: tournamentTeamNames,
+  },
+  {
+    id: "pool",
+    kind: "multi-select",
+    label: "Pool",
+    options: poolFilterOptions,
+  },
+  ...teamNumberFilterIds.map(numberFilter),
+];
 
 interface PlayerRow {
   readonly id: string | null;
@@ -806,10 +924,6 @@ const teamColumns: ColumnDef<TeamRow>[] = [
   },
 ];
 
-const tournamentTeamNames = staticTournamentMetadata.teamProfiles.map(
-  (team) => team.name,
-);
-
 export function StatisticsPage({
   through,
   onThroughChange,
@@ -845,6 +959,8 @@ export function StatisticsPage({
     () => buildPlayerColumns(playerView),
     [playerView],
   );
+  const currentPlayerFilters =
+    playerView === "goalkeepers" ? goalkeeperFilters : fieldPlayerFilters;
   const teamRows = useMemo(
     () =>
       staticTournamentMetadata.teamProfiles
@@ -1077,7 +1193,7 @@ export function StatisticsPage({
             searchPlaceholder="Search teams or pools…"
             initialSorting={[{ id: "goalDifference", desc: true }]}
             ariaLabel="Team statistics"
-            filterLabels={statisticsFilterLabels}
+            filters={teamFilters}
             viewportKey={`teams-${statisticsScope.through}`}
             toolbarLeading={viewSwitcher}
             toolbarActions={throughPicker}
@@ -1111,7 +1227,7 @@ export function StatisticsPage({
                 ? "Goalkeeper statistics"
                 : "Field player statistics"
             }
-            filterLabels={statisticsFilterLabels}
+            filters={currentPlayerFilters}
             viewportKey={`${playerView}-${statisticsScope.through}`}
             toolbarLeading={viewSwitcher}
             toolbarActions={throughPicker}
