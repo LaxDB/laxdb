@@ -41,7 +41,26 @@ describe("MatchInsightsPanel", () => {
     const homeMarginPath = markup.match(
       /data-ts-key="home-margin:[^"]*"[\s\S]*?<path[^>]+d="([^"]+)"/u,
     )?.[1];
-    expect(homeMarginPath).toMatch(/L([0-9.]+),[0-9.]+L\1,[0-9.]+/u);
+    expect(homeMarginPath).toBeDefined();
+    const homeMarginCoordinates = [
+      ...(homeMarginPath?.matchAll(/[ML](-?[0-9.]+),(-?[0-9.]+)/gu) ?? []),
+    ].flatMap((match) => {
+      const x = match[1];
+      const y = match[2];
+      return x === undefined || y === undefined
+        ? []
+        : [{ x: Number(x), y: Number(y) }];
+    });
+    expect(
+      homeMarginCoordinates.some((point, index) => {
+        const previous = homeMarginCoordinates[index - 1];
+        return (
+          previous !== undefined &&
+          Math.abs(point.x - previous.x) < 0.01 &&
+          Math.abs(point.y - previous.y) > 1
+        );
+      }),
+    ).toBe(true);
     expect(markup).not.toContain("Score worm for Wales against Germany");
     const openingGoal = insights.goals.find(
       (goal) => goal.scorer?.name === "COOMBES-ROBERTS Sophy",
