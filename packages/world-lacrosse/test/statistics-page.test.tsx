@@ -244,19 +244,19 @@ describe("statistics page player rows", () => {
 
     expect(player).toMatchObject({
       name: "LIPKIN Jordyn",
-      gamesPlayed: 3,
+      gamesPlayed: 6,
       isLive: false,
-      goals: 12,
-      assists: 5,
-      points: 17,
-      shots: 17,
-      shotsOnGoal: 15,
-      shotsOffTarget: 1,
-      goalsWithoutRecordedAssist: 12,
-      freePositionGoals: 7,
-      freePositionAttempts: 8,
-      groundBalls: 1,
-      turnovers: 4,
+      goals: 19,
+      assists: 6,
+      points: 25,
+      shots: 32,
+      shotsOnGoal: 27,
+      shotsOffTarget: 4,
+      goalsWithoutRecordedAssist: 16,
+      freePositionGoals: 11,
+      freePositionAttempts: 12,
+      groundBalls: 4,
+      turnovers: 12,
       causedTurnovers: 1,
     });
   });
@@ -532,7 +532,7 @@ describe("statistics page player rows", () => {
     );
     const japanGoalkeeper = players.find((player) => player.id === "1323");
 
-    expect(philippinesGoalkeeper?.saves).toBe(22);
+    expect(philippinesGoalkeeper?.saves).toBe(30);
     expect(japanGoalkeeper?.position).toBe("Goal Keeper");
     expect(japanGoalkeeper?.saves).toBeNull();
   });

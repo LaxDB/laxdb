@@ -58,23 +58,23 @@ Choose another generated-data directory:
 bun src/cli.ts sync --output ./data/world-lacrosse
 ```
 
-## Live scores
+## Tournament data authority
 
-Production score updates are served by `src/live-scores-worker.ts`. Alchemy deploys it at `live.world.<base-domain>`, binds a dedicated KV namespace, and invokes it every minute. The worker fetches the source schedule once per minute while a game is live and every other minute otherwise, then writes the complete schedule snapshot atomically to KV.
+The completed tournament now runs in `archived` mode. The application serves the final generated snapshot, labels it as archived final data, performs no browser polling, and installs no production refresh cron. The deployed Worker/KV endpoint remains available as the last live snapshot but is no longer refreshed automatically.
 
-`src/tournament-mode.ts` explicitly selects `live` or `archived` operation. In live mode the Worker/KV snapshot is the only authority for schedule assignments, scores, statuses, game details, standings, and every derived statistic. Tournament routes show a neutral loading state before the first verified response and an unavailable state with Retry when no verified live generation exists. They never render bundled schedule or result data as a fallback. Once a generation has been accepted, a failed or regressed refresh leaves it in place with its original timestamp and a visible delayed-update warning.
+`src/tournament-mode.ts` explicitly selects `live` or `archived` operation. During the event, live mode made the Worker/KV snapshot the only authority for schedule assignments, scores, statuses, game details, standings, and every derived statistic. Tournament routes showed a neutral loading state before the first verified response and retained the last accepted generation through failed or regressed refreshes.
 
-Tournament views poll every 30 seconds during live play and every minute otherwise. Local and preview UIs use the production score feed by default because preview KV namespaces do not run the production crawler. `VITE_LIVE_SCORES_URL` can override the endpoint for local Worker, failure, and stale-data testing.
+In live mode tournament views poll every 30 seconds during play and every minute otherwise. Local and preview UIs use the production score feed by default because preview KV namespaces do not run the production crawler. `VITE_LIVE_SCORES_URL` can override the endpoint for local Worker, failure, and stale-data testing.
 
-The homepage Matchday list keeps every game on the selected tournament date, regardless of status. Homepage and `/standings` pool tables are recomputed from this same refreshed schedule using the published pool tie-break sequence. `UNOFFICIAL` finals count provisionally and remain visibly labelled until the source confirms them.
+The homepage Matchday list keeps every game on the selected tournament date, regardless of status. Homepage and `/standings` pool tables are recomputed from the validated snapshot using the published pool tie-break sequence.
 
 All mutable UI aggregates consume one validated current-tournament snapshot. Team records and team totals, current player totals and logs, statistics tables, match insights, tournament context, and outcome analysis are derived from its schedule and reconciled game details rather than copied from bundled standings, leaderboards, team totals, player totals, or game logs. A detail row is accepted only when its game ID, participants, status class, and score agree with the schedule in that snapshot. Missing or conflicting evidence is visibly withheld; the UI never combines a current status with older game details. `src/static-tournament-data.ts` exposes a narrow metadata-only view for identities, biographies, roster labels, staff, organization, flags, and source links.
 
 ### Archival cutover
 
-After the event, run a final complete sync and verify all 44 games and required details before changing `tournamentMode` from `live` to `archived`. Archived mode serves the final generated snapshot, labels it as archived final data, disables browser polling, and prevents Alchemy from installing the production refresh cron. The mode must never be switched merely because the live endpoint is unavailable.
+The final cutover requires a final game/tournament sync and validation of all 44 official games, required game details, and player identities before changing `tournamentMode` from `live` to `archived`. Mutable player summaries are rebuilt from final game evidence rather than treating source profile totals as current authority. The mode must never be switched merely because the live endpoint is unavailable. Re-enabling live mode intentionally restores browser polling and the production refresh cron.
 
-The live worker backfills missing completed-game details even while games are active, rejects schedule snapshots that drop or duplicate known game IDs, and performs rolling correction checks of completed details while idle. Failed or conflicting detail refreshes do not overwrite coherent evidence. This path updates statuses, scores, standings, team/player statistics, and current analysis without rebuilding the Vite application or triggering a full player-profile crawl.
+In live mode the worker backfills missing completed-game details, rejects schedules that drop or duplicate known game IDs, and performs rolling correction checks while idle. Failed or conflicting detail refreshes do not overwrite coherent evidence.
 
 ## Poll the full dataset locally
 

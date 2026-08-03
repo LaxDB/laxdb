@@ -59,8 +59,8 @@ const validationCode = (run: () => void): string | undefined => {
 };
 
 describe("live tournament authority", () => {
-  it("runs the active tournament in explicit live mode", () => {
-    expect(tournamentMode).toBe("live");
+  it("runs the completed tournament in explicit archive mode", () => {
+    expect(tournamentMode).toBe("archived");
     expect(expectedTournamentGames).toBe(44);
     expect(isExpectedTournamentGameCount(44)).toBe(true);
     expect(isExpectedTournamentGameCount(43)).toBe(false);
@@ -173,14 +173,21 @@ describe("live tournament authority", () => {
     ).toBe(false);
   });
 
-  it("builds live data but blocks archival before every game is final", () => {
+  it("builds the final archive only after every game is official", () => {
     const current = buildLiveTournamentSnapshot(live());
+    const archive = buildArchivedTournamentSnapshot(archivedTournamentData);
 
     expect(current.source).toBe("live");
     expect(current.schedule).toEqual(tournament.schedule);
-    expect(() =>
-      buildArchivedTournamentSnapshot(archivedTournamentData),
-    ).toThrow(ArchiveNotReadyError);
+    expect(archive.source).toBe("archive");
+    expect(archive.schedule).toHaveLength(expectedTournamentGames);
+    expect(archive.games).toHaveLength(expectedTournamentGames);
+    expect(archive.players).toHaveLength(
+      archivedTournamentData.expectedPlayerIds.length,
+    );
+    expect(archive.completedGames).toBe(expectedTournamentGames);
+    expect(archive.detailedGames).toBe(expectedTournamentGames);
+    expect(archive.integrity).toBe("complete");
   });
 
   it("rejects an otherwise complete 44-game archive with an unofficial final", () => {

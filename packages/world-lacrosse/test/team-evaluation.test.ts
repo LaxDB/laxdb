@@ -58,8 +58,9 @@ describe("team evaluation", () => {
       "Wales",
       "Canada",
       "Germany",
+      "Puerto Rico",
     ]);
-    expect(report.sampleA.gameIds).toEqual(["76", "84"]);
+    expect(report.sampleA.gameIds).toEqual(["76", "84", "93"]);
     expect(report.sampleB.gameIds).toEqual(["69"]);
     expect(report.sampleA.teamMetrics).toHaveLength(87);
     expect(report.sampleB.teamMetrics).toHaveLength(87);
@@ -144,20 +145,26 @@ describe("team evaluation", () => {
       report.games.find((game) => game.opponent === opponent)?.opponentRecord;
     expect(record("Wales")).toMatchObject({
       wins: 1,
-      losses: 1,
-      games: 2,
-      group: "at-500",
+      losses: 3,
+      games: 4,
+      group: "below-500",
     });
     expect(record("Canada")).toMatchObject({
-      wins: 2,
-      losses: 0,
-      games: 2,
+      wins: 4,
+      losses: 1,
+      games: 5,
       group: "above-500",
     });
     expect(record("Germany")).toMatchObject({
       wins: 0,
-      losses: 2,
-      games: 2,
+      losses: 4,
+      games: 4,
+      group: "below-500",
+    });
+    expect(record("Puerto Rico")).toMatchObject({
+      wins: 2,
+      losses: 3,
+      games: 5,
       group: "below-500",
     });
     expect(report.presets.some((preset) => preset.key === "wins")).toBe(true);
@@ -183,10 +190,10 @@ describe("team evaluation", () => {
     });
     expect(
       report.games.find((game) => game.opponent === "Wales")?.opponentRecord,
-    ).toMatchObject({ wins: 0, losses: 1, games: 1, group: "unclassified" });
+    ).toMatchObject({ wins: 0, losses: 3, games: 3, group: "below-500" });
     expect(
       report.games.find((game) => game.opponent === "Germany")?.opponentRecord,
-    ).toMatchObject({ wins: 0, losses: 1, games: 1, group: "unclassified" });
+    ).toMatchObject({ wins: 0, losses: 3, games: 3, group: "below-500" });
   });
 
   it("fails closed for schedule status mismatches in opponent records", () => {
@@ -211,10 +218,10 @@ describe("team evaluation", () => {
     const report = evaluation("25", { ...source, schedule });
     expect(
       report.games.find((game) => game.opponent === "Wales")?.opponentRecord,
-    ).toMatchObject({ wins: 0, losses: 1, games: 1, group: "unclassified" });
+    ).toMatchObject({ wins: 0, losses: 3, games: 3, group: "below-500" });
     expect(
       report.games.find((game) => game.opponent === "Germany")?.opponentRecord,
-    ).toMatchObject({ wins: 0, losses: 1, games: 1, group: "unclassified" });
+    ).toMatchObject({ wins: 0, losses: 3, games: 3, group: "below-500" });
   });
 
   it("preserves explicit empty samples and reports ignored IDs", () => {

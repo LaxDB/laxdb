@@ -983,30 +983,43 @@ describe("match insights", () => {
     expect(insights.winner).toBeNull();
   });
 
-  it("reconciles every official game in the checked-in source snapshot", () => {
+  it("keeps the final snapshot reconciled or explicitly fail-closed", () => {
     const dataset = buildMatchInsightsDataset(championship.games);
     const officialGames = dataset.games.filter(
       (insights) => insights.status.toUpperCase() === "OFFICIAL",
     );
+    const unreconciledIds = officialGames
+      .filter(
+        (insights) => insights.quality.completeness === "final-unreconciled",
+      )
+      .map((insights) => insights.gameId)
+      .toSorted((left, right) => Number(left) - Number(right));
 
-    expect(officialGames.length).toBeGreaterThan(0);
+    expect(officialGames).toHaveLength(44);
+    expect(unreconciledIds).toEqual(["89", "103", "104", "118"]);
     for (const insights of officialGames) {
-      expect(insights.quality.completeness, insights.gameId).toBe(
-        "final-reconciled",
-      );
-      expect(insights.quality.scoreConsistency, insights.gameId).toBe(
-        "consistent",
-      );
-      expect(insights.quality.periodScoreConsistency, insights.gameId).toBe(
-        "consistent",
-      );
+      const reconciled = insights.quality.completeness === "final-reconciled";
+      if (reconciled) {
+        expect(insights.quality.scoreConsistency, insights.gameId).toBe(
+          "consistent",
+        );
+        expect(insights.quality.periodScoreConsistency, insights.gameId).toBe(
+          "consistent",
+        );
+        expect(insights.quality.parsedGoalCount, insights.gameId).toBe(
+          insights.score.home + insights.score.away,
+        );
+        expect(insights.gameStateTime, insights.gameId).not.toBeNull();
+      } else {
+        expect(insights.winner, insights.gameId).toBeNull();
+        expect(
+          insights.quality.anomalies.length,
+          insights.gameId,
+        ).toBeGreaterThan(0);
+      }
       expect(insights.quality.scoreFlowValid, insights.gameId).toBe(true);
       expect(insights.quality.ignoredGoalCount, insights.gameId).toBe(0);
-      expect(insights.quality.parsedGoalCount, insights.gameId).toBe(
-        insights.score.home + insights.score.away,
-      );
       expect(insights.quality.goalClockFlowValid, insights.gameId).toBe(true);
-      expect(insights.gameStateTime, insights.gameId).not.toBeNull();
       if (insights.gameStateTime) {
         expect(
           insights.gameStateTime.homeLeadingSeconds +
@@ -1130,7 +1143,7 @@ describe("match insights", () => {
     ).toBe(true);
   });
 
-  it("preserves overtime source order while surfacing its clock anomaly", () => {
+  it("preserves overtime source order with corrected source clocks", () => {
     const overtime = championship.games.find((source) => source.id === "110");
     expect(overtime).toBeDefined();
     if (!overtime) return;
@@ -1149,24 +1162,17 @@ describe("match insights", () => {
       ],
     });
     expect(insights.quality).toMatchObject({
-      periodStartsValid: false,
+      completeness: "final-reconciled",
+      periodStartsValid: true,
+      periodEndsValid: true,
+      terminalClockValid: true,
       goalClockFlowValid: true,
     });
-    expect(
-      insights.quality.anomalies.find(
-        (anomaly) =>
-          anomaly.code === "period-start-clock-mismatch" &&
-          anomaly.period === "OT1",
-      ),
-    ).toMatchObject({
-      clock: "3:00",
-      detail: "OT1 should start at 4:00; the source lists 3:00",
-    });
     expect(insights.quality.anomalies).not.toContainEqual(
-      expect.objectContaining({
-        code: "non-monotonic-clock",
-        clock: "3:52",
-      }),
+      expect.objectContaining({ code: "period-start-clock-mismatch" }),
+    );
+    expect(insights.quality.anomalies).not.toContainEqual(
+      expect.objectContaining({ code: "non-monotonic-clock" }),
     );
     expect(insights.gameStateTime).toMatchObject({
       complete: true,

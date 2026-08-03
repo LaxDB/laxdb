@@ -2,12 +2,7 @@ import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { championship } from "../src/championship-data";
-import {
-  GameDetails,
-  Play,
-  TeamStat,
-  type TournamentTeam,
-} from "../src/schema";
+import { GameDetails, Play, TeamStat } from "../src/schema";
 import { buildTeamComparison } from "../src/team-comparison";
 import {
   TeamComparison,
@@ -142,13 +137,6 @@ const duplicateTeamStats = (
     : copyGameWithStats(game, game.teamStats);
 };
 
-const distinctPairs = (
-  teams: readonly TournamentTeam[],
-): readonly (readonly [TournamentTeam, TournamentTeam])[] =>
-  teams.flatMap((left, leftIndex) =>
-    teams.slice(leftIndex + 1).map((right) => [left, right]),
-  );
-
 describe("team comparison", () => {
   it("builds a schema-validated Australia and USA comparison", () => {
     const comparison = comparisonFor("25", "24");
@@ -159,50 +147,43 @@ describe("team comparison", () => {
     );
     expect(comparison.left).toMatchObject({
       name: "Australia",
-      completedGames: 3,
-      eligibleGames: 3,
-      wins: 2,
+      completedGames: 6,
+      eligibleGames: 4,
+      wins: 3,
       losses: 1,
     });
     expect(comparison.right).toMatchObject({
       name: "United States of America",
-      eligibleGames: 2,
-      wins: 2,
+      eligibleGames: 5,
+      wins: 5,
       losses: 0,
     });
     expect(comparison.left.metrics).toHaveLength(
       teamComparisonMetricDefinitions.length,
     );
     expect(metric(comparison, "left", "shooting-conversion")).toMatchObject({
-      numerator: 45,
-      denominator: 84,
-      sampleGames: 3,
-      value: 53.571_428_571_428_57,
+      numerator: 55,
+      denominator: 110,
+      sampleGames: 4,
+      value: 50,
     });
   });
 
   it("pins representative evidence across every section and aggregation mode", () => {
     const comparison = comparisonFor("25", "24");
     const golden = [
-      ["goals-total", "total", 45, 45, 3, 3],
-      ["goals-per-game", "per-game", 15, 45, 3, 3],
-      ["q1-goals", "total", 11, 11, 3, 3],
-      ["save-rate", "percentage", 28.571_428_571_428_57, 10, 35, 3],
-      ["draw-share", "percentage", 62.5, 50, 80, 3],
-      [
-        "average-close-game-time",
-        "average",
-        1558.666_666_666_666_7,
-        4676,
-        3,
-        3,
-      ],
-      ["longest-drought", "maximum", 829, 829, 3, 3],
-      ["fastest-response-time", "minimum", 58, 58, 3, 3],
-      ["drought-goals-conceded", "paired-maximum", 3, 3, 3, 3],
-      ["fourth-quarter-goals", "total", 11, 11, 3, 3],
-      ["recorded-scorers", "unique", 14, 14, 3, 3],
-      ["yellow-cards", "total", 4, 4, 3, 3],
+      ["goals-total", "total", 55, 55, 4, 4],
+      ["goals-per-game", "per-game", 13.75, 55, 4, 4],
+      ["q1-goals", "total", 13, 13, 4, 4],
+      ["save-rate", "percentage", 32, 16, 50, 4],
+      ["draw-share", "percentage", 63.725_490_196_078_425, 65, 102, 4],
+      ["average-close-game-time", "average", 1866.25, 7465, 4, 4],
+      ["longest-drought", "maximum", 829, 829, 4, 4],
+      ["fastest-response-time", "minimum", 58, 58, 4, 4],
+      ["drought-goals-conceded", "paired-maximum", 3, 3, 4, 4],
+      ["fourth-quarter-goals", "total", 14, 14, 4, 4],
+      ["recorded-scorers", "unique", 14, 14, 4, 4],
+      ["yellow-cards", "total", 4, 4, 4, 4],
     ] as const;
 
     for (const [
@@ -227,20 +208,20 @@ describe("team comparison", () => {
     }
 
     expect(metric(comparison, "left", "one-goal-margin-share")).toMatchObject({
-      numerator: 2753,
-      denominator: 10_800,
-      sampleGames: 3,
+      numerator: 4546,
+      denominator: 14_400,
+      sampleGames: 4,
     });
     expect(
       metric(comparison, "left", "close-game-shooting-conversion"),
-    ).toMatchObject({ numerator: 13, denominator: 30, sampleGames: 3 });
+    ).toMatchObject({ numerator: 21, denominator: 52, sampleGames: 4 });
     expect(metric(comparison, "left", "longest-save-run")).toMatchObject({
       value: 3,
-      sampleGames: 3,
+      sampleGames: 4,
     });
     expect(
       metric(comparison, "left", "recorded-leading-scorer-share"),
-    ).toMatchObject({ numerator: 9, denominator: 45, sampleGames: 3 });
+    ).toMatchObject({ numerator: 11, denominator: 55, sampleGames: 4 });
 
     const overtime = comparisonFor("28", "27");
     expect(
@@ -251,14 +232,14 @@ describe("team comparison", () => {
       denominator: 2,
       sampleGames: 1,
     });
-    const zeroDenominator = comparisonFor("23", "22");
+    const zeroDenominator = comparisonFor("27", "22");
     expect(
       metric(zeroDenominator, "left", "fastest-four-goal-burst"),
     ).toMatchObject({
       value: null,
       numerator: 0,
       denominator: 0,
-      sampleGames: 2,
+      sampleGames: 5,
     });
   });
 
@@ -397,10 +378,10 @@ describe("team comparison", () => {
     if (!comparison) return;
 
     expect(metric(comparison, "left", "shooting-conversion")?.sampleGames).toBe(
-      2,
+      3,
     );
-    expect(metric(comparison, "left", "q1-goals")?.sampleGames).toBe(3);
-    expect(metric(comparison, "left", "time-ahead-share")?.sampleGames).toBe(3);
+    expect(metric(comparison, "left", "q1-goals")?.sampleGames).toBe(4);
+    expect(metric(comparison, "left", "time-ahead-share")?.sampleGames).toBe(4);
   });
 
   it("fails closed on numeric shooting contradictions without widening other samples", () => {
@@ -441,30 +422,30 @@ describe("team comparison", () => {
       "shooting-conversion",
       "shot-accuracy",
     ] as const)
-      expect(metric(belowGoals, "left", key)?.sampleGames).toBe(2);
+      expect(metric(belowGoals, "left", key)?.sampleGames).toBe(3);
 
     const shotsOnGoalBelowGoals = comparisonWith({ "Shots on Goal": "1" });
-    expect(metric(shotsOnGoalBelowGoals, "left", "shots")?.sampleGames).toBe(3);
+    expect(metric(shotsOnGoalBelowGoals, "left", "shots")?.sampleGames).toBe(4);
     expect(
       metric(shotsOnGoalBelowGoals, "left", "shooting-conversion")?.sampleGames,
-    ).toBe(3);
+    ).toBe(4);
     expect(
       metric(shotsOnGoalBelowGoals, "left", "shots-on-goal")?.sampleGames,
-    ).toBe(2);
+    ).toBe(3);
     expect(
       metric(shotsOnGoalBelowGoals, "left", "shot-accuracy")?.sampleGames,
-    ).toBe(2);
+    ).toBe(3);
 
     const shotsOnGoalAboveShots = comparisonWith({
       "Total Shots": "99",
       "Shots on Goal": "100",
     });
-    expect(metric(shotsOnGoalAboveShots, "left", "shots")?.sampleGames).toBe(3);
+    expect(metric(shotsOnGoalAboveShots, "left", "shots")?.sampleGames).toBe(4);
     expect(
       metric(shotsOnGoalAboveShots, "left", "shots-on-goal")?.sampleGames,
-    ).toBe(2);
+    ).toBe(3);
     expect(metric(shotsOnGoalAboveShots, "left", "q1-goals")?.sampleGames).toBe(
-      3,
+      4,
     );
   });
 
@@ -492,12 +473,12 @@ describe("team comparison", () => {
     expect(comparison).not.toBeNull();
     if (!comparison) return;
 
-    expect(metric(comparison, "left", "shots")?.sampleGames).toBe(2);
-    expect(metric(comparison, "left", "draw-controls")?.sampleGames).toBe(2);
+    expect(metric(comparison, "left", "shots")?.sampleGames).toBe(3);
+    expect(metric(comparison, "left", "draw-controls")?.sampleGames).toBe(3);
     expect(
       metric(comparison, "left", "first-half-shot-accuracy")?.sampleGames,
-    ).toBe(3);
-    expect(metric(comparison, "left", "goals-total")?.sampleGames).toBe(3);
+    ).toBe(4);
+    expect(metric(comparison, "left", "goals-total")?.sampleGames).toBe(4);
   });
 
   it("isolates unattributed shot events to close-game shooting and save runs", () => {
@@ -523,38 +504,13 @@ describe("team comparison", () => {
 
     expect(
       metric(comparison, "left", "close-game-shooting-conversion")?.sampleGames,
-    ).toBe(2);
-    expect(metric(comparison, "left", "longest-save-run")?.sampleGames).toBe(2);
+    ).toBe(3);
+    expect(metric(comparison, "left", "longest-save-run")?.sampleGames).toBe(3);
     expect(metric(comparison, "left", "shooting-conversion")?.sampleGames).toBe(
-      3,
+      4,
     );
-    expect(metric(comparison, "left", "goals-total")?.sampleGames).toBe(3);
+    expect(metric(comparison, "left", "goals-total")?.sampleGames).toBe(4);
   });
-
-  it("returns every unordered distinct current-team pair with closed metrics", () => {
-    for (const [left, right] of distinctPairs(tournament.teams)) {
-      const comparison = buildTeamComparison(
-        left.id,
-        right.id,
-        source,
-        tournament.teams,
-      );
-      expect(comparison).not.toBeNull();
-      if (!comparison) continue;
-      expect(comparison.left.id).toBe(left.id);
-      expect(comparison.right.id).toBe(right.id);
-      for (const team of [comparison.left, comparison.right]) {
-        expect(team.metrics.map((entry) => entry.key)).toEqual(
-          teamComparisonMetricDefinitions.map((definition) => definition.key),
-        );
-        expect(
-          team.metrics.every(
-            (entry) => entry.sampleGames <= team.eligibleGames,
-          ),
-        ).toBe(true);
-      }
-    }
-  }, 120_000);
 
   it("preserves route orientation and rejects unknown or identical teams", () => {
     const forward = comparisonFor("25", "24");

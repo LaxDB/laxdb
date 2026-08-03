@@ -9,9 +9,37 @@ import { GamePreview } from "../src/game-preview-schema";
 import { ScheduledGame, Team } from "../src/schema";
 import { tournament } from "../src/tournament-data";
 
+const finalTarget = tournament.schedule.find((game) => game.id === "89");
+if (!finalTarget) throw new Error("expected game 89");
+const scheduledTarget = ScheduledGame.make({
+  id: finalTarget.id,
+  url: finalTarget.url,
+  date: finalTarget.date,
+  time: finalTarget.time,
+  phase: finalTarget.phase,
+  venue: finalTarget.venue,
+  status: "UPCOMING",
+  period: null,
+  home: Team.make({
+    id: finalTarget.home.id,
+    code: finalTarget.home.code,
+    name: finalTarget.home.name,
+    flagUrl: finalTarget.home.flagUrl,
+    score: null,
+  }),
+  away: Team.make({
+    id: finalTarget.away.id,
+    code: finalTarget.away.code,
+    name: finalTarget.away.name,
+    flagUrl: finalTarget.away.flagUrl,
+    score: null,
+  }),
+});
 const source = {
   updatedAt: championship.scrapedAt,
-  schedule: tournament.schedule,
+  schedule: tournament.schedule.map((game) =>
+    game.id === scheduledTarget.id ? scheduledTarget : game,
+  ),
   games: championship.games,
 };
 const teamPools = tournament.teams.map((team) => ({
@@ -74,48 +102,71 @@ describe("game preview", () => {
 
   it("does not create a preview after a game has begun, before both teams are known, or without evidence for both teams", () => {
     expect(buildGamePreview("84", source, teamPools)).toBeNull();
-    expect(buildGamePreview("88", source, teamPools)).toBeNull();
-    const target = tournament.schedule.find((game) => game.id === "89");
-    expect(target).toBeDefined();
-    if (!target) return;
+    const unknownOpponent = ScheduledGame.make({
+      id: scheduledTarget.id,
+      url: scheduledTarget.url,
+      date: scheduledTarget.date,
+      time: scheduledTarget.time,
+      phase: scheduledTarget.phase,
+      venue: scheduledTarget.venue,
+      status: scheduledTarget.status,
+      period: scheduledTarget.period,
+      home: scheduledTarget.home,
+      away: Team.make({
+        id: "A2",
+        code: "A2",
+        name: "A2",
+        flagUrl: null,
+        score: null,
+      }),
+    });
     expect(
       buildGamePreview(
-        target.id,
-        { ...source, schedule: [target], games: [] },
+        scheduledTarget.id,
+        {
+          ...source,
+          schedule: source.schedule.map((game) =>
+            game.id === scheduledTarget.id ? unknownOpponent : game,
+          ),
+        },
+        teamPools,
+      ),
+    ).toBeNull();
+    expect(
+      buildGamePreview(
+        scheduledTarget.id,
+        { ...source, schedule: [scheduledTarget], games: [] },
         teamPools,
       ),
     ).toBeNull();
   });
 
   it("fails closed when an upcoming schedule row names the same team twice", () => {
-    const target = tournament.schedule.find((game) => game.id === "89");
-    expect(target).toBeDefined();
-    if (!target) return;
     const sameTeam = ScheduledGame.make({
-      id: target.id,
-      url: target.url,
-      date: target.date,
-      time: target.time,
-      phase: target.phase,
-      venue: target.venue,
-      status: target.status,
-      period: target.period,
-      home: target.home,
+      id: scheduledTarget.id,
+      url: scheduledTarget.url,
+      date: scheduledTarget.date,
+      time: scheduledTarget.time,
+      phase: scheduledTarget.phase,
+      venue: scheduledTarget.venue,
+      status: scheduledTarget.status,
+      period: scheduledTarget.period,
+      home: scheduledTarget.home,
       away: Team.make({
-        id: target.home.id,
-        code: target.home.code,
-        name: target.home.name,
-        flagUrl: target.home.flagUrl,
-        score: target.away.score,
+        id: scheduledTarget.home.id,
+        code: scheduledTarget.home.code,
+        name: scheduledTarget.home.name,
+        flagUrl: scheduledTarget.home.flagUrl,
+        score: scheduledTarget.away.score,
       }),
     });
     expect(
       buildGamePreview(
-        target.id,
+        scheduledTarget.id,
         {
           ...source,
-          schedule: tournament.schedule.map((game) =>
-            game.id === target.id ? sameTeam : game,
+          schedule: source.schedule.map((game) =>
+            game.id === scheduledTarget.id ? sameTeam : game,
           ),
         },
         teamPools,

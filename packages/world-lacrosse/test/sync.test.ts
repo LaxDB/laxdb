@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { championship } from "../src/championship-data";
+import { ScheduledGame } from "../src/schema";
 import {
   OFFICIAL_GAME_RECHECK_MS,
   scheduleFingerprint,
@@ -10,6 +11,23 @@ import {
   shouldSkipPlayerRefresh,
 } from "../src/sync";
 import { tournament } from "../src/tournament-data";
+
+const upcomingScheduleFixture = (): ScheduledGame => {
+  const source = tournament.schedule[0];
+  if (!source) throw new Error("expected a scheduled game");
+  return ScheduledGame.make({
+    id: source.id,
+    url: source.url,
+    date: source.date,
+    time: source.time,
+    phase: source.phase,
+    venue: source.venue,
+    status: "UPCOMING",
+    period: source.period,
+    home: source.home,
+    away: source.away,
+  });
+};
 
 describe("World Lacrosse incremental sync", () => {
   it("periodically rechecks official games for source corrections", () => {
@@ -46,15 +64,10 @@ describe("World Lacrosse incremental sync", () => {
   });
 
   it("does not let an explicit false force flag suppress incremental refreshes", () => {
-    const scheduled = tournament.schedule.find(
-      (game) => game.status === "UPCOMING",
-    );
-    const current = championship.games.find(
-      (game) => game.id === scheduled?.id,
-    );
-    expect(scheduled).toBeDefined();
+    const scheduled = upcomingScheduleFixture();
+    const current = championship.games.find((game) => game.id === scheduled.id);
     expect(current).toBeDefined();
-    if (!scheduled || !current) return;
+    if (!current) return;
 
     expect(
       shouldRefreshGameForSync(
@@ -76,15 +89,10 @@ describe("World Lacrosse incremental sync", () => {
   });
 
   it("refreshes upcoming games only when their schedule record changes", () => {
-    const scheduled = tournament.schedule.find(
-      (game) => game.status === "UPCOMING",
-    );
-    const current = championship.games.find(
-      (game) => game.id === scheduled?.id,
-    );
-    expect(scheduled).toBeDefined();
+    const scheduled = upcomingScheduleFixture();
+    const current = championship.games.find((game) => game.id === scheduled.id);
     expect(current).toBeDefined();
-    if (!scheduled || !current) return;
+    if (!current) return;
 
     expect(
       shouldRefreshGame(
