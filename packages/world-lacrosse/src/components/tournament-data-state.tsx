@@ -20,28 +20,16 @@ const updatedTime = (value: string): string => {
       });
 };
 
-export const TournamentDataLoadingContent = ({
-  mode = "live",
-}: {
-  readonly mode?: "live" | "archived";
-}) => (
+export const TournamentDataLoadingContent = () => (
   <article
     id="main-content"
     className="tournament-data-state-page"
     aria-busy="true"
   >
     <header>
-      <span>{mode === "live" ? "Live tournament" : "Tournament archive"}</span>
-      <h1>
-        {mode === "live"
-          ? "Loading current tournament"
-          : "Loading tournament archive"}
-      </h1>
-      <p role="status">
-        {mode === "live"
-          ? "Waiting for the latest verified schedule."
-          : "Opening the verified final tournament record."}
-      </p>
+      <span>Live tournament</span>
+      <h1>Loading current tournament</h1>
+      <p role="status">Waiting for the latest verified schedule.</p>
     </header>
     <div className="tournament-data-skeleton" aria-hidden="true">
       <span />
@@ -51,36 +39,29 @@ export const TournamentDataLoadingContent = ({
   </article>
 );
 
-export const TournamentDataLoading = ({
-  mode,
-}: {
-  readonly mode: "live" | "archived";
-}) => (
+export const TournamentDataLoading = () => (
   <main>
     <PageMetadata
       title="Loading current tournament"
       description="Loading the current World Lacrosse tournament snapshot."
     />
     <TournamentHeader />
-    <TournamentDataLoadingContent mode={mode} />
+    <TournamentDataLoadingContent />
   </main>
 );
 
 export const TournamentDataUnavailableContent = ({
-  mode = "live",
   retry,
 }: {
-  readonly mode?: "live" | "archived";
   readonly retry: () => void;
 }) => (
   <article id="main-content" className="tournament-data-state-page">
     <section role="alert" className="tournament-data-unavailable">
-      <span>{mode === "live" ? "Live tournament" : "Tournament archive"}</span>
+      <span>Live tournament</span>
       <h1>Current data is unavailable</h1>
       <p>
-        {mode === "live"
-          ? "We could not verify the latest tournament snapshot. Older bundled scores and bracket assignments have intentionally not been shown."
-          : "The final tournament archive did not pass its completeness checks and has not been shown."}
+        We could not verify the latest tournament snapshot. Older bundled scores
+        and bracket assignments have intentionally not been shown.
       </p>
       <button type="button" className="button-primary" onClick={retry}>
         Try again
@@ -90,10 +71,8 @@ export const TournamentDataUnavailableContent = ({
 );
 
 export const TournamentDataUnavailable = ({
-  mode,
   retry,
 }: {
-  readonly mode: "live" | "archived";
   readonly retry: () => void;
 }) => (
   <main>
@@ -102,26 +81,13 @@ export const TournamentDataUnavailable = ({
       description="The current World Lacrosse tournament snapshot could not be loaded."
     />
     <TournamentHeader />
-    <TournamentDataUnavailableContent mode={mode} retry={retry} />
+    <TournamentDataUnavailableContent retry={retry} />
   </main>
 );
 
 export const TournamentDataStatus = () => {
   const state = useCurrentTournamentReadyState();
-  if (state.mode === "archived") {
-    return (
-      <aside className="tournament-data-status" data-state="archived">
-        <strong>Archived final data</strong>
-        <span>
-          Tournament record frozen at{" "}
-          <time dateTime={state.snapshot.updatedAt}>
-            {updatedTime(state.snapshot.updatedAt)}
-          </time>
-          .
-        </span>
-      </aside>
-    );
-  }
+  if (state.mode === "archived") return null;
   const delayed = state.freshness === "stale";
   const refreshFailed = state.refresh === "failed";
   const partial = state.snapshot.integrity === "partial";
@@ -168,10 +134,9 @@ export const TournamentDataBoundary = ({
   readonly children: ReactNode;
 }) => {
   const state = useCurrentTournamentState();
-  if (state.status === "loading")
-    return <TournamentDataLoading mode={state.mode} />;
+  if (state.status === "loading") return <TournamentDataLoading />;
   if (state.status === "unavailable")
-    return <TournamentDataUnavailable mode={state.mode} retry={state.retry} />;
+    return <TournamentDataUnavailable retry={state.retry} />;
   return (
     <CurrentTournamentProvider state={state}>
       {children}

@@ -89,11 +89,11 @@ describe("live tournament authority", () => {
     );
     expect(staticSource).not.toContain('from "./championship-data"');
     expect(staticSource).not.toContain('from "./tournament-data"');
-    expect(currentSource).not.toContain(
-      'import { archivedTournamentData } from "./archived-tournament-data"',
+    expect(currentSource).toContain('from "./archived-tournament-data"');
+    expect(currentSource).not.toContain("await import(");
+    expect(currentSource).toContain(
+      "const archivedTournamentSnapshot = buildArchivedTournamentSnapshot(",
     );
-    expect(currentSource).toContain("await import(");
-    expect(currentSource).toContain('"./archived-tournament-data"');
   });
 
   it("keeps the static format route outside the live authority boundary", () => {

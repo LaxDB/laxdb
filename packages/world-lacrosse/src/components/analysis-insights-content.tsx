@@ -649,16 +649,14 @@ export function InsightsLabContent({
             <dt>Eligible, not complete-case</dt>
             <dd>{excludedFromCompleteCase}</dd>
           </div>
-          <div>
-            <dt>Snapshot status</dt>
-            <dd>
-              {snapshotStatus === "fresh"
-                ? "Fresh live"
-                : snapshotStatus === "degraded"
-                  ? "Degraded live"
-                  : "Archived final"}
-            </dd>
-          </div>
+          {snapshotStatus !== "archive" && (
+            <div>
+              <dt>Snapshot status</dt>
+              <dd>
+                {snapshotStatus === "fresh" ? "Fresh live" : "Degraded live"}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Completed detail coverage</dt>
             <dd>

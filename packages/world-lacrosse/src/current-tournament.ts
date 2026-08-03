@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Schema } from "effect";
 import {
   createContext,
@@ -11,7 +10,10 @@ import {
   type ReactNode,
 } from "react";
 
-import type { ArchivedTournamentData } from "./archived-tournament-data";
+import {
+  archivedTournamentData,
+  type ArchivedTournamentData,
+} from "./archived-tournament-data";
 import { gameDetailMatchesSchedule } from "./game-evidence";
 import {
   isCompletedGame,
@@ -210,6 +212,10 @@ export const buildArchivedTournamentSnapshot = (
     archive.expectedPlayerIds,
   );
 
+const archivedTournamentSnapshot = buildArchivedTournamentSnapshot(
+  archivedTournamentData,
+);
+
 export type LiveSnapshotFreshness = "fresh" | "stale";
 
 const staleGraceMs = 60_000;
@@ -263,12 +269,12 @@ const useLiveFreshnessClock = (
 };
 
 export interface TournamentLoadingState {
-  readonly mode: "live" | "archived";
+  readonly mode: "live";
   readonly status: "loading";
 }
 
 export interface TournamentUnavailableState {
-  readonly mode: "live" | "archived";
+  readonly mode: "live";
   readonly status: "unavailable";
   readonly retry: () => void;
 }
@@ -296,33 +302,14 @@ export type CurrentTournamentState =
   | LiveTournamentReadyState
   | ArchivedTournamentReadyState;
 
-const useArchivedTournamentSnapshot = (enabled: boolean) =>
-  useQuery({
-    queryKey: ["world-lacrosse", "archived-tournament"] as const,
-    queryFn: async () => {
-      const { archivedTournamentData } =
-        await import("./archived-tournament-data");
-      return buildArchivedTournamentSnapshot(archivedTournamentData);
-    },
-    enabled,
-    gcTime: Infinity,
-    retry: false,
-    staleTime: Infinity,
-  });
-
 export const useCurrentTournamentState = (): CurrentTournamentState => {
   const liveEnabled = tournamentMode === "live";
   const archiveEnabled = tournamentMode === "archived";
   const liveQuery = useLiveSchedule(liveEnabled);
-  const archiveQuery = useArchivedTournamentSnapshot(archiveEnabled);
   const liveRefetch = liveQuery.refetch;
-  const archiveRefetch = archiveQuery.refetch;
   const retryLive = useCallback(() => {
     void liveRefetch();
   }, [liveRefetch]);
-  const retryArchive = useCallback(() => {
-    void archiveRefetch();
-  }, [archiveRefetch]);
   const liveSnapshot = useMemo(
     () =>
       liveQuery.data === undefined
@@ -330,7 +317,7 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
         : buildLiveTournamentSnapshot(liveQuery.data),
     [liveQuery.data],
   );
-  const snapshot = archiveEnabled ? (archiveQuery.data ?? null) : liveSnapshot;
+  const snapshot = archiveEnabled ? archivedTournamentSnapshot : liveSnapshot;
   const liveTimestamps =
     snapshot?.source === "live" && snapshot.nextRefreshAt !== null
       ? {
@@ -340,23 +327,14 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
       : null;
   const freshnessNow = useLiveFreshnessClock(liveTimestamps);
 
-  if (archiveEnabled) {
-    if (snapshot === null)
-      return archiveQuery.isPending || archiveQuery.isFetching
-        ? { mode: "archived", status: "loading" }
-        : {
-            mode: "archived",
-            status: "unavailable",
-            retry: retryArchive,
-          };
+  if (archiveEnabled)
     return {
       mode: "archived",
       status: "ready",
-      snapshot,
+      snapshot: archivedTournamentSnapshot,
       freshness: "archived",
       refresh: "disabled",
     };
-  }
   if (snapshot === null) {
     return liveQuery.isPending || liveQuery.isFetching
       ? { mode: "live", status: "loading" }

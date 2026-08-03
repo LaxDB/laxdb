@@ -68,7 +68,7 @@ describe("tournament data state", () => {
     expect(markup).toContain("Retry update");
   });
 
-  it("labels archived data without offering live retry", () => {
+  it("keeps archived mode invisible in the public UI", () => {
     const liveSnapshot = liveState().snapshot;
     const state: ArchivedTournamentReadyState = {
       mode: "archived",
@@ -97,7 +97,6 @@ describe("tournament data state", () => {
       </CurrentTournamentProvider>,
     );
 
-    expect(markup).toContain("Archived final data");
-    expect(markup).not.toContain("Retry update");
+    expect(markup).toBe("");
   });
 });
