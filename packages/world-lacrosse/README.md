@@ -60,9 +60,11 @@ bun src/cli.ts sync --output ./data/world-lacrosse
 
 ## Tournament data authority
 
-The completed tournament now runs in `archived` mode. The application serves the final generated snapshot, labels it as archived final data, performs no browser polling, and installs no production refresh cron. The deployed Worker/KV endpoint remains available as the last live snapshot but is no longer refreshed automatically.
+The completed tournament now runs in `archived` mode. TanStack Start validates a compact prerender index through Effect Schema, derives every game, player, team, evaluation, and ordered comparison path from the final snapshot, and emits static HTML for all tournament routes. Archived pages render immediately without browser polling, a loading state, public archive messaging, or a production refresh cron.
 
-`src/tournament-mode.ts` explicitly selects `live` or `archived` operation. During the event, live mode made the Worker/KV snapshot the only authority for schedule assignments, scores, statuses, game details, standings, and every derived statistic. Tournament routes showed a neutral loading state before the first verified response and retained the last accepted generation through failed or regressed refreshes.
+`src/tournament-mode.ts` is the only rendering-mode switch. `live` builds the application in TanStack Start SPA mode and enables the Worker/KV query lifecycle; `archived` enables full static prerendering from `src/generated/dataset.json`. No route manifest is maintained by hand, and the complete dataset is not decoded into Vite's build process merely to extract IDs.
+
+During the event, live mode made the Worker/KV snapshot the only authority for schedule assignments, scores, statuses, game details, standings, and every derived statistic. Tournament routes showed a neutral loading state before the first verified response and retained the last accepted generation through failed or regressed refreshes.
 
 In live mode tournament views poll every 30 seconds during play and every minute otherwise. Local and preview UIs use the production score feed by default because preview KV namespaces do not run the production crawler. `VITE_LIVE_SCORES_URL` can override the endpoint for local Worker, failure, and stale-data testing.
 
@@ -72,7 +74,7 @@ All mutable UI aggregates consume one validated current-tournament snapshot. Tea
 
 ### Archival cutover
 
-The final cutover requires a final game/tournament sync and validation of all 44 official games, required game details, and player identities before changing `tournamentMode` from `live` to `archived`. Mutable player summaries are rebuilt from final game evidence rather than treating source profile totals as current authority. The mode must never be switched merely because the live endpoint is unavailable. Re-enabling live mode intentionally restores browser polling and the production refresh cron.
+The final cutover requires a final game/tournament sync and validation of all 44 official games, required game details, and player identities before changing `tournamentMode` from `live` to `archived`. The next production build then derives and prerenders the archive automatically. Mutable player summaries are rebuilt from final game evidence rather than treating source profile totals as current authority. The mode must never be switched merely because the live endpoint is unavailable. Re-enabling live mode intentionally restores CSR, browser polling, and the production refresh cron.
 
 In live mode the worker backfills missing completed-game details, rejects schedules that drop or duplicate known game IDs, and performs rolling correction checks while idle. Failed or conflicting detail refreshes do not overwrite coherent evidence.
 

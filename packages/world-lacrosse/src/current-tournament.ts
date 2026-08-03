@@ -10,10 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  archivedTournamentData,
-  type ArchivedTournamentData,
-} from "./archived-tournament-data";
+import type { ArchivedTournamentData } from "./archived-tournament-data";
 import { gameDetailMatchesSchedule } from "./game-evidence";
 import {
   isCompletedGame,
@@ -22,6 +19,7 @@ import {
 } from "./game-status";
 import { useLiveSchedule } from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
+import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
 import type { LiveSchedule } from "./schema";
 import { expectedTournamentGames, tournamentMode } from "./tournament-mode";
@@ -212,9 +210,10 @@ export const buildArchivedTournamentSnapshot = (
     archive.expectedPlayerIds,
   );
 
-const archivedTournamentSnapshot = buildArchivedTournamentSnapshot(
-  archivedTournamentData,
-);
+const archivedTournamentSnapshot =
+  modeTournamentData === null
+    ? null
+    : buildArchivedTournamentSnapshot(modeTournamentData);
 
 export type LiveSnapshotFreshness = "fresh" | "stale";
 
@@ -317,17 +316,18 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
         : buildLiveTournamentSnapshot(liveQuery.data),
     [liveQuery.data],
   );
-  const snapshot = archiveEnabled ? archivedTournamentSnapshot : liveSnapshot;
   const liveTimestamps =
-    snapshot?.source === "live" && snapshot.nextRefreshAt !== null
-      ? {
-          updatedAt: snapshot.updatedAt,
-          nextRefreshAt: snapshot.nextRefreshAt,
-        }
-      : null;
+    liveSnapshot === null || liveSnapshot.nextRefreshAt === null
+      ? null
+      : {
+          updatedAt: liveSnapshot.updatedAt,
+          nextRefreshAt: liveSnapshot.nextRefreshAt,
+        };
   const freshnessNow = useLiveFreshnessClock(liveTimestamps);
 
-  if (archiveEnabled)
+  if (archiveEnabled) {
+    if (archivedTournamentSnapshot === null)
+      throw new Error("Archived mode requires bundled tournament data");
     return {
       mode: "archived",
       status: "ready",
@@ -335,21 +335,22 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
       freshness: "archived",
       refresh: "disabled",
     };
-  if (snapshot === null) {
+  }
+  if (liveSnapshot === null) {
     return liveQuery.isPending || liveQuery.isFetching
       ? { mode: "live", status: "loading" }
       : { mode: "live", status: "unavailable", retry: retryLive };
   }
-  if (snapshot.nextRefreshAt === null)
+  if (liveSnapshot.nextRefreshAt === null)
     throw new Error("Live tournament snapshot is missing nextRefreshAt");
   return {
     mode: "live",
     status: "ready",
-    snapshot,
+    snapshot: liveSnapshot,
     freshness: classifyLiveSnapshotFreshness(
       {
-        updatedAt: snapshot.updatedAt,
-        nextRefreshAt: snapshot.nextRefreshAt,
+        updatedAt: liveSnapshot.updatedAt,
+        nextRefreshAt: liveSnapshot.nextRefreshAt,
       },
       freshnessNow,
     ),

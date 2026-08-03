@@ -14,8 +14,8 @@ const columns: ColumnDef<Row>[] = [{ accessorKey: "name", header: "Name" }];
 
 describe("public site shell", () => {
   it("uses the shared LaxDB favicon and championship defaults", () => {
-    const index = readFileSync(
-      new URL("../index.html", import.meta.url),
+    const rootRoute = readFileSync(
+      new URL("../src/routes/__root.tsx", import.meta.url),
       "utf8",
     );
     const favicon = readFileSync(
@@ -27,9 +27,9 @@ describe("public site shell", () => {
       "utf8",
     );
 
-    expect(index).toContain('href="/favicon.svg"');
-    expect(index).toContain('name="theme-color" content="#f6f3ea"');
-    expect(index).toContain(
+    expect(rootRoute).toContain('href: "/favicon.svg"');
+    expect(rootRoute).toContain('{ name: "theme-color", content: "#f6f3ea" }');
+    expect(rootRoute).toContain(
       "Scores, schedules, standings, statistics, and match analysis",
     );
     expect(favicon).toBe(sharedFavicon);

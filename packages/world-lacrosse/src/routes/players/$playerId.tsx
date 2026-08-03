@@ -3,20 +3,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { NotFound } from "../../components/not-found";
 import { TournamentDataBoundary } from "../../components/tournament-data-state";
 import { PlayerDetailsPage } from "../../pages/player-details-page";
+import { staticTournamentMetadata } from "../../static-tournament-data";
 
 export const Route = createFileRoute("/players/$playerId")({
-  loader: async ({ params }) => {
-    const { staticTournamentMetadata } =
-      await import("../../static-tournament-data");
-    return staticTournamentMetadata.playerProfiles.find(
-      (item) => item.id === params.playerId,
-    );
-  },
   component: PlayerRoutePage,
 });
 
 function PlayerRoutePage() {
-  const player = Route.useLoaderData();
+  const { playerId } = Route.useParams();
+  const player = staticTournamentMetadata.playerProfiles.find(
+    (item) => item.id === playerId,
+  );
   return player ? (
     <TournamentDataBoundary>
       <PlayerDetailsPage player={player} />

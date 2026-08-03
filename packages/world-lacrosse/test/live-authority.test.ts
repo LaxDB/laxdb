@@ -87,12 +87,21 @@ describe("live tournament authority", () => {
       new URL("../src/current-tournament.ts", import.meta.url),
       "utf8",
     );
+    const modeDataSource = readFileSync(
+      new URL("../src/mode-tournament-data.ts", import.meta.url),
+      "utf8",
+    );
+    const liveModeDataSource = readFileSync(
+      new URL("../src/live-mode-tournament-data.ts", import.meta.url),
+      "utf8",
+    );
     expect(staticSource).not.toContain('from "./championship-data"');
     expect(staticSource).not.toContain('from "./tournament-data"');
-    expect(currentSource).toContain('from "./archived-tournament-data"');
+    expect(currentSource).toContain('from "./mode-tournament-data"');
     expect(currentSource).not.toContain("await import(");
-    expect(currentSource).toContain(
-      "const archivedTournamentSnapshot = buildArchivedTournamentSnapshot(",
+    expect(modeDataSource).toContain('from "./archived-tournament-data"');
+    expect(liveModeDataSource).toContain(
+      "modeTournamentData: ArchivedTournamentData | null = null",
     );
   });
 

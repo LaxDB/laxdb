@@ -214,9 +214,7 @@ export default Alchemy.Stack(
       rootDir: "./packages/world-lacrosse",
       url: true,
       domain: `world.${baseDomain}`,
-      assets: {
-        notFoundHandling: "single-page-application",
-      },
+      compatibility: { flags: ["nodejs_compat"] },
       dev: {
         port: 1444,
         strictPort: true,
