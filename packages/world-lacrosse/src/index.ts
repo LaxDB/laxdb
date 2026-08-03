@@ -4,6 +4,7 @@ export * from "./error";
 export * from "./game-evidence";
 export * from "./game-preview";
 export * from "./game-preview-schema";
+export * from "./live-game-clock";
 export * from "./match-clock";
 export * from "./match-insights";
 export * from "./match-insights-schema";

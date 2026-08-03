@@ -11,12 +11,12 @@ import { TournamentHeader } from "../components/tournament-header";
 import { useCurrentTournamentSnapshot } from "../current-tournament";
 import { buildGamePreview } from "../game-preview";
 import {
-  activeGameStatusLabel,
   finalGameStatusLabel,
   isActiveGameStatus,
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "../game-status";
+import { activeGameStatusWithClock } from "../live-game-clock";
 import { buildMatchInsights } from "../match-insights";
 import type { DerivedPlayerStats, Roster } from "../schema";
 import {
@@ -270,7 +270,11 @@ export function GameDetailsPage({ gameId }: { gameId: string }) {
         </main>
       );
     const statusLabel = isActiveGameStatus(current.status)
-      ? activeGameStatusLabel(current.status, scheduledGame?.period)
+      ? activeGameStatusWithClock(
+          current.status,
+          scheduledGame?.period,
+          snapshotGame,
+        )
       : isFinalGameStatus(current.status)
         ? finalGameStatusLabel(current.status)
         : current.status;
@@ -491,9 +495,10 @@ export function GameDetailsPage({ gameId }: { gameId: string }) {
             <div className="score">
               {scheduledGame && isActiveGameStatus(scheduledGame.status) && (
                 <span className="game-live-badge">
-                  {activeGameStatusLabel(
+                  {activeGameStatusWithClock(
                     scheduledGame.status,
                     scheduledGame.period,
+                    currentGame,
                   )}
                 </span>
               )}
