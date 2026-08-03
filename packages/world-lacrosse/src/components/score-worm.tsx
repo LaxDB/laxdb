@@ -1,14 +1,19 @@
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@laxdb/ui/components/ui/tooltip";
-import {
-  useEffect,
-  useId,
-  useReducer,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+  areaY,
+  defineChart,
+  dot,
+  lineY,
+  ruleX,
+  ruleY,
+  type ChartFocusStrategy,
+} from "@tanstack/charts";
+import { scaleLinear } from "@tanstack/charts-scales/linear";
+import { d3Curve } from "@tanstack/charts/d3/shape";
+import { tooltip } from "@tanstack/charts/tooltip";
+import { portal } from "@tanstack/charts/tooltip/portal";
+import { Chart } from "@tanstack/react-charts/tooltip";
+import { curveStepAfter } from "d3-shape";
+import { useId, useMemo } from "react";
 
 import {
   buildMatchPeriodWindows,
@@ -17,32 +22,33 @@ import {
 } from "../match-clock";
 import type { MatchInsightGoal, MatchInsights } from "../match-insights-schema";
 
-import { nearestScoreWormGoal } from "./score-worm-geometry";
-import {
-  activeScoreWormSequence,
-  initialScoreWormInteraction,
-  reduceScoreWormInteraction,
-} from "./score-worm-interaction";
-
 const chartWidth = 900;
 const chartHeight = 280;
-const chartLeft = 72;
-const chartRight = 884;
-const chartTop = 28;
-const chartBottom = 244;
-const chartCenter = (chartTop + chartBottom) / 2;
+const chartMargin = { top: 28, right: 16, bottom: 36, left: 72 };
+const stepCurve = d3Curve(curveStepAfter);
 
-interface WormPoint {
-  readonly goal: MatchInsightGoal;
-  readonly x: number;
-  readonly y: number;
+interface ScoreWormDatum {
+  readonly id: string;
+  readonly elapsedSeconds: number;
   readonly margin: number;
+  readonly goal: MatchInsightGoal | null;
+  readonly side: MatchInsightGoal["side"] | "tie";
 }
 
 interface DisplayPeriod {
   readonly period: string;
   readonly startSeconds: number;
   readonly durationSeconds: number;
+}
+
+export interface ScoreWormChartModel {
+  readonly chartDuration: number;
+  readonly displayPeriods: readonly DisplayPeriod[];
+  readonly goalRows: readonly ScoreWormDatum[];
+  readonly maximumMargin: number;
+  readonly periodRules: readonly number[];
+  readonly rows: readonly ScoreWormDatum[];
+  readonly winningGoalRows: readonly ScoreWormDatum[];
 }
 
 const periodLabel = (period: string): string =>
@@ -66,45 +72,87 @@ const displayedPeriods = (
     ];
   });
 
-const buildPoints = (
-  insights: Readonly<MatchInsights>,
-  windows: readonly MatchPeriodWindow[],
-  chartDuration: number,
-): readonly WormPoint[] => {
-  const maximumMargin = Math.max(
-    1,
-    ...insights.goals.map((goal) =>
-      Math.abs(goal.score.home - goal.score.away),
-    ),
-  );
-  const verticalScale = (chartBottom - chartTop) / 2 / maximumMargin;
+const chartDatum = (
+  id: string,
+  elapsedSeconds: number,
+  margin: number,
+  goal: MatchInsightGoal | null,
+): ScoreWormDatum => ({
+  id,
+  elapsedSeconds,
+  margin,
+  goal,
+  side: goal?.side ?? "tie",
+});
 
-  return insights.goals.flatMap((goal) => {
-    const elapsed = matchElapsedSeconds(windows, goal.period, goal.clock);
-    if (elapsed === null || elapsed > chartDuration) return [];
-    const progress = chartDuration === 0 ? 0 : elapsed / chartDuration;
-    const margin = goal.score.home - goal.score.away;
+export const shouldExtendScoreWormToEnd = (
+  completeness: MatchInsights["quality"]["completeness"],
+  scoreFlowValid: boolean,
+): boolean =>
+  scoreFlowValid &&
+  ["final-reconciled", "final-unreconciled", "provisional-final"].includes(
+    completeness,
+  );
+
+export const buildScoreWormChartModel = (
+  insights: Readonly<MatchInsights>,
+): ScoreWormChartModel | null => {
+  const windows = buildMatchPeriodWindows(
+    insights.periods.map((period) => period.period),
+  );
+  const chartDuration =
+    insights.gameStateTime?.observedSeconds ??
+    windows?.reduce((total, period) => total + period.durationSeconds, 0) ??
+    0;
+  const timingAvailable =
+    insights.quality.goalClockFlowValid &&
+    windows !== null &&
+    chartDuration > 0;
+  if (!timingAvailable) return null;
+
+  const goalRows = insights.goals.flatMap((goal) => {
+    const elapsedSeconds = matchElapsedSeconds(
+      windows,
+      goal.period,
+      goal.clock,
+    );
+    if (elapsedSeconds === null || elapsedSeconds > chartDuration) return [];
     return [
-      {
+      chartDatum(
+        `goal-${goal.sequence}`,
+        elapsedSeconds,
+        goal.score.home - goal.score.away,
         goal,
-        margin,
-        x: chartLeft + progress * (chartRight - chartLeft),
-        y: chartCenter - margin * verticalScale,
-      },
+      ),
     ];
   });
-};
+  const maximumMargin = Math.max(
+    1,
+    ...goalRows.map((row) => Math.abs(row.margin)),
+  );
+  const rows: ScoreWormDatum[] = [chartDatum("start", 0, 0, null), ...goalRows];
+  const extendToEnd = shouldExtendScoreWormToEnd(
+    insights.quality.completeness,
+    insights.quality.scoreFlowValid,
+  );
+  const lastRow = rows.at(-1);
+  if (
+    extendToEnd &&
+    lastRow !== undefined &&
+    lastRow.elapsedSeconds < chartDuration
+  )
+    rows.push(chartDatum("end", chartDuration, lastRow.margin, null));
 
-const stepPath = (
-  points: readonly WormPoint[],
-  extendToEnd: boolean,
-): string => {
-  const segments = points.flatMap((point) => [
-    `H ${point.x.toFixed(2)}`,
-    `V ${point.y.toFixed(2)}`,
-  ]);
-  if (extendToEnd) segments.push(`H ${chartRight}`);
-  return [`M ${chartLeft} ${chartCenter}`, ...segments].join(" ");
+  const displayPeriods = displayedPeriods(windows, chartDuration);
+  return {
+    chartDuration,
+    displayPeriods,
+    goalRows,
+    maximumMargin,
+    periodRules: displayPeriods.slice(1).map((period) => period.startSeconds),
+    rows,
+    winningGoalRows: goalRows.filter((row) => row.goal?.gameWinner === true),
+  };
 };
 
 const goalDetails = (goal: Readonly<MatchInsightGoal>): readonly string[] => {
@@ -117,35 +165,10 @@ const goalDetails = (goal: Readonly<MatchInsightGoal>): readonly string[] => {
   return details;
 };
 
-interface TooltipChangeDetails {
-  readonly reason: string;
-}
-
-interface ScoreWormGoalProps {
-  readonly activated: boolean;
-  readonly active: boolean;
-  readonly id: string;
-  readonly insights: Readonly<MatchInsights>;
-  readonly onActivate: () => void;
-  readonly onBlur: () => void;
-  readonly onDismiss: () => void;
-  readonly onFocus: () => void;
-  readonly point: Readonly<WormPoint>;
-}
-
-function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
-  const {
-    activated,
-    active,
-    id,
-    insights,
-    onActivate,
-    onBlur,
-    onDismiss,
-    onFocus,
-    point,
-  } = props;
-  const { goal } = point;
+export const scoreWormGoalDescription = (
+  goal: Readonly<MatchInsightGoal>,
+  insights: Readonly<MatchInsights>,
+): string => {
   const homeLabel = insights.home.code ?? insights.home.name;
   const awayLabel = insights.away.code ?? insights.away.name;
   const scorer = goal.scorer?.name ?? "Scorer not recorded";
@@ -154,67 +177,233 @@ function ScoreWormGoal(props: Readonly<ScoreWormGoalProps>) {
   const assistLabel = goal.recordedAssist
     ? ` Assist by ${goal.recordedAssist.name}.`
     : "";
-  const handleOpenChange = (
-    open: boolean,
-    eventDetails: Readonly<TooltipChangeDetails>,
-  ) => {
-    if (
-      !open &&
-      ["escape-key", "outside-press"].includes(eventDetails.reason)
-    ) {
-      onDismiss();
+  return `${scorer} goal for ${goal.team}, ${periodLabel(goal.period)} ${goal.clock}. Score ${homeLabel} ${goal.score.home}, ${awayLabel} ${goal.score.away}.${assistLabel}${detailLabel}`;
+};
+
+const scoreWormFocus: ChartFocusStrategy<ScoreWormDatum, number, number> = {
+  resolve(points, pointerX, pointerY, maximumDistance) {
+    let nearest = null;
+    let nearestDistanceSquared = maximumDistance * maximumDistance;
+    for (const point of points) {
+      if (point.markId !== "goals" || point.datum.goal === null) continue;
+      const distanceX = point.x - pointerX;
+      const distanceY = point.y - pointerY;
+      const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+      if (distanceSquared >= nearestDistanceSquared) continue;
+      nearest = point;
+      nearestDistanceSquared = distanceSquared;
     }
-  };
+    return nearest === null ? [] : [nearest];
+  },
+  group(_points, point) {
+    return point.markId === "goals" && point.datum.goal !== null ? [point] : [];
+  },
+  navigation(points) {
+    return points
+      .filter((point) => point.markId === "goals" && point.datum.goal !== null)
+      .toSorted(
+        (left, right) =>
+          left.x - right.x ||
+          (left.datum.goal?.sequence ?? 0) - (right.datum.goal?.sequence ?? 0),
+      );
+  },
+};
+
+function ScoreWormGoalTooltip({
+  goal,
+  insights,
+}: {
+  readonly goal: Readonly<MatchInsightGoal>;
+  readonly insights: Readonly<MatchInsights>;
+}) {
+  const homeLabel = insights.home.code ?? insights.home.name;
+  const awayLabel = insights.away.code ?? insights.away.name;
+  const scorer = goal.scorer?.name ?? "Scorer not recorded";
+  const details = goalDetails(goal);
 
   return (
-    <Tooltip open={active} triggerId={id} onOpenChange={handleOpenChange}>
-      <TooltipTrigger
-        type="button"
-        className="score-worm-goal-trigger"
-        id={id}
-        closeOnClick={false}
-        aria-label={`${scorer} goal for ${goal.team}, ${periodLabel(goal.period)} ${goal.clock}. Score ${homeLabel} ${goal.score.home}, ${awayLabel} ${goal.score.away}.${assistLabel}${detailLabel}`}
-        aria-pressed={activated}
-        data-active={active ? "true" : undefined}
-        onBlur={onBlur}
-        onClick={onActivate}
-        onFocus={onFocus}
-        data-game-winner={goal.gameWinner ? "true" : undefined}
-        data-side={goal.side}
-        style={{
-          left: `${((point.x / chartWidth) * 100).toFixed(4)}%`,
-          top: `${((point.y / chartHeight) * 100).toFixed(4)}%`,
+    <div className="score-worm-goal-tooltip-body">
+      <header>
+        <span>
+          {periodLabel(goal.period)} · {goal.clock}
+        </span>
+        <span>{goal.team} goal</span>
+      </header>
+      <strong>{scorer}</strong>
+      {goal.recordedAssist && (
+        <p>
+          Assist · <span>{goal.recordedAssist.name}</span>
+        </p>
+      )}
+      <div className="score-worm-goal-score">
+        <span>
+          {homeLabel} {goal.score.home}
+        </span>
+        <b aria-hidden="true">—</b>
+        <span>
+          {goal.score.away} {awayLabel}
+        </span>
+      </div>
+      {details.length > 0 && <small>{details.join(" · ")}</small>}
+    </div>
+  );
+}
+
+function ScoreWormChart({
+  insights,
+  model,
+}: {
+  readonly insights: Readonly<MatchInsights>;
+  readonly model: Readonly<ScoreWormChartModel>;
+}) {
+  const definition = useMemo(
+    () =>
+      defineChart({
+        marks: [
+          areaY(model.rows, {
+            id: "home-lead-area",
+            x: "elapsedSeconds",
+            y1: 0,
+            y2: (row) => Math.max(0, row.margin),
+            key: "id",
+            curve: stepCurve,
+            fill: "oklch(var(--foreground) / 0.07)",
+            fillOpacity: 1,
+          }),
+          areaY(model.rows, {
+            id: "away-lead-area",
+            x: "elapsedSeconds",
+            y1: 0,
+            y2: (row) => Math.min(0, row.margin),
+            key: "id",
+            curve: stepCurve,
+            fill: "oklch(var(--orange) / 0.12)",
+            fillOpacity: 1,
+          }),
+          ruleY([model.maximumMargin, -model.maximumMargin], {
+            id: "score-boundaries",
+            stroke: "oklch(var(--border))",
+            strokeOpacity: 1,
+            strokeWidth: 1,
+          }),
+          ruleY([0], {
+            id: "tied-line",
+            stroke: "oklch(var(--border-strong))",
+            strokeOpacity: 1,
+            strokeWidth: 1.5,
+          }),
+          ruleX(model.periodRules, {
+            id: "period-boundaries",
+            stroke: "oklch(var(--border))",
+            strokeDasharray: "3 5",
+            strokeOpacity: 1,
+            strokeWidth: 1,
+          }),
+          lineY(model.rows, {
+            id: "home-margin",
+            x: "elapsedSeconds",
+            y: (row) => (row.margin >= 0 ? row.margin : null),
+            key: "id",
+            curve: stepCurve,
+            stroke: "oklch(var(--foreground))",
+            strokeWidth: 2.5,
+          }),
+          lineY(model.rows, {
+            id: "away-margin",
+            x: "elapsedSeconds",
+            y: (row) => (row.margin <= 0 ? row.margin : null),
+            key: "id",
+            curve: stepCurve,
+            stroke: "oklch(var(--orange))",
+            strokeWidth: 2.5,
+          }),
+          dot(model.winningGoalRows, {
+            id: "winning-goal-rings",
+            x: "elapsedSeconds",
+            y: "margin",
+            key: "id",
+            r: 10,
+            fill: "transparent",
+            stroke: "oklch(var(--orange))",
+            strokeWidth: 1.5,
+          }),
+          dot(model.goalRows, {
+            id: "goals",
+            x: "elapsedSeconds",
+            y: "margin",
+            key: "id",
+            color: "side",
+            r: 4,
+            stroke: "oklch(var(--background))",
+            strokeWidth: 1.5,
+          }),
+        ],
+        x: {
+          scale: scaleLinear().domain([0, model.chartDuration]),
+          axis: false,
+        },
+        y: {
+          scale: scaleLinear().domain([
+            -model.maximumMargin,
+            model.maximumMargin,
+          ]),
+          axis: false,
+        },
+        color: {
+          domain: ["home", "away"],
+          range: ["oklch(var(--foreground))", "oklch(var(--orange))"],
+        },
+        guides: false,
+        margin: chartMargin,
+        focus: scoreWormFocus,
+        maxFocusDistance: 48,
+        tooltip: {
+          use: tooltip,
+          portal,
+          className: "score-worm-goal-tooltip",
+          anchor: "point",
+          placement: ["top", "bottom", "right", "left"],
+          offset: 12,
+          sticky: true,
+          format: (point) => {
+            const goal = point.datum.goal;
+            return goal === null
+              ? "Score margin over time"
+              : scoreWormGoalDescription(goal, insights);
+          },
+        },
+      }),
+    [insights, model],
+  );
+  const ariaDescription = `A step chart of the score margin over game-clock time. Values above the tied line favor ${insights.home.name}; values below favor ${insights.away.name}. Focus the chart and use the arrow keys to inspect each goal.`;
+
+  return (
+    <>
+      <div className="score-worm-y-labels" aria-hidden="true">
+        <span>
+          {insights.home.name} +{model.maximumMargin}
+        </span>
+        <span>Tied</span>
+        <span>
+          {insights.away.name} +{model.maximumMargin}
+        </span>
+      </div>
+      <Chart
+        definition={definition}
+        height={chartHeight}
+        initialWidth={chartWidth}
+        ariaLabel="Score margin over time"
+        ariaDescription={ariaDescription}
+        className="score-worm"
+        style={{ position: "absolute", inset: 0 }}
+        renderTooltipBody={({ points }) => {
+          const goal = points[0]?.datum.goal;
+          return goal === undefined || goal === null ? null : (
+            <ScoreWormGoalTooltip goal={goal} insights={insights} />
+          );
         }}
       />
-      <TooltipContent
-        className="score-worm-goal-tooltip"
-        side={point.y < chartCenter ? "bottom" : "top"}
-        sideOffset={8}
-      >
-        <header>
-          <span>
-            {periodLabel(goal.period)} · {goal.clock}
-          </span>
-          <span>{goal.team} goal</span>
-        </header>
-        <strong>{scorer}</strong>
-        {goal.recordedAssist && (
-          <p>
-            Assist · <span>{goal.recordedAssist.name}</span>
-          </p>
-        )}
-        <div className="score-worm-goal-score">
-          <span>
-            {homeLabel} {goal.score.home}
-          </span>
-          <b aria-hidden="true">—</b>
-          <span>
-            {goal.score.away} {awayLabel}
-          </span>
-        </div>
-        {details.length > 0 && <small>{details.join(" · ")}</small>}
-      </TooltipContent>
-    </Tooltip>
+    </>
   );
 }
 
@@ -224,44 +413,15 @@ export function ScoreWorm({
   readonly insights: Readonly<MatchInsights>;
 }) {
   const id = useId().replaceAll(":", "");
-  const [interaction, dispatchInteraction] = useReducer(
-    reduceScoreWormInteraction,
-    initialScoreWormInteraction,
-  );
-  const activeSequence = activeScoreWormSequence(interaction);
+  const headingId = `${id}-score-worm-heading`;
+  const model = useMemo(() => buildScoreWormChartModel(insights), [insights]);
 
-  useEffect(() => {
-    const dismissOnEscape = (event: Readonly<KeyboardEvent>) => {
-      if (event.key !== "Escape") return;
-      dispatchInteraction({ type: "dismiss" });
-    };
-
-    if (activeSequence !== null) {
-      document.addEventListener("keydown", dismissOnEscape, true);
-    }
-    return () => {
-      document.removeEventListener("keydown", dismissOnEscape, true);
-    };
-  }, [activeSequence]);
-
-  const windows = buildMatchPeriodWindows(
-    insights.periods.map((period) => period.period),
-  );
-  const chartDuration =
-    insights.gameStateTime?.observedSeconds ??
-    windows?.reduce((total, period) => total + period.durationSeconds, 0) ??
-    0;
-  const timingAvailable =
-    insights.quality.goalClockFlowValid &&
-    windows !== null &&
-    chartDuration > 0;
-
-  if (!timingAvailable)
+  if (model === null)
     return (
-      <section className="score-worm-section" aria-labelledby={`${id}-heading`}>
+      <section className="score-worm-section" aria-labelledby={headingId}>
         <header className="insight-subheading">
           <span>Game flow</span>
-          <h3 id={`${id}-heading`}>Score worm</h3>
+          <h3 id={headingId}>Score worm</h3>
         </header>
         <p className="score-worm-unavailable">
           A time-scaled score worm is unavailable for this game.
@@ -269,181 +429,18 @@ export function ScoreWorm({
       </section>
     );
 
-  const displayPeriods = displayedPeriods(windows, chartDuration);
-  const points = buildPoints(insights, windows, chartDuration);
-  const hitPoints = points.map((point) => ({
-    sequence: point.goal.sequence,
-    x: point.x,
-    y: point.y,
-  }));
-  const handlePointerMove = (
-    event: Readonly<ReactPointerEvent<HTMLDivElement>>,
-  ) => {
-    if (event.pointerType === "touch") return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const sequence = nearestScoreWormGoal(
-      hitPoints,
-      event.clientX - bounds.left,
-      event.clientY - bounds.top,
-      bounds.width / chartWidth,
-      bounds.height / chartHeight,
-    );
-    dispatchInteraction({ type: "hover", sequence });
-  };
-  const maximumMargin = Math.max(
-    1,
-    ...points.map((point) => Math.abs(point.margin)),
-  );
-  const extendToEnd =
-    insights.quality.scoreFlowValid &&
-    ["final-reconciled", "final-unreconciled", "provisional-final"].includes(
-      insights.quality.completeness,
-    );
-  const path = stepPath(points, extendToEnd);
-  const areaPath = `${path} V ${chartCenter} H ${chartLeft} Z`;
-  const descriptionId = `${id}-description`;
-  const homeClipId = `${id}-home-clip`;
-  const awayClipId = `${id}-away-clip`;
-
   return (
-    <section className="score-worm-section" aria-labelledby={`${id}-heading`}>
+    <section className="score-worm-section" aria-labelledby={headingId}>
       <header className="insight-subheading">
         <span>Game flow</span>
-        <h3 id={`${id}-heading`}>Score worm</h3>
+        <h3 id={headingId}>Score worm</h3>
       </header>
       <figure className="score-worm-figure">
-        <div
-          className="score-worm-plot"
-          onPointerLeave={() => {
-            dispatchInteraction({ type: "hover", sequence: null });
-          }}
-          onPointerMove={handlePointerMove}
-        >
-          <div className="score-worm-y-labels" aria-hidden="true">
-            <span>
-              {insights.home.name} +{maximumMargin}
-            </span>
-            <span>Tied</span>
-            <span>
-              {insights.away.name} +{maximumMargin}
-            </span>
-          </div>
-          <svg
-            className="score-worm"
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            preserveAspectRatio="none"
-            role="img"
-            aria-label="Score margin over time"
-            aria-describedby={descriptionId}
-          >
-            <desc id={descriptionId}>
-              A step chart of the score margin over game-clock time. Values
-              above the tied line favor {insights.home.name}; values below favor{" "}
-              {insights.away.name}.
-            </desc>
-            <defs>
-              <clipPath id={homeClipId}>
-                <rect width={chartWidth} height={chartCenter} />
-              </clipPath>
-              <clipPath id={awayClipId}>
-                <rect
-                  y={chartCenter}
-                  width={chartWidth}
-                  height={chartHeight - chartCenter}
-                />
-              </clipPath>
-            </defs>
-
-            <line
-              className="score-worm-boundary"
-              x1={chartLeft}
-              x2={chartRight}
-              y1={chartTop}
-              y2={chartTop}
-            />
-            <line
-              className="score-worm-baseline"
-              x1={chartLeft}
-              x2={chartRight}
-              y1={chartCenter}
-              y2={chartCenter}
-            />
-            <line
-              className="score-worm-boundary"
-              x1={chartLeft}
-              x2={chartRight}
-              y1={chartBottom}
-              y2={chartBottom}
-            />
-
-            {displayPeriods.slice(1).map((period) => {
-              const progress = period.startSeconds / chartDuration;
-              const x = chartLeft + progress * (chartRight - chartLeft);
-              return (
-                <line
-                  className="score-worm-period-line"
-                  key={period.period}
-                  x1={x}
-                  x2={x}
-                  y1={chartTop}
-                  y2={chartBottom}
-                />
-              );
-            })}
-
-            <path
-              className="score-worm-home-area"
-              d={areaPath}
-              clipPath={`url(#${homeClipId})`}
-            />
-            <path
-              className="score-worm-away-area"
-              d={areaPath}
-              clipPath={`url(#${awayClipId})`}
-            />
-            <path
-              className="score-worm-home-path"
-              d={path}
-              clipPath={`url(#${homeClipId})`}
-            />
-            <path
-              className="score-worm-away-path"
-              d={path}
-              clipPath={`url(#${awayClipId})`}
-            />
-          </svg>
-          {points.map((point) => (
-            <ScoreWormGoal
-              activated={interaction.activatedSequence === point.goal.sequence}
-              active={activeSequence === point.goal.sequence}
-              id={`${id}-goal-${point.goal.sequence}`}
-              insights={insights}
-              key={point.goal.sequence}
-              onActivate={() => {
-                dispatchInteraction({
-                  type: "activate",
-                  sequence: point.goal.sequence,
-                });
-              }}
-              onBlur={() => {
-                dispatchInteraction({ type: "blur" });
-              }}
-              onDismiss={() => {
-                dispatchInteraction({ type: "dismiss" });
-              }}
-              onFocus={() => {
-                dispatchInteraction({
-                  type: "focus",
-                  sequence: point.goal.sequence,
-                });
-              }}
-              point={point}
-            />
-          ))}
-          <div className="score-worm-hover-layer" aria-hidden="true" />
+        <div className="score-worm-plot">
+          <ScoreWormChart insights={insights} model={model} />
         </div>
         <div className="score-worm-periods" aria-hidden="true">
-          {displayPeriods.map((period) => (
+          {model.displayPeriods.map((period) => (
             <span
               key={period.period}
               style={{ flexGrow: period.durationSeconds, flexBasis: 0 }}
@@ -462,8 +459,8 @@ export function ScoreWorm({
             {insights.away.name} lead
           </span>
           <small>
-            Tap, hover, or focus a goal marker for details. Distance from the
-            center line is the goal margin.
+            Tap or hover the chart, or focus it and use the arrow keys, for goal
+            details. Distance from the center line is the goal margin.
           </small>
         </figcaption>
       </figure>

@@ -23,11 +23,15 @@
   "dependencies": {
     "@effect/platform-bun": "4.0.0-beta.79",
     "@laxdb/ui": "workspace:*",
+    "@tanstack/charts": "0.5.1",
+    "@tanstack/charts-scales": "0.5.1",
+    "@tanstack/react-charts": "0.5.1",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.143.11",
     "@tanstack/react-table": "^8.21.3",
     "@vitejs/plugin-react": "^4.7.0",
     "cheerio": "^1.1.2",
+    "d3-shape": "3.2.0",
     "effect": "4.0.0-beta.79",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -35,6 +39,7 @@
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.167.35",
+    "@types/d3-shape": "3.1.8",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0"
   }
