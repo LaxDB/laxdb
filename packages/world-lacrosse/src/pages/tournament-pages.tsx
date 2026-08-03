@@ -19,9 +19,10 @@ import {
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "../game-status";
+import { activeGameStatusWithClock } from "../live-game-clock";
 import { selectMatchday } from "../matchday";
 import { scheduleDateLabel } from "../schedule-date";
-import type { ScheduledGame } from "../schema";
+import type { GameDetails, ScheduledGame } from "../schema";
 import { buildCurrentStandings, formatGoalDifference } from "../standings";
 import {
   staticTournamentMetadata,
@@ -47,9 +48,12 @@ const gameHasFollowedTeam = (
   followedTeamNames.has(game.home.name) ||
   followedTeamNames.has(game.away.name);
 
-const gameAccessibleLabel = (game: Readonly<ScheduledGame>): string => {
+const gameAccessibleLabel = (
+  game: Readonly<ScheduledGame>,
+  details?: Readonly<GameDetails>,
+): string => {
   const status = isActiveGameStatus(game.status)
-    ? activeGameStatusLabel(game.status, game.period)
+    ? activeGameStatusWithClock(game.status, game.period, details)
     : isFinalGameStatus(game.status)
       ? finalGameStatusLabel(game.status)
       : game.status;
@@ -326,6 +330,10 @@ const StandingsTables = ({
 export function HomePage() {
   const snapshot = useCurrentTournamentSnapshot();
   const schedule = snapshot.schedule;
+  const detailsByGameId = useMemo(
+    () => new Map(snapshot.games.map((game) => [game.id, game])),
+    [snapshot.games],
+  );
   const matchday = selectMatchday(schedule, new Date());
 
   return (
@@ -359,13 +367,20 @@ export function HomePage() {
                   className="home-game"
                   to="/games/$gameId"
                   params={{ gameId: game.id }}
-                  aria-label={gameAccessibleLabel(game)}
+                  aria-label={gameAccessibleLabel(
+                    game,
+                    detailsByGameId.get(game.id),
+                  )}
                 >
                   <div className="home-game-meta">
                     <time>{game.time}</time>
                     {isActiveGameStatus(game.status) && (
                       <span className="live-badge">
-                        {activeGameStatusLabel(game.status, game.period)}
+                        {activeGameStatusWithClock(
+                          game.status,
+                          game.period,
+                          detailsByGameId.get(game.id),
+                        )}
                       </span>
                     )}
                     {isFinalGameStatus(game.status) && (
@@ -435,6 +450,10 @@ export function SchedulePage() {
     [followedTeamIds],
   );
   const schedule = snapshot.schedule;
+  const detailsByGameId = useMemo(
+    () => new Map(snapshot.games.map((game) => [game.id, game])),
+    [snapshot.games],
+  );
   const dates = [...new Set(schedule.map((game) => game.date))];
   const localDate = scheduleDateLabel(new Date());
   const focusDate =
@@ -458,7 +477,10 @@ export function SchedulePage() {
             className="schedule-game"
             to="/games/$gameId"
             params={{ gameId: game.id }}
-            aria-label={`${gameAccessibleLabel(game)}${
+            aria-label={`${gameAccessibleLabel(
+              game,
+              detailsByGameId.get(game.id),
+            )}${
               gameHasFollowedTeam(game, followedTeamNames)
                 ? ", includes a followed team"
                 : ""
@@ -495,7 +517,11 @@ export function SchedulePage() {
               )}
               {isActiveGameStatus(game.status) && (
                 <span className="live-badge">
-                  {activeGameStatusLabel(game.status, game.period)}
+                  {activeGameStatusWithClock(
+                    game.status,
+                    game.period,
+                    detailsByGameId.get(game.id),
+                  )}
                 </span>
               )}
               {isFinalGameStatus(game.status) && (
