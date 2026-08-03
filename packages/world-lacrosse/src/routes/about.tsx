@@ -12,7 +12,7 @@ function AboutPage() {
     <main>
       <PageMetadata
         title="About"
-        description="About the World LaxDB championship archive."
+        description="About the World LaxDB championship record."
       />
       <TournamentHeader />
       <article id="main-content" className="tournament-page">
@@ -38,7 +38,7 @@ function AboutPage() {
               <p>
                 Tournament records are compiled from the official World Lacrosse
                 schedule, match reports, and statistics. Source links remain
-                available throughout the archive.
+                available throughout the site.
               </p>
               <a
                 href="https://worldlacrosse.sport/events/2026-world-lacrosse-womens-championship/"

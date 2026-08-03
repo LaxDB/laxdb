@@ -61,9 +61,9 @@ describe("team comparison presentation", () => {
     expect(markup.match(/tabindex="0"/gu)).toHaveLength(8);
     expect(markup).toContain("<caption");
     expect(markup).toContain('scope="row"');
-    expect(markup).toContain("45 / 84 · 3 games");
+    expect(markup).toContain("55 / 110 · 4 games");
     expect(markup).toContain("Unique recorded scorers");
-    expect(markup).toContain("14 distinct · 3 games");
+    expect(markup).toContain("14 distinct · 4 games");
     expect(markup).toContain("paired with the longest drought");
     for (const prohibited of [
       "favorite",
@@ -91,11 +91,11 @@ describe("team comparison presentation", () => {
 
   it("labels sampled metrics without qualifying observations as unavailable", () => {
     const markup = renderToStaticMarkup(
-      <TeamComparisonPanel comparison={comparisonFor("23", "22")} />,
+      <TeamComparisonPanel comparison={comparisonFor("27", "22")} />,
     );
 
     expect(markup).toContain("Fastest four-goal burst");
-    expect(markup).toContain("No qualifying evidence · 2 games");
+    expect(markup).toContain("No qualifying evidence · 5 games");
     expect(markup).not.toContain("0:00 from 0 qualifying observations");
   });
 

@@ -83,7 +83,7 @@ describe("team evaluation presentation", () => {
     expect(markup).toContain("(selected player)");
     expect(markup).toContain("Roster / activity A");
     expect(markup).toContain("Roster / activity B");
-    expect(markup).toContain("across 2 eligible games");
+    expect(markup).toContain("across 3 eligible games");
     expect(markup).toContain(
       "Rank 1 for turnovers or cards means most recorded, not favorable or better",
     );

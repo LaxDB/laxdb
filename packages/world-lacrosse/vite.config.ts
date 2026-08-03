@@ -1,24 +1,53 @@
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
-export default defineConfig({
-  plugins: [
-    tanstackRouter({ target: "react", autoCodeSplitting: true }),
-    react(),
-    {
-      name: "world-lacrosse-generated-data-full-reload",
-      handleHotUpdate({ file, server }) {
-        if (
-          file.endsWith("/src/generated/dataset.json") ||
-          file.endsWith("/src/generated/metadata.json")
-        ) {
-          server.ws.send({ type: "full-reload" });
-          return [];
-        }
-        return;
+import { tournamentMode } from "./src/tournament-mode";
+import { tournamentStartOptions } from "./vite/tournament-start-options";
+
+function generatedDataReload(): Plugin {
+  return {
+    name: "world-lacrosse-generated-data-reload",
+    handleHotUpdate({ file, server }) {
+      if (!file.includes("/src/generated/")) return;
+      server.ws.send({ type: "full-reload" });
+      return [];
+    },
+  };
+}
+
+export default defineConfig(async () => {
+  const root = import.meta.dirname;
+  const startOptions = await tournamentStartOptions(tournamentMode);
+  const modeTournamentData =
+    tournamentMode === "live"
+      ? `${root}/src/live-mode-tournament-data.ts`
+      : `${root}/src/mode-tournament-data.ts`;
+
+  return {
+    root,
+    build: {
+      outDir: `${root}/dist`,
+      target: "esnext",
+      rollupOptions: {
+        external: ["node:async_hooks", "cloudflare:workers"],
       },
     },
-  ],
-  server: { host: true, port: 3010 },
+    plugins: [tanstackStart(startOptions), react(), generatedDataReload()],
+    resolve: {
+      alias: [
+        {
+          find: "./mode-tournament-data",
+          replacement: modeTournamentData,
+        },
+      ],
+    },
+    server: {
+      host: true,
+      port: 3010,
+      watch: {
+        ignored: ["**/routeTree.gen.ts", "**/.tanstack/**"],
+      },
+    },
+  };
 });

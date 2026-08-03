@@ -317,7 +317,8 @@ describe("Insights Lab presentation", () => {
     expect(markup).toContain(`${completeGames.length} complete-case`);
     expect(markup).toContain(`${context.sample.eligibleGames} games with`);
     expect(markup).toContain("Completed detail coverage</dt><dd>");
-    expect(markup).toContain("Snapshot status</dt><dd>Archived final");
+    expect(markup).not.toContain("Snapshot status");
+    expect(markup).not.toContain("Archived");
     expect(markup).not.toContain("title=");
   });
 

@@ -10,7 +10,7 @@ export type TournamentMode = typeof TournamentMode.Type;
  * Change this only after the final tournament dataset has been synced,
  * validated, committed, and is ready to replace the live worker.
  */
-export const tournamentMode: TournamentMode = "live";
+export const tournamentMode: TournamentMode = "archived";
 
 export const expectedTournamentGames = 44;
 
