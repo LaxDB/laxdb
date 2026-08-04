@@ -51,6 +51,7 @@ wrangler.json
 # env
 .env*.local
 .env
+.infisical.json
 
 # misc
 .DS_Store
