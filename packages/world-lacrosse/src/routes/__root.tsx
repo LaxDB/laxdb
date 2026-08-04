@@ -8,6 +8,7 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { Agentation } from "agentation";
 
 import { HomeFooter } from "../components/home-footer";
 import { NotFound } from "../components/not-found";
@@ -53,6 +54,9 @@ function RootDocument() {
           <Outlet />
           <HomeFooter />
         </QueryClientProvider>
+        {import.meta.env.DEV ? (
+          <Agentation endpoint="http://localhost:4747" />
+        ) : null}
         <Scripts />
       </body>
     </html>
