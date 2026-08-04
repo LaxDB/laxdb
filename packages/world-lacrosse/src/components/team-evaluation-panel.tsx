@@ -1,9 +1,9 @@
-import type { TeamComparisonTeamSource } from "../team-comparison";
+import type { TeamComparisonTeamSource } from "../lib/team-comparison";
 import type {
   TeamEvaluation,
   TeamEvaluationPlayerMetricKey,
   TeamEvaluationSegment,
-} from "../team-evaluation-schema";
+} from "../lib/team-evaluation-schema";
 
 import { TeamEvaluationControls } from "./team-evaluation-controls";
 import { TeamEvaluationPlayerPanel } from "./team-evaluation-player-panel";

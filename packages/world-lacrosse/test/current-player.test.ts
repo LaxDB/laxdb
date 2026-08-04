@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCurrentPlayerSummary } from "../src/current-player";
+import { buildCurrentPlayerSummary } from "../src/lib/current-player";
 import {
   DerivedPlayerStats,
   GameDetails,
@@ -10,7 +10,7 @@ import {
   PlayerId,
   Roster,
   Team,
-} from "../src/schema";
+} from "../src/lib/schema";
 
 const playerId = PlayerId.make("1149");
 const profile = PlayerDetails.make({

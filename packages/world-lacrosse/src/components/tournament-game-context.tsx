@@ -1,7 +1,7 @@
 import type {
   TournamentGameContext,
   TournamentGamePlacement,
-} from "../tournament-context-schema";
+} from "../lib/tournament-context-schema";
 
 const formatDuration = (seconds: number): string => {
   const rounded = Math.round(seconds);

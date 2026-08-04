@@ -15,16 +15,16 @@ describe("homepage editorial shell", () => {
   });
 
   it("keeps the homepage purpose concise and retains the resource footer", () => {
-    const pages = readFileSync(
-      new URL("../src/pages/tournament-pages.tsx", import.meta.url),
+    const homeRoute = readFileSync(
+      new URL("../src/routes/index.tsx", import.meta.url),
       "utf8",
     );
 
-    expect(pages).toContain(
+    expect(homeRoute).toContain(
       "Schedules, results, standings, player statistics, and deeper game",
     );
-    expect(pages).not.toContain("Deeper coverage. A lasting record.");
-    expect(pages).not.toContain('className="home-statistics-preview"');
+    expect(homeRoute).not.toContain("Deeper coverage. A lasting record.");
+    expect(homeRoute).not.toContain('className="home-statistics-preview"');
 
     const footer = readFileSync(
       new URL("../src/components/home-footer.tsx", import.meta.url),
@@ -41,14 +41,20 @@ describe("homepage editorial shell", () => {
   });
 
   it("uses the shared page title and avoids native abbreviation tooltips", () => {
-    const pages = readFileSync(
-      new URL("../src/pages/tournament-pages.tsx", import.meta.url),
+    const tournamentPage = readFileSync(
+      new URL("../src/components/tournament-page.tsx", import.meta.url),
+      "utf8",
+    );
+    const followTeamButton = readFileSync(
+      new URL("../src/components/follow-team-button.tsx", import.meta.url),
       "utf8",
     );
 
-    expect(pages).not.toContain("compactTitle");
-    expect(pages).toContain('<header className="page-title">');
-    expect(pages).toContain('followed ? "button-primary" : "button-secondary"');
-    expect(pages).not.toContain("<StatAbbreviation");
+    expect(tournamentPage).not.toContain("compactTitle");
+    expect(tournamentPage).toContain('<header className="page-title">');
+    expect(followTeamButton).toContain(
+      'followed ? "button-primary" : "button-secondary"',
+    );
+    expect(tournamentPage).not.toContain("<StatAbbreviation");
   });
 });

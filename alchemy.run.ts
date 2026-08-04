@@ -10,7 +10,7 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 
 import { makeApiWorker } from "./packages/api/src/index.ts";
-import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/tournament-mode.ts";
+import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/lib/tournament-mode.ts";
 
 const config = {
   stack: "laxdb",

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   followedTeamsStorageChanged,
   parseFollowedTeamIds,
-} from "../src/followed-teams";
+} from "../src/lib/followed-teams";
 
 describe("followed teams", () => {
   it("parses unique team IDs", () => {

@@ -7,9 +7,9 @@ import {
   ScheduledGame,
   Team,
   TeamStat,
-} from "../src/schema";
-import { StaticTeamProfile } from "../src/static-tournament-data";
-import { buildCurrentTeamSummary } from "../src/team-summary";
+} from "../src/lib/schema";
+import { StaticTeamProfile } from "../src/lib/static-tournament-data";
+import { buildCurrentTeamSummary } from "../src/lib/team-summary";
 
 const team = (name: string, score: number) =>
   Team.make({

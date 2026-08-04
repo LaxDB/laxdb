@@ -5,9 +5,9 @@ import {
   fetchLiveSchedule,
   liveScheduleQueryKey,
   liveScheduleQueryOptions,
-} from "../src/live-schedule";
-import { LiveSchedule } from "../src/schema";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/live-schedule";
+import { LiveSchedule } from "../src/lib/schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const current = LiveSchedule.make({
   updatedAt: "2026-07-29T06:10:00.000Z",

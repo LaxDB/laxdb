@@ -9,7 +9,7 @@ import {
   type AnalysisLens,
   type SignalResult,
   type TeamFingerprintMetric,
-} from "../analysis-insights";
+} from "../lib/analysis-insights";
 
 export interface InsightsTeamContext {
   readonly team: string;

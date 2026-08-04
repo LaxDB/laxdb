@@ -1,12 +1,12 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
-import { type GameDetails, ScheduledGame } from "../src/schema";
-import { staticTournamentMetadata } from "../src/static-tournament-data";
-import { buildTeamEvaluation } from "../src/team-evaluation";
-import { TeamEvaluation } from "../src/team-evaluation-schema";
-import { tournament } from "../src/tournament-data";
+import { championship } from "../src/lib/championship-data";
+import { type GameDetails, ScheduledGame } from "../src/lib/schema";
+import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
+import { buildTeamEvaluation } from "../src/lib/team-evaluation";
+import { TeamEvaluation } from "../src/lib/team-evaluation-schema";
+import { tournament } from "../src/lib/tournament-data";
 
 interface EvaluationSource {
   readonly updatedAt: string;

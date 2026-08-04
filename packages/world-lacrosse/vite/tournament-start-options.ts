@@ -1,4 +1,4 @@
-import type { TournamentMode } from "../src/tournament-mode";
+import type { TournamentMode } from "../src/lib/tournament-mode";
 
 export async function tournamentStartOptions(mode: TournamentMode) {
   if (mode === "live") {

@@ -22,7 +22,7 @@ import {
 } from "./scraper";
 import { buildStaticTournamentMetadata } from "./static-tournament-metadata";
 
-export const DEFAULT_SYNC_DIRECTORY = new URL("./generated", import.meta.url)
+export const DEFAULT_SYNC_DIRECTORY = new URL("../generated", import.meta.url)
   .pathname;
 export const OFFICIAL_GAME_RECHECK_MS = 12 * 60 * 60 * 1000;
 export const TOURNAMENT_RECHECK_MS = 2 * 60 * 60 * 1000;

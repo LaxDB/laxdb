@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import type { TeamEvaluationSample } from "../team-evaluation-schema";
+import type { TeamEvaluationSample } from "../lib/team-evaluation-schema";
 
 const coreMetrics = [
   ["points", "P"],

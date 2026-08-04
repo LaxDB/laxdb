@@ -1,15 +1,15 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
-import { GameDetails, Play, TeamStat } from "../src/schema";
-import { buildTeamComparison } from "../src/team-comparison";
+import { championship } from "../src/lib/championship-data";
+import { GameDetails, Play, TeamStat } from "../src/lib/schema";
+import { buildTeamComparison } from "../src/lib/team-comparison";
 import {
   TeamComparison,
   teamComparisonMetricDefinitions,
   type TeamComparisonMetricKey,
-} from "../src/team-comparison-schema";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/team-comparison-schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const source = {
   updatedAt: championship.scrapedAt,

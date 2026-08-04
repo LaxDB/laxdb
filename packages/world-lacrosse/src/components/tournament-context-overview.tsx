@@ -4,12 +4,12 @@ import {
   CLOSE_GAME_SHOOTING_MINIMUM_SHOTS,
   GOALKEEPER_RANKING_MINIMUM_MINUTES,
   GOALKEEPER_RANKING_MINIMUM_SHOTS_FACED,
-} from "../tournament-context";
+} from "../lib/tournament-context";
 import type {
   TournamentContext,
   TournamentContextGame,
   TournamentPlayerMetric,
-} from "../tournament-context-schema";
+} from "../lib/tournament-context-schema";
 
 const formatDuration = (seconds: number | null): string => {
   if (seconds === null) return "—";

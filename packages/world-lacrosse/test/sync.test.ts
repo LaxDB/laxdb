@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
-import { ScheduledGame } from "../src/schema";
+import { championship } from "../src/lib/championship-data";
+import { ScheduledGame } from "../src/lib/schema";
 import {
   OFFICIAL_GAME_RECHECK_MS,
   scheduleFingerprint,
@@ -9,8 +9,8 @@ import {
   shouldRefreshGameForSync,
   shouldRefreshPlayerForSync,
   shouldSkipPlayerRefresh,
-} from "../src/sync";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/sync";
+import { tournament } from "../src/lib/tournament-data";
 
 const upcomingScheduleFixture = (): ScheduledGame => {
   const source = tournament.schedule[0];

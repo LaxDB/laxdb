@@ -10,12 +10,12 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-import { championship } from "../src/championship-data";
 import { TeamEvaluationPlayerPanel } from "../src/components/team-evaluation-player-panel";
 import { TeamEvaluationTeamPanel } from "../src/components/team-evaluation-team-panel";
-import { staticTournamentMetadata } from "../src/static-tournament-data";
-import { buildTeamEvaluation } from "../src/team-evaluation";
-import { tournament } from "../src/tournament-data";
+import { championship } from "../src/lib/championship-data";
+import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
+import { buildTeamEvaluation } from "../src/lib/team-evaluation";
+import { tournament } from "../src/lib/tournament-data";
 
 const report = buildTeamEvaluation(
   "25",
@@ -142,11 +142,11 @@ describe("team evaluation presentation", () => {
       "utf8",
     );
     const teamPage = readFileSync(
-      new URL("../src/pages/tournament-pages.tsx", import.meta.url),
+      new URL("../src/routes/teams/$teamId.tsx", import.meta.url),
       "utf8",
     );
     const playerPage = readFileSync(
-      new URL("../src/pages/player-details-page.tsx", import.meta.url),
+      new URL("../src/routes/players/$playerId.tsx", import.meta.url),
       "utf8",
     );
     const evaluationPlayers = readFileSync(

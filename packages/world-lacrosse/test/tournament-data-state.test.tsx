@@ -12,9 +12,9 @@ import {
   CurrentTournamentProvider,
   CurrentTournamentSnapshot,
   type LiveTournamentReadyState,
-} from "../src/current-tournament";
-import { LiveSchedule } from "../src/schema";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/current-tournament";
+import { LiveSchedule } from "../src/lib/schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const retry = (): void => {};
 

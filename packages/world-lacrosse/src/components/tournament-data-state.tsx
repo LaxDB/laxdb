@@ -4,7 +4,7 @@ import {
   CurrentTournamentProvider,
   useCurrentTournamentReadyState,
   useCurrentTournamentState,
-} from "../current-tournament";
+} from "../lib/current-tournament";
 
 import { PageMetadata } from "./page-metadata";
 import { TournamentHeader } from "./tournament-header";

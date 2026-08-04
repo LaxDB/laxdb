@@ -1,12 +1,12 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
+import { championship } from "../src/lib/championship-data";
 import {
   buildMatchInsights,
   buildMatchInsightsDataset,
-} from "../src/match-insights";
-import { MatchInsights } from "../src/match-insights-schema";
+} from "../src/lib/match-insights";
+import { MatchInsights } from "../src/lib/match-insights-schema";
 import {
   GameDetails,
   GameId,
@@ -14,7 +14,7 @@ import {
   Play,
   PlayParticipant,
   Team,
-} from "../src/schema";
+} from "../src/lib/schema";
 
 interface GoalFixture {
   readonly side: "home" | "away";

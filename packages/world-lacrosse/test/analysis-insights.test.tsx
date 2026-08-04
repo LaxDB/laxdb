@@ -1,7 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { buildAnalysisData } from "../src/analysis-data";
+import {
+  InsightsLabContent,
+  roundedPercentile,
+} from "../src/components/analysis-insights-content";
+import { AnalysisViewNav } from "../src/components/analysis-view-nav";
+import { buildAnalysisData } from "../src/lib/analysis-data";
 import {
   analysisMetrics,
   analyzeOutcomeGames,
@@ -13,15 +18,10 @@ import {
   wilsonInterval,
   type AnalysisGame,
   type SignalResult,
-} from "../src/analysis-insights";
-import { championship } from "../src/championship-data";
-import {
-  InsightsLabContent,
-  roundedPercentile,
-} from "../src/components/analysis-insights-content";
-import { AnalysisViewNav } from "../src/components/analysis-view-nav";
-import { staticTournamentMetadata } from "../src/static-tournament-data";
-import { buildTournamentContext } from "../src/tournament-context";
+} from "../src/lib/analysis-insights";
+import { championship } from "../src/lib/championship-data";
+import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
+import { buildTournamentContext } from "../src/lib/tournament-context";
 
 const firstGame = buildAnalysisData(championship.games).games[0];
 if (firstGame === undefined) throw new Error("Analysis fixture is required");

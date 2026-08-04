@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   activeGameStatusWithClock,
   latestLiveGameClock,
-} from "../src/live-game-clock";
-import { Play } from "../src/schema";
+} from "../src/lib/live-game-clock";
+import { Play } from "../src/lib/schema";
 
 const play = (period: string, time: string, action = "Turnover") =>
   Play.make({

@@ -1,8 +1,8 @@
-import type { GamePreview, GamePreviewTeam } from "../game-preview-schema";
+import type { GamePreview, GamePreviewTeam } from "../lib/game-preview-schema";
 import type {
   TeamBenchmark,
   TeamBenchmarkMetric,
-} from "../team-analysis-schema";
+} from "../lib/team-analysis-schema";
 
 const metrics: readonly TeamBenchmarkMetric[] = [
   "goals-per-game",

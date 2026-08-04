@@ -1,4 +1,4 @@
-import type { Play } from "../schema";
+import type { Play } from "../lib/schema";
 
 export function PlayByPlayTimeline({
   plays,

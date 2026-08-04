@@ -1,30 +1,35 @@
 import { readFileSync } from "node:fs";
 
+import type * as TanStackReactRouter from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@tanstack/react-router", () => ({
-  Link: ({
-    children,
-    params,
-    "aria-label": ariaLabel,
-  }: {
-    readonly children: ReactNode;
-    readonly params: { readonly gameId: string };
-    readonly "aria-label"?: string;
-  }) => (
-    <a aria-label={ariaLabel} href={`/games/${params.gameId}`}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal<typeof TanStackReactRouter>();
+  return {
+    ...actual,
+    Link: ({
+      children,
+      params,
+      "aria-label": ariaLabel,
+    }: {
+      readonly children: ReactNode;
+      readonly params: { readonly gameId: string };
+      readonly "aria-label"?: string;
+    }) => (
+      <a aria-label={ariaLabel} href={`/games/${params.gameId}`}>
+        {children}
+      </a>
+    ),
+  };
+});
 
-import { championship } from "../src/championship-data";
 import { TeamComparisonPanel } from "../src/components/team-comparison-panel";
-import { initialTeamComparisonSelection } from "../src/pages/team-comparison-page";
-import { buildTeamComparison } from "../src/team-comparison";
-import { tournament } from "../src/tournament-data";
+import { championship } from "../src/lib/championship-data";
+import { buildTeamComparison } from "../src/lib/team-comparison";
+import { tournament } from "../src/lib/tournament-data";
+import { initialTeamComparisonSelection } from "../src/routes/compare/$leftTeamId/$rightTeamId";
 
 const source = {
   updatedAt: championship.scrapedAt,
@@ -100,10 +105,6 @@ describe("team comparison presentation", () => {
   });
 
   it("keeps invalid route recovery in the comparison page", () => {
-    const page = readFileSync(
-      new URL("../src/pages/team-comparison-page.tsx", import.meta.url),
-      "utf8",
-    );
     const route = readFileSync(
       new URL(
         "../src/routes/compare/$leftTeamId/$rightTeamId.tsx",
@@ -112,9 +113,9 @@ describe("team comparison presentation", () => {
       "utf8",
     );
 
-    expect(page).toContain("Choose two different tournament teams.");
-    expect(page).toContain("Swap selected teams");
-    expect(page).toContain("disabled={team.id === selectedRight}");
+    expect(route).toContain("Choose two different tournament teams.");
+    expect(route).toContain("Swap selected teams");
+    expect(route).toContain("disabled={team.id === selectedRight}");
     expect(route).toContain("key={`${leftTeamId}-${rightTeamId}`}");
     expect(route).toContain(
       'import { TournamentDataBoundary } from "../../../components/tournament-data-state"',

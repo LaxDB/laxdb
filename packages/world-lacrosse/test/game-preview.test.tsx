@@ -2,12 +2,12 @@ import { Schema } from "effect";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
 import { GamePreviewPanel } from "../src/components/game-preview-panel";
-import { buildGamePreview } from "../src/game-preview";
-import { GamePreview } from "../src/game-preview-schema";
-import { ScheduledGame, Team } from "../src/schema";
-import { tournament } from "../src/tournament-data";
+import { championship } from "../src/lib/championship-data";
+import { buildGamePreview } from "../src/lib/game-preview";
+import { GamePreview } from "../src/lib/game-preview-schema";
+import { ScheduledGame, Team } from "../src/lib/schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const finalTarget = tournament.schedule.find((game) => game.id === "89");
 if (!finalTarget) throw new Error("expected game 89");

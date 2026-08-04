@@ -11,8 +11,8 @@ import type {
   MatchInsightTeamShape,
   MatchInsightTeamShotSplit,
   MatchInsights,
-} from "../match-insights-schema";
-import type { TournamentGameContext } from "../tournament-context-schema";
+} from "../lib/match-insights-schema";
+import type { TournamentGameContext } from "../lib/tournament-context-schema";
 
 import { ScoreWorm } from "./score-worm";
 import { TournamentGameContextPanel } from "./tournament-game-context";

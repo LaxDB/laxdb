@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scheduleDateLabel } from "../src/schedule-date";
+import { scheduleDateLabel } from "../src/lib/schedule-date";
 
 describe("schedule date", () => {
   it("uses the viewer's timezone at a UTC date boundary", () => {

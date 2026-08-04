@@ -1,13 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
 import {
   selectCompletedTeamGames,
   TeamPeriodProfile,
 } from "../src/components/team-analysis-panel";
-import { buildTeamAnalysis } from "../src/team-analysis";
-import { tournament } from "../src/tournament-data";
+import { championship } from "../src/lib/championship-data";
+import { buildTeamAnalysis } from "../src/lib/team-analysis";
+import { tournament } from "../src/lib/tournament-data";
 
 const teamPools = tournament.teams.map((team) => ({
   name: team.name,

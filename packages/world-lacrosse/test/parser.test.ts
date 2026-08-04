@@ -5,7 +5,7 @@ import {
   parseGameDetails,
   parsePlayerDetails,
   parseSchedule,
-} from "../src/parser";
+} from "../src/lib/parser";
 
 const sourceUrl = "https://worldlacrosse.sport/events/championship/schedule/";
 

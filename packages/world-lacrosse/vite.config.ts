@@ -2,7 +2,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
-import { tournamentMode } from "./src/tournament-mode";
+import { tournamentMode } from "./src/lib/tournament-mode";
 import { tournamentStartOptions } from "./vite/tournament-start-options";
 
 function generatedDataReload(): Plugin {
@@ -21,8 +21,8 @@ export default defineConfig(async () => {
   const startOptions = await tournamentStartOptions(tournamentMode);
   const modeTournamentData =
     tournamentMode === "live"
-      ? `${root}/src/live-mode-tournament-data.ts`
-      : `${root}/src/mode-tournament-data.ts`;
+      ? `${root}/src/lib/live-mode-tournament-data.ts`
+      : `${root}/src/lib/mode-tournament-data.ts`;
 
   return {
     root,
