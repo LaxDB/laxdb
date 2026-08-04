@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "agentation": {
+      "command": "bunx",
+      "args": ["agentation-mcp", "server"],
+      "lifecycle": "eager",
+      "directTools": true
+    }
+  }
+}
