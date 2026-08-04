@@ -41,8 +41,8 @@ const productionResourceNames = {
 
 type ProductionResource = keyof typeof productionResourceNames;
 
-// Production names identify existing live resources. Keep them explicit so a
-// lost state record cannot generate a new physical resource with a new suffix.
+// Production names identify existing live resources. Recover missing state by
+// adopting these exact names before deployment; never generate replacements.
 const physicalName = (stage: string, resource: ProductionResource) =>
   stage === config.stages.prod ? productionResourceNames[resource] : undefined;
 
