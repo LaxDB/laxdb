@@ -188,10 +188,14 @@ const routes = Layer.mergeAll(
   MatchImageRoute,
 ).pipe(Layer.provide(DateTime.layerCurrentZoneLocal));
 
-export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
+export const makeApiWorker = (
+  env: Cloudflare.WorkerBindingProps = {},
+  options: { name?: string } = {},
+) =>
   Cloudflare.Worker(
     "api",
     {
+      ...options,
       main: import.meta.filename,
       dev: {
         port: 1437,
