@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { archivedTournamentData } from "../src/archived-tournament-data";
-import { championship } from "../src/championship-data";
+import { archivedTournamentData } from "../src/lib/archived-tournament-data";
+import { championship } from "../src/lib/championship-data";
 import {
   ArchiveNotReadyError,
   archivePlayerProfilesAreComplete,
@@ -13,21 +13,21 @@ import {
   CurrentTournamentSnapshot,
   nextLiveFreshnessCheckAt,
   validateArchivedTournamentSnapshot,
-} from "../src/current-tournament";
+} from "../src/lib/current-tournament";
 import {
   LiveScheduleValidationError,
   validateLiveScheduleCandidate,
-} from "../src/live-snapshot-validation";
-import { LiveSchedule, ScheduledGame } from "../src/schema";
-import { staticTournamentMetadata } from "../src/static-tournament-data";
-import { buildStaticTournamentMetadata } from "../src/static-tournament-metadata";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/live-snapshot-validation";
+import { LiveSchedule, ScheduledGame } from "../src/lib/schema";
+import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
+import { buildStaticTournamentMetadata } from "../src/lib/static-tournament-metadata";
+import { tournament } from "../src/lib/tournament-data";
 import {
   expectedTournamentGames,
   isExpectedTournamentGameCount,
   tournamentMode,
   tournamentRefreshCrons,
-} from "../src/tournament-mode";
+} from "../src/lib/tournament-mode";
 
 const live = ({
   updatedAt = "2026-07-29T06:10:00.000Z",
@@ -80,19 +80,23 @@ describe("live tournament authority", () => {
       staticTournamentMetadata,
     );
     const staticSource = readFileSync(
-      new URL("../src/static-tournament-data.ts", import.meta.url),
+      new URL("../src/lib/static-tournament-data.ts", import.meta.url),
       "utf8",
     );
     const currentSource = readFileSync(
-      new URL("../src/current-tournament.ts", import.meta.url),
+      new URL("../src/lib/current-tournament.ts", import.meta.url),
       "utf8",
     );
     const modeDataSource = readFileSync(
-      new URL("../src/mode-tournament-data.ts", import.meta.url),
+      new URL("../src/lib/mode-tournament-data.ts", import.meta.url),
       "utf8",
     );
     const liveModeDataSource = readFileSync(
-      new URL("../src/live-mode-tournament-data.ts", import.meta.url),
+      new URL("../src/lib/live-mode-tournament-data.ts", import.meta.url),
+      "utf8",
+    );
+    const viteConfig = readFileSync(
+      new URL("../vite.config.ts", import.meta.url),
       "utf8",
     );
     expect(staticSource).not.toContain('from "./championship-data"');
@@ -103,6 +107,9 @@ describe("live tournament authority", () => {
     expect(liveModeDataSource).toContain(
       "modeTournamentData: ArchivedTournamentData | null = null",
     );
+    expect(viteConfig).toContain('find: "./mode-tournament-data"');
+    expect(viteConfig).toContain("/src/lib/mode-tournament-data.ts");
+    expect(viteConfig).toContain("/src/lib/live-mode-tournament-data.ts");
   });
 
   it("keeps the static format route outside the live authority boundary", () => {
@@ -110,13 +117,13 @@ describe("live tournament authority", () => {
       new URL("../src/routes/format.tsx", import.meta.url),
       "utf8",
     );
-    const tournamentPages = readFileSync(
-      new URL("../src/pages/tournament-pages.tsx", import.meta.url),
+    const tournamentPage = readFileSync(
+      new URL("../src/components/tournament-page.tsx", import.meta.url),
       "utf8",
     );
 
     expect(formatRoute).not.toContain("TournamentDataBoundary");
-    expect(tournamentPages).toContain(
+    expect(tournamentPage).toContain(
       "showTournamentStatus && <TournamentDataStatus />",
     );
   });

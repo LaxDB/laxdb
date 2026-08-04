@@ -19,8 +19,11 @@ import {
   buildMatchPeriodWindows,
   matchElapsedSeconds,
   type MatchPeriodWindow,
-} from "../match-clock";
-import type { MatchInsightGoal, MatchInsights } from "../match-insights-schema";
+} from "../lib/match-clock";
+import type {
+  MatchInsightGoal,
+  MatchInsights,
+} from "../lib/match-insights-schema";
 
 const chartWidth = 900;
 const chartHeight = 280;

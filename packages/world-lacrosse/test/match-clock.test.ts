@@ -6,7 +6,7 @@ import {
   matchElapsedSeconds,
   matchPeriodDuration,
   parseMatchClock,
-} from "../src/match-clock";
+} from "../src/lib/match-clock";
 
 describe("match clock", () => {
   it("uses official women's field period durations", () => {

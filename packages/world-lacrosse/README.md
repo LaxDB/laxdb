@@ -62,7 +62,7 @@ bun src/cli.ts sync --output ./data/world-lacrosse
 
 The completed tournament now runs in `archived` mode. TanStack Start validates a compact prerender index through Effect Schema, derives every game, player, team, evaluation, and ordered comparison path from the final snapshot, and emits static HTML for all tournament routes. Archived pages render immediately without browser polling, a loading state, public archive messaging, or a production refresh cron.
 
-`src/tournament-mode.ts` is the only rendering-mode switch. `live` builds the application in TanStack Start SPA mode and enables the Worker/KV query lifecycle; `archived` enables full static prerendering from `src/generated/dataset.json`. No route manifest is maintained by hand, and the complete dataset is not decoded into Vite's build process merely to extract IDs.
+`src/lib/tournament-mode.ts` is the only rendering-mode switch. `live` builds the application in TanStack Start SPA mode and enables the Worker/KV query lifecycle; `archived` enables full static prerendering from `src/generated/dataset.json`. No route manifest is maintained by hand, and the complete dataset is not decoded into Vite's build process merely to extract IDs.
 
 During the event, live mode made the Worker/KV snapshot the only authority for schedule assignments, scores, statuses, game details, standings, and every derived statistic. Tournament routes showed a neutral loading state before the first verified response and retained the last accepted generation through failed or regressed refreshes.
 
@@ -70,7 +70,7 @@ In live mode tournament views poll every 30 seconds during play and every minute
 
 The homepage Matchday list keeps every game on the selected tournament date, regardless of status. Homepage and `/standings` pool tables are recomputed from the validated snapshot using the published pool tie-break sequence.
 
-All mutable UI aggregates consume one validated current-tournament snapshot. Team records and team totals, current player totals and logs, statistics tables, match insights, tournament context, and outcome analysis are derived from its schedule and reconciled game details rather than copied from bundled standings, leaderboards, team totals, player totals, or game logs. A detail row is accepted only when its game ID, participants, status class, and score agree with the schedule in that snapshot. Missing or conflicting evidence is visibly withheld; the UI never combines a current status with older game details. `src/static-tournament-data.ts` exposes a narrow metadata-only view for identities, biographies, roster labels, staff, organization, flags, and source links.
+All mutable UI aggregates consume one validated current-tournament snapshot. Team records and team totals, current player totals and logs, statistics tables, match insights, tournament context, and outcome analysis are derived from its schedule and reconciled game details rather than copied from bundled standings, leaderboards, team totals, player totals, or game logs. A detail row is accepted only when its game ID, participants, status class, and score agree with the schedule in that snapshot. Missing or conflicting evidence is visibly withheld; the UI never combines a current status with older game details. `src/lib/static-tournament-data.ts` exposes a narrow metadata-only view for identities, biographies, roster labels, staff, organization, flags, and source links.
 
 ### Archival cutover
 

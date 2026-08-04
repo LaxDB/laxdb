@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
-import { default as metadataJson } from "./generated/metadata.json";
+import { default as metadataJson } from "../generated/metadata.json";
+
 import { StaticTournamentMetadata } from "./static-tournament-metadata";
 
 export {

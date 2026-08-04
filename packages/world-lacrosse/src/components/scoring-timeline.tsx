@@ -1,4 +1,7 @@
-import type { MatchInsightGoal, MatchInsights } from "../match-insights-schema";
+import type {
+  MatchInsightGoal,
+  MatchInsights,
+} from "../lib/match-insights-schema";
 
 const periodLabel = (period: string): string =>
   period.replace(/^Quarter\s+/u, "Q");

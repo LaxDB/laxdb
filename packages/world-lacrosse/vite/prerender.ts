@@ -4,7 +4,7 @@ import {
   championship as championshipJson,
   tournament as tournamentJson,
 } from "../src/generated/dataset.json";
-import { GameId, PlayerId } from "../src/schema";
+import { GameId, PlayerId } from "../src/lib/schema";
 
 class PrerenderGame extends Schema.Class<PrerenderGame>(
   "WorldLacrossePrerenderGame",

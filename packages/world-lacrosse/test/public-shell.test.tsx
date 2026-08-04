@@ -138,7 +138,7 @@ describe("public site shell", () => {
     expect(markup).toContain('aria-keyshortcuts="F"');
 
     const statisticsPage = readFileSync(
-      new URL("../src/pages/statistics-page.tsx", import.meta.url),
+      new URL("../src/routes/statistics.tsx", import.meta.url),
       "utf8",
     );
     expect(statisticsPage).toContain("fullscreen={tableFullscreen}");

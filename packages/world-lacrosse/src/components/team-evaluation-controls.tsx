@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import type { TeamComparisonTeamSource } from "../team-comparison";
-import type { TeamEvaluation } from "../team-evaluation-schema";
+import type { TeamComparisonTeamSource } from "../lib/team-comparison";
+import type { TeamEvaluation } from "../lib/team-evaluation-schema";
 
 const recordGroupLabel = (
   group: TeamEvaluation["games"][number]["opponentRecord"]["group"],

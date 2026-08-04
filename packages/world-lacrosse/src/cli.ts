@@ -1,13 +1,13 @@
 import { BunRuntime } from "@effect/platform-bun";
 import { Duration, Effect, Schema } from "effect";
 
-import { Championship } from "./schema";
-import { DEFAULT_SCHEDULE_URL, WorldLacrosseScraper } from "./scraper";
+import { Championship } from "./lib/schema";
+import { DEFAULT_SCHEDULE_URL, WorldLacrosseScraper } from "./lib/scraper";
 import {
   DEFAULT_SYNC_DIRECTORY,
   TournamentSync,
   type SyncOptions,
-} from "./sync";
+} from "./lib/sync";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "sync";

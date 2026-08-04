@@ -1,11 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
 import {
   DataTable,
   dataValueMatchesFilter,
 } from "../src/components/data-table";
+import { championship } from "../src/lib/championship-data";
+import { DerivedPlayerStats, GameDetails } from "../src/lib/schema";
+import { buildTournamentContext } from "../src/lib/tournament-context";
+import { tournament } from "../src/lib/tournament-data";
 import {
   buildPlayerColumns,
   buildPlayerRows,
@@ -15,11 +18,8 @@ import {
   playerDataCoverageComplete,
   teamFilters,
   teamSavePercentage,
-} from "../src/pages/statistics-page";
-import { parseStatisticsSearch } from "../src/routes/statistics";
-import { DerivedPlayerStats, GameDetails } from "../src/schema";
-import { buildTournamentContext } from "../src/tournament-context";
-import { tournament } from "../src/tournament-data";
+  parseStatisticsSearch,
+} from "../src/routes/statistics";
 
 const context = buildTournamentContext(championship.games, {
   sourceUpdatedAt: championship.scrapedAt,

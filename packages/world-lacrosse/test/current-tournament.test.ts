@@ -1,23 +1,23 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { buildAnalysisData } from "../src/analysis-data";
-import { championship } from "../src/championship-data";
+import { buildAnalysisData } from "../src/lib/analysis-data";
+import { championship } from "../src/lib/championship-data";
 import {
   buildLiveTournamentSnapshot,
   CurrentTournamentSnapshot,
-} from "../src/current-tournament";
-import { gameDetailMatchesSchedule } from "../src/game-evidence";
+} from "../src/lib/current-tournament";
+import { gameDetailMatchesSchedule } from "../src/lib/game-evidence";
+import { LiveSchedule, ScheduledGame, Team } from "../src/lib/schema";
+import { buildCurrentStandings } from "../src/lib/standings";
+import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
+import { buildCurrentTeamSummary } from "../src/lib/team-summary";
+import { buildTournamentContext } from "../src/lib/tournament-context";
+import { tournament } from "../src/lib/tournament-data";
 import {
   candidateScheduleIsSafe,
   detailReconciles,
 } from "../src/live-scores-worker";
-import { LiveSchedule, ScheduledGame, Team } from "../src/schema";
-import { buildCurrentStandings } from "../src/standings";
-import { staticTournamentMetadata } from "../src/static-tournament-data";
-import { buildCurrentTeamSummary } from "../src/team-summary";
-import { buildTournamentContext } from "../src/tournament-context";
-import { tournament } from "../src/tournament-data";
 
 const live = (schedule = tournament.schedule, games = championship.games) =>
   LiveSchedule.make({

@@ -5,8 +5,8 @@ import type {
   TeamEvaluationPlayer,
   TeamEvaluationPlayerMetricKey,
   TeamEvaluationSegment,
-} from "../team-evaluation-schema";
-import { teamEvaluationPlayerMetricDefinitions } from "../team-evaluation-schema";
+} from "../lib/team-evaluation-schema";
+import { teamEvaluationPlayerMetricDefinitions } from "../lib/team-evaluation-schema";
 
 import { TeamEvaluationPlayerLedger } from "./team-evaluation-player-ledger";
 

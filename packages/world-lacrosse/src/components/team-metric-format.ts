@@ -3,7 +3,7 @@ import type {
   TeamComparisonMetricEvidence,
   TeamComparisonMetricFormat,
   TeamComparisonMetricKey,
-} from "../team-comparison-schema";
+} from "../lib/team-comparison-schema";
 
 export const formatTeamMetricDuration = (seconds: number): string => {
   const rounded = Math.round(Math.abs(seconds));

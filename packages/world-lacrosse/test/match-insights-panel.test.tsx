@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
 import { MatchInsightsPanel } from "../src/components/match-insights-panel";
 import { PlayByPlayTimeline } from "../src/components/play-by-play-timeline";
 import {
@@ -10,7 +9,8 @@ import {
   shouldExtendScoreWormToEnd,
 } from "../src/components/score-worm";
 import { ScoringTimeline } from "../src/components/scoring-timeline";
-import { buildMatchInsights } from "../src/match-insights";
+import { championship } from "../src/lib/championship-data";
+import { buildMatchInsights } from "../src/lib/match-insights";
 
 describe("MatchInsightsPanel", () => {
   it("renders verified game flow in a readable, server-safe view", () => {

@@ -4,7 +4,7 @@ import {
   encodeEvaluationGameIds,
   parseEvaluationGameIds,
   parseTeamEvaluationSearch,
-} from "../src/team-evaluation-search";
+} from "../src/lib/team-evaluation-search";
 
 describe("team evaluation search", () => {
   it("canonicalizes valid IDs, preserves unknowns, and distinguishes malformed from none", () => {

@@ -8,7 +8,7 @@ import {
   isFinalGameStatus,
   isInProgressGameStatus,
   isUpcomingGameStatus,
-} from "../src/game-status";
+} from "../src/lib/game-status";
 
 describe("game status", () => {
   it("treats live and break statuses as active", () => {

@@ -1,17 +1,17 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
+import { championship } from "../src/lib/championship-data";
 import {
   GameDetails,
   PeriodScore,
   ScheduledGame,
   Team,
   TeamStat,
-} from "../src/schema";
-import { buildTeamAnalysis } from "../src/team-analysis";
-import { TeamAnalysis } from "../src/team-analysis-schema";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/schema";
+import { buildTeamAnalysis } from "../src/lib/team-analysis";
+import { TeamAnalysis } from "../src/lib/team-analysis-schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const source = {
   updatedAt: championship.scrapedAt,

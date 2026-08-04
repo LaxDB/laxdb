@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { StandingsTables } from "../components/standings-tables";
 import { TournamentDataBoundary } from "../components/tournament-data-state";
-import { StandingsPage } from "../pages/tournament-pages";
+import { TournamentPage } from "../components/tournament-page";
+import { useCurrentTournamentSnapshot } from "../lib/current-tournament";
 
 export const Route = createFileRoute("/standings")({
   component: StandingsRoutePage,
@@ -10,7 +12,21 @@ export const Route = createFileRoute("/standings")({
 function StandingsRoutePage() {
   return (
     <TournamentDataBoundary>
-      <StandingsPage />
+      <StandingsContent />
     </TournamentDataBoundary>
+  );
+}
+
+function StandingsContent() {
+  const snapshot = useCurrentTournamentSnapshot();
+  return (
+    <TournamentPage
+      title="Standings"
+      description="Pool standings and team pages for the 2026 World Lacrosse Women's Championship."
+      source="standings"
+      showTournamentStatus
+    >
+      <StandingsTables schedule={snapshot.schedule} showFollowing />
+    </TournamentPage>
   );
 }

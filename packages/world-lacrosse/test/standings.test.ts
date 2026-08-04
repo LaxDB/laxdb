@@ -1,13 +1,13 @@
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { selectMatchday } from "../src/matchday";
-import { GameId, ScheduledGame, Team, TournamentTeam } from "../src/schema";
+import { selectMatchday } from "../src/lib/matchday";
+import { GameId, ScheduledGame, Team, TournamentTeam } from "../src/lib/schema";
 import {
   buildCurrentStandings,
   CurrentStanding,
   formatGoalDifference,
-} from "../src/standings";
+} from "../src/lib/standings";
 
 const teams = [
   ["25", "AUS", "Australia"],

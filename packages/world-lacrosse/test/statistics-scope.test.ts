@@ -1,25 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
-import {
-  buildPlayerRows,
-  playerDataCoverageComplete,
-} from "../src/pages/statistics-page";
+import { championship } from "../src/lib/championship-data";
 import {
   DerivedPlayerStats,
   GameDetails,
   GameId,
   ScheduledGame,
   Team,
-} from "../src/schema";
+} from "../src/lib/schema";
 import {
   buildStatisticsScope,
   normalizeStatisticsThrough,
   statisticsScopeIncludesTeamGame,
   statisticsThroughOptions,
-} from "../src/statistics-scope";
-import { buildCurrentTeamSummary } from "../src/team-summary";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/statistics-scope";
+import { buildCurrentTeamSummary } from "../src/lib/team-summary";
+import { tournament } from "../src/lib/tournament-data";
+import {
+  buildPlayerRows,
+  playerDataCoverageComplete,
+} from "../src/routes/statistics";
 
 const scheduledGame = (
   id: string,

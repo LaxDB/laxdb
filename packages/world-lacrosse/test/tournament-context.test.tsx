@@ -2,28 +2,28 @@ import { Schema } from "effect";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { championship } from "../src/championship-data";
 import { TournamentGameContextPanel } from "../src/components/tournament-game-context";
-import { buildMatchInsights } from "../src/match-insights";
+import { championship } from "../src/lib/championship-data";
+import { buildMatchInsights } from "../src/lib/match-insights";
 import {
   DerivedPlayerStats,
   GameDetails,
   PlayerDetails,
   PlayerGameLog,
   type Play,
-} from "../src/schema";
+} from "../src/lib/schema";
 import {
   buildTournamentContext,
   CLOSE_GAME_SHOOTING_MINIMUM_SHOTS,
   GOALKEEPER_RANKING_MINIMUM_MINUTES,
   GOALKEEPER_RANKING_MINIMUM_SHOTS_FACED,
-} from "../src/tournament-context";
+} from "../src/lib/tournament-context";
 import {
   TournamentContext,
   TournamentContextRank,
   TournamentGameContext,
-} from "../src/tournament-context-schema";
-import { tournament } from "../src/tournament-data";
+} from "../src/lib/tournament-context-schema";
+import { tournament } from "../src/lib/tournament-data";
 
 const context = buildTournamentContext(championship.games, {
   sourceUpdatedAt: championship.scrapedAt,

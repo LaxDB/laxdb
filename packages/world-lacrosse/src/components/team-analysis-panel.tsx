@@ -1,20 +1,20 @@
 import { Link } from "@tanstack/react-router";
 
-import type { GamePreview } from "../game-preview-schema";
+import type { GamePreview } from "../lib/game-preview-schema";
 import {
   activeGameStatusLabel,
   finalGameStatusLabel,
   isActiveGameStatus,
   isFinalGameStatus,
   isUpcomingGameStatus,
-} from "../game-status";
+} from "../lib/game-status";
 import type {
   TeamAnalysis,
   TeamBenchmarkMetric,
   TeamGameAnalysis,
   TeamPlayerLeaderboard,
-} from "../team-analysis-schema";
-import type { CurrentTeamSummary } from "../team-summary";
+} from "../lib/team-analysis-schema";
+import type { CurrentTeamSummary } from "../lib/team-summary";
 
 import { GamePreviewPanel } from "./game-preview-panel";
 

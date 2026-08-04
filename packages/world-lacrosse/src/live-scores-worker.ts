@@ -1,15 +1,19 @@
 import { Schema } from "effect";
 
-import { gameDetailMatchesSchedule } from "./game-evidence";
-import { isActiveGameStatus, isFinalGameStatus } from "./game-status";
-import { parseCurrentPeriod, parseGameDetails, parseSchedule } from "./parser";
-import { LiveSchedule, ScheduledGame } from "./schema";
-import type { GameDetails } from "./schema";
-import { DEFAULT_SCHEDULE_URL, MIN_REQUEST_INTERVAL_MS } from "./scraper";
+import { gameDetailMatchesSchedule } from "./lib/game-evidence";
+import { isActiveGameStatus, isFinalGameStatus } from "./lib/game-status";
+import {
+  parseCurrentPeriod,
+  parseGameDetails,
+  parseSchedule,
+} from "./lib/parser";
+import { LiveSchedule, ScheduledGame } from "./lib/schema";
+import type { GameDetails } from "./lib/schema";
+import { DEFAULT_SCHEDULE_URL, MIN_REQUEST_INTERVAL_MS } from "./lib/scraper";
 import {
   expectedTournamentGames,
   isExpectedTournamentGameCount,
-} from "./tournament-mode";
+} from "./lib/tournament-mode";
 
 interface Env {
   readonly SCORES: KVNamespace;

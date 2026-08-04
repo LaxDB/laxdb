@@ -5,8 +5,8 @@ import type {
   TeamComparisonMetricEvidence,
   TeamComparisonMetricKey,
   TeamComparisonSectionKey,
-} from "../team-comparison-schema";
-import { teamComparisonMetricDefinitions } from "../team-comparison-schema";
+} from "../lib/team-comparison-schema";
+import { teamComparisonMetricDefinitions } from "../lib/team-comparison-schema";
 
 import {
   formatTeamMetricEvidence,
