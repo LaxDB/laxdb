@@ -10,7 +10,7 @@ export const source = loader({
       return;
     }
 
-    // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- guarded by `in` check
+    // oxlint-disable-next-line import/namespace, typescript-eslint/no-unsafe-type-assertion -- guarded by `in` check
     if (icon in icons) return icons[icon as keyof typeof icons];
   },
 });
