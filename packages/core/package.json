@@ -24,14 +24,14 @@
     "@polar-sh/better-auth": "^1.6.4",
     "@polar-sh/sdk": "^0.42.2",
     "better-auth": "^1.4.17",
-    "drizzle-orm": "^1.0.0-beta.9-e89174b",
+    "drizzle-orm": "1.0.0-rc.4",
     "nanoid": "^5.1.6",
     "zod": "^4.3.5"
   },
   "devDependencies": {
     "@effect/build-utils": "^0.8.9",
     "@types/ws": "^8.18.1",
-    "drizzle-kit": "^1.0.0-beta.9-e89174b",
+    "drizzle-kit": "1.0.0-rc.4",
     "fetchdts": "^0.1.7",
     "tsx": "^4.21.0"
   },

@@ -24,16 +24,16 @@
     "prepare": "effect-tsgo patch --typescript --oxlint"
   },
   "dependencies": {
-    "alchemy": "2.0.0-beta.55",
-    "effect": "4.0.0-beta.79"
+    "alchemy": "2.0.0-beta.67",
+    "effect": "4.0.0-beta.103"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.71",
     "@cloudflare/workers-types": "^4.20260122.0",
+    "@effect/platform-bun": "4.0.0-beta.103",
+    "@effect/platform-node": "4.0.0-beta.103",
     "@effect/tsgo": "0.31.0",
-    "@effect/platform-bun": "4.0.0-beta.79",
-    "@effect/platform-node": "4.0.0-beta.79",
-    "@effect/vitest": "4.0.0-beta.79",
+    "@effect/vitest": "4.0.0-beta.103",
     "@tanstack/react-table": "^8.21.3",
     "@types/bun": "latest",
     "@types/node": "^24.10.9",
@@ -54,10 +54,11 @@
     "vitest": "^4.0.17"
   },
   "overrides": {
+    "drizzle-orm": "1.0.0-rc.4",
     "libsodium-wrappers": "0.7.13"
   },
   "packageManager": "bun@1.3.5",
   "patchedDependencies": {
-    "alchemy@2.0.0-beta.55": "patches/alchemy@2.0.0-beta.55.patch"
+    "alchemy@2.0.0-beta.67": "patches/alchemy@2.0.0-beta.67.patch"
   }
 }

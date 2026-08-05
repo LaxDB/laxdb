@@ -1,10 +1,4 @@
-import {
-  Effect,
-  Option,
-  Schema,
-  SchemaIssue,
-  SchemaTransformation,
-} from "effect";
+import { Effect, Schema, SchemaIssue, SchemaTransformation } from "effect";
 
 import { NANOID_LENGTH } from "./constant";
 
@@ -36,8 +30,8 @@ const DateString = Schema.String.pipe(
         const date = new Date(value);
         return Number.isNaN(date.getTime())
           ? Effect.fail(
-              new SchemaIssue.InvalidValue(Option.some(value), {
-                message: "Invalid date",
+              new SchemaIssue.InvalidValue({
+                message: `Invalid date: ${value}`,
               }),
             )
           : Effect.succeed(date);

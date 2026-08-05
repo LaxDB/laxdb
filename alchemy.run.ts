@@ -58,7 +58,7 @@ const baseDomainForStage = (stage: string) =>
       ? config.domains.development
       : `${stage}.${config.domains.development}`;
 
-export const database = Cloudflare.D1Database(
+export const database = Cloudflare.D1.Database(
   "database",
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
@@ -76,7 +76,7 @@ export const database = Cloudflare.D1Database(
   }),
 );
 
-export const kv = Cloudflare.KVNamespace(
+export const kv = Cloudflare.KV.Namespace(
   "kv",
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
@@ -84,7 +84,7 @@ export const kv = Cloudflare.KVNamespace(
     return title === undefined ? {} : { title };
   }),
 );
-export const worldLacrosseLiveScores = Cloudflare.KVNamespace(
+export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
   "world-lacrosse-live-scores",
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
@@ -92,7 +92,7 @@ export const worldLacrosseLiveScores = Cloudflare.KVNamespace(
     return title === undefined ? {} : { title };
   }),
 );
-export const storage = Cloudflare.R2Bucket(
+export const storage = Cloudflare.R2.Bucket(
   "storage",
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
@@ -185,10 +185,10 @@ export default Alchemy.Stack(
       withPhysicalName(stage, "api"),
     );
 
-    const marketing = yield* Cloudflare.Vite("marketing", {
+    const marketing = yield* Cloudflare.Website.Vite("marketing", {
       ...withPhysicalName(stage, "marketing"),
       rootDir: "./packages/marketing",
-      url: true,
+      workersDev: true,
       domain: baseDomain,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -197,10 +197,10 @@ export default Alchemy.Stack(
       },
     });
 
-    const rulesWiki = yield* Cloudflare.Vite("rules-wiki", {
+    const rulesWiki = yield* Cloudflare.Website.Vite("rules-wiki", {
       ...withPhysicalName(stage, "rulesWiki"),
       rootDir: "./packages/rules-wiki",
-      url: true,
+      workersDev: true,
       domain: `rules.${baseDomain}`,
       dev: {
         port: 1441,
@@ -208,10 +208,10 @@ export default Alchemy.Stack(
       },
     });
 
-    const practicePlanner = yield* Cloudflare.Vite("practice-planner", {
+    const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
       ...withPhysicalName(stage, "practicePlanner"),
       rootDir: "./packages/practice-planner",
-      url: true,
+      workersDev: true,
       domain: `planner.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -225,10 +225,10 @@ export default Alchemy.Stack(
       },
     });
 
-    const malvern = yield* Cloudflare.Vite("malvern", {
+    const malvern = yield* Cloudflare.Website.Vite("malvern", {
       ...withPhysicalName(stage, "malvern"),
       rootDir: "./packages/malvern",
-      url: true,
+      workersDev: true,
       domain: `malvern.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -247,7 +247,7 @@ export default Alchemy.Stack(
     const worldLacrosseLive = yield* Cloudflare.Worker("world-lacrosse-live", {
       ...withPhysicalName(stage, "worldLacrosseLive"),
       main: "./packages/world-lacrosse/src/live-scores-worker.ts",
-      url: true,
+      workersDev: true,
       domain: `live.world.${baseDomain}`,
       crons: tournamentRefreshCrons(stage, config.stages.prod),
       compatibility: { flags: ["nodejs_compat"] },
@@ -260,10 +260,10 @@ export default Alchemy.Stack(
       },
     });
 
-    const worldLacrosse = yield* Cloudflare.Vite("world-lacrosse", {
+    const worldLacrosse = yield* Cloudflare.Website.Vite("world-lacrosse", {
       ...withPhysicalName(stage, "worldLacrosse"),
       rootDir: "./packages/world-lacrosse",
-      url: true,
+      workersDev: true,
       domain: `world.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
