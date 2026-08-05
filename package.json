@@ -21,7 +21,7 @@
     "format": "turbo format",
     "format:fix": "turbo format:fix",
     "fix": "bun run lint:fix && bun run format:fix",
-    "prepare": "effect-language-service patch"
+    "prepare": "effect-tsgo patch --typescript --oxlint"
   },
   "dependencies": {
     "alchemy": "2.0.0-beta.55",
@@ -30,7 +30,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.71",
     "@cloudflare/workers-types": "^4.20260122.0",
-    "@effect/language-service": "^0.84.3",
+    "@effect/tsgo": "0.31.0",
     "@effect/platform-bun": "4.0.0-beta.79",
     "@effect/platform-node": "4.0.0-beta.79",
     "@effect/vitest": "4.0.0-beta.79",
@@ -46,11 +46,11 @@
     "lefthook": "^2.0.15",
     "miniflare": "^4.20260116.0",
     "oxfmt": "^0.24.0",
-    "oxlint": "^1.41.0",
-    "oxlint-tsgolint": "^0.19.0",
+    "oxlint": "1.77.0",
+    "oxlint-tsgolint": "7.0.2001",
     "rolldown": "1.0.1",
     "turbo": "^2.8.16",
-    "typescript": "^5.9.3",
+    "typescript": "7.0.2",
     "vitest": "^4.0.17"
   },
   "overrides": {
