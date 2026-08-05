@@ -17,7 +17,11 @@ import {
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "./game-status";
-import { useLiveSchedule } from "./live-schedule";
+import {
+  type LiveScheduleState,
+  useEffectAtomLiveSchedule,
+  useLiveSchedule,
+} from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
@@ -301,13 +305,13 @@ export type CurrentTournamentState =
   | LiveTournamentReadyState
   | ArchivedTournamentReadyState;
 
-export const useCurrentTournamentState = (): CurrentTournamentState => {
-  const liveEnabled = tournamentMode === "live";
+const useCurrentTournamentStateFromLiveSchedule = (
+  liveQuery: LiveScheduleState,
+): CurrentTournamentState => {
   const archiveEnabled = tournamentMode === "archived";
-  const liveQuery = useLiveSchedule(liveEnabled);
   const liveRefetch = liveQuery.refetch;
   const retryLive = useCallback(() => {
-    void liveRefetch();
+    liveRefetch();
   }, [liveRefetch]);
   const liveSnapshot = useMemo(
     () =>
@@ -362,6 +366,16 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
     retry: retryLive,
   };
 };
+
+export const useCurrentTournamentState = (): CurrentTournamentState =>
+  useCurrentTournamentStateFromLiveSchedule(
+    useLiveSchedule(tournamentMode === "live"),
+  );
+
+export const useEffectAtomCurrentTournamentState = (): CurrentTournamentState =>
+  useCurrentTournamentStateFromLiveSchedule(
+    useEffectAtomLiveSchedule(tournamentMode === "live"),
+  );
 
 export type CurrentTournamentReadyState =
   | LiveTournamentReadyState

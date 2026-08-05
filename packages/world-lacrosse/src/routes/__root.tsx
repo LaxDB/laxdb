@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import { RegistryProvider } from "@effect/atom-react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -51,8 +52,10 @@ function RootDocument() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <Outlet />
-          <HomeFooter />
+          <RegistryProvider>
+            <Outlet />
+            <HomeFooter />
+          </RegistryProvider>
         </QueryClientProvider>
         {import.meta.env.DEV ? (
           <Agentation endpoint="http://localhost:4747" />

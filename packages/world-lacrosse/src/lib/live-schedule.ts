@@ -1,5 +1,8 @@
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Schema } from "effect";
+import { Effect, Option, Schedule, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { useEffect } from "react";
 
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
@@ -70,11 +73,93 @@ export const liveScheduleQueryOptions = (
     staleTime: 15_000,
   });
 
-export const useLiveSchedule = (enabled: boolean) => {
+export interface LiveScheduleState {
+  readonly data: LiveSchedule | undefined;
+  readonly isPending: boolean;
+  readonly isFetching: boolean;
+  readonly isError: boolean;
+  readonly refetch: () => void;
+}
+
+export const useLiveSchedule = (enabled: boolean): LiveScheduleState => {
   const queryClient = useQueryClient();
-  return useQuery(
+  const query = useQuery(
     liveScheduleQueryOptions(enabled, () =>
       queryClient.getQueryData<LiveSchedule>(liveScheduleQueryKey),
     ),
   );
+  return {
+    data: query.data,
+    isPending: query.isPending,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    refetch: () => {
+      void query.refetch();
+    },
+  };
+};
+
+const previousSchedule = (
+  result: Option.Option<AsyncResult.AsyncResult<LiveSchedule, unknown>>,
+): LiveSchedule | undefined =>
+  Option.getOrUndefined(Option.flatMap(result, AsyncResult.value));
+
+const liveScheduleEffectAtom = Atom.make((get) =>
+  Effect.tryPromise((signal) =>
+    fetchLiveSchedule(
+      previousSchedule(
+        get.self<AsyncResult.AsyncResult<LiveSchedule, unknown>>(),
+      ),
+      signal,
+    ),
+  ).pipe(Effect.retry(Schedule.recurs(1))),
+).pipe(
+  Atom.swr({
+    staleTime: "15 seconds",
+    revalidateOnMount: true,
+    revalidateOnFocus: true,
+    focusSignal: Atom.windowFocusSignal,
+  }),
+  Atom.keepAlive,
+);
+
+const disabledLiveScheduleEffectAtom = Atom.make(
+  AsyncResult.initial<LiveSchedule>(),
+);
+
+export const useEffectAtomLiveSchedule = (
+  enabled: boolean,
+): LiveScheduleState => {
+  const atom = enabled
+    ? liveScheduleEffectAtom
+    : disabledLiveScheduleEffectAtom;
+  const result = useAtomValue(atom);
+  const refresh = useAtomRefresh(atom);
+  const data = Option.getOrUndefined(AsyncResult.value(result));
+  const refreshInterval = data?.schedule.some((game) =>
+    isActiveGameStatus(game.status),
+  )
+    ? 30_000
+    : 60_000;
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      data === undefined ||
+      document.visibilityState !== "visible"
+    )
+      return;
+    const timer = window.setTimeout(refresh, refreshInterval);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [data, enabled, refresh, refreshInterval]);
+
+  return {
+    data,
+    isPending: result._tag === "Initial",
+    isFetching: result.waiting,
+    isError: result._tag === "Failure",
+    refetch: refresh,
+  };
 };
