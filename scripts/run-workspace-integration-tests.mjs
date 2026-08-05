@@ -1,4 +1,6 @@
 const EXCLUDED_TEST_PACKAGES = new Set(["@laxdb/pipeline"]);
+const IS_CI = Boolean(process.env.CI);
+const CI_TEST_ARGS = IS_CI ? ["--reporter=minimal"] : [];
 
 async function discoverIntegrationPackages() {
   const packageJsonGlob = new Bun.Glob("packages/*/package.json");
@@ -28,19 +30,29 @@ async function discoverIntegrationPackages() {
 }
 
 async function runPackageIntegrationTest(pkg) {
-  console.log(`\n=== ${pkg.name}: test:integration ===`);
+  if (!IS_CI) {
+    console.log(`\n=== ${pkg.name}: test:integration ===`);
+  }
 
   try {
-    const subprocess = Bun.spawn(["bun", "run", "test:integration"], {
-      cwd: pkg.dir,
-      stdin: "inherit",
-      stdout: "inherit",
-      stderr: "inherit",
-    });
+    const subprocess = Bun.spawn(
+      ["bun", "run", "test:integration", ...CI_TEST_ARGS],
+      {
+        cwd: pkg.dir,
+        stdin: "inherit",
+        stdout: IS_CI ? "pipe" : "inherit",
+        stderr: IS_CI ? "pipe" : "inherit",
+      },
+    );
+    const [code, stdout, stderr] = await Promise.all([
+      subprocess.exited,
+      IS_CI ? new Response(subprocess.stdout).text() : "",
+      IS_CI ? new Response(subprocess.stderr).text() : "",
+    ]);
 
-    return { pkg, code: await subprocess.exited, error: null };
+    return { pkg, code, error: null, stdout, stderr };
   } catch (error) {
-    return { pkg, code: 1, error };
+    return { pkg, code: 1, error, stdout: "", stderr: "" };
   }
 }
 
@@ -51,14 +63,16 @@ if (packages.length === 0) {
   process.exit(0);
 }
 
-console.log(
-  `Discovered ${packages.length} workspace integration test package${
-    packages.length === 1 ? "" : "s"
-  }.`,
-);
-console.log(
-  `Running serially (shared DB state): ${packages.map((pkg) => pkg.name).join(", ")}`,
-);
+if (!IS_CI) {
+  console.log(
+    `Discovered ${packages.length} workspace integration test package${
+      packages.length === 1 ? "" : "s"
+    }.`,
+  );
+  console.log(
+    `Running serially (shared DB state): ${packages.map((pkg) => pkg.name).join(", ")}`,
+  );
+}
 
 const failures = [];
 
@@ -73,6 +87,12 @@ if (failures.length > 0) {
   console.error("\nWorkspace integration test failures:");
   for (const failure of failures) {
     console.error(`- ${failure.pkg.name}`);
+    if (failure.stdout) {
+      process.stdout.write(failure.stdout);
+    }
+    if (failure.stderr) {
+      process.stderr.write(failure.stderr);
+    }
     if (failure.error) {
       console.error(`  ${String(failure.error)}`);
     }
@@ -80,4 +100,6 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log("\nAll workspace integration tests passed.");
+if (!IS_CI) {
+  console.log("\nAll workspace integration tests passed.");
+}
