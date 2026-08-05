@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { PageMetadata } from "../components/page-metadata";
 import { StandingsTables } from "../components/standings-tables";
 import {
-  TournamentDataBoundary,
+  EffectAtomTournamentDataBoundary,
   TournamentDataStatus,
 } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
@@ -22,9 +22,9 @@ export const Route = createFileRoute("/")({ component: HomeRoutePage });
 
 function HomeRoutePage() {
   return (
-    <TournamentDataBoundary>
+    <EffectAtomTournamentDataBoundary>
       <HomeContent />
-    </TournamentDataBoundary>
+    </EffectAtomTournamentDataBoundary>
   );
 }
 

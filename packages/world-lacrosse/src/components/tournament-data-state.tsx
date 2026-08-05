@@ -4,6 +4,7 @@ import {
   CurrentTournamentProvider,
   useCurrentTournamentReadyState,
   useCurrentTournamentState,
+  useEffectAtomCurrentTournamentState,
 } from "../lib/current-tournament";
 
 import { PageMetadata } from "./page-metadata";
@@ -128,12 +129,13 @@ export const TournamentDataStatus = () => {
   );
 };
 
-export const TournamentDataBoundary = ({
+const TournamentDataBoundaryContent = ({
   children,
+  state,
 }: {
   readonly children: ReactNode;
+  readonly state: ReturnType<typeof useCurrentTournamentState>;
 }) => {
-  const state = useCurrentTournamentState();
   if (state.status === "loading") return <TournamentDataLoading />;
   if (state.status === "unavailable")
     return <TournamentDataUnavailable retry={state.retry} />;
@@ -143,3 +145,23 @@ export const TournamentDataBoundary = ({
     </CurrentTournamentProvider>
   );
 };
+
+export const TournamentDataBoundary = ({
+  children,
+}: {
+  readonly children: ReactNode;
+}) => (
+  <TournamentDataBoundaryContent state={useCurrentTournamentState()}>
+    {children}
+  </TournamentDataBoundaryContent>
+);
+
+export const EffectAtomTournamentDataBoundary = ({
+  children,
+}: {
+  readonly children: ReactNode;
+}) => (
+  <TournamentDataBoundaryContent state={useEffectAtomCurrentTournamentState()}>
+    {children}
+  </TournamentDataBoundaryContent>
+);
