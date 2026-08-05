@@ -376,9 +376,7 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
 
 export const useEffectAtomCurrentTournamentState =
   (): CurrentTournamentState => {
-    const [result, refresh] = useEffectAtomLiveSchedule(
-      tournamentMode === "live",
-    );
+    const [result, refresh] = useEffectAtomLiveSchedule();
     return useCurrentTournamentStateFromLiveSchedule({
       data: Option.getOrUndefined(AsyncResult.value(result)),
       waiting: result.waiting,

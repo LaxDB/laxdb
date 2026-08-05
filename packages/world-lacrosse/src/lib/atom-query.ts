@@ -1,14 +1,12 @@
-import { type Cause, Duration, Effect, Option, Schedule } from "effect";
+import { Duration, type Effect, Option } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
-interface AsyncQueryOptions<A> {
-  readonly load: (options: {
-    readonly previous: A | undefined;
-    readonly signal: AbortSignal;
-  }) => PromiseLike<A>;
+interface AsyncQueryOptions<A, E> {
+  readonly load: (previous: A | undefined) => Effect.Effect<A, E>;
   readonly staleTime: Duration.Input;
-  readonly retries?: number;
-  readonly pollInterval?: ((value: A) => Duration.Input) | undefined;
+  readonly pollInterval?:
+    | ((value: A | undefined) => Duration.Input)
+    | undefined;
   readonly revalidateOnFocus?: boolean | "always" | undefined;
   readonly keepAlive?: boolean | undefined;
 }
@@ -19,7 +17,7 @@ const previousValue = <A>(
   Option.getOrUndefined(Option.flatMap(result, AsyncResult.value));
 
 const withPolling = <A, E>(
-  interval: (value: A) => Duration.Input,
+  interval: (value: A | undefined) => Duration.Input,
 ): ((
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 ) => Atom.Atom<AsyncResult.AsyncResult<A, E>>) =>
@@ -28,9 +26,13 @@ const withPolling = <A, E>(
     const schedule = (result: AsyncResult.AsyncResult<A, E>): void => {
       if (timer !== undefined) clearTimeout(timer);
       timer = undefined;
-      if (result.waiting || typeof document === "undefined") return;
+      if (
+        result.waiting ||
+        AsyncResult.isInitial(result) ||
+        typeof document === "undefined"
+      )
+        return;
       const value = Option.getOrUndefined(AsyncResult.value(result));
-      if (value === undefined) return;
       timer = setTimeout(
         () => {
           if (document.visibilityState === "visible") get.refresh(atom);
@@ -51,23 +53,16 @@ const withPolling = <A, E>(
     return current;
   });
 
-export const makeAsyncQuery = <A>(
-  options: AsyncQueryOptions<A>,
-): Atom.Atom<AsyncResult.AsyncResult<A, Cause.UnknownError>> => {
-  const source = Atom.make((get: Atom.AtomContext) => {
-    const request = Effect.tryPromise((signal) =>
-      options.load({
-        previous: previousValue(
-          get.self<AsyncResult.AsyncResult<A, unknown>>(),
-        ),
-        signal,
-      }),
-    );
-    return options.retries === undefined
-      ? request
-      : request.pipe(Effect.retry(Schedule.recurs(options.retries)));
-  });
-  const cached = source.pipe(
+export const makeAsyncQuery = <A, E>(
+  options: AsyncQueryOptions<A, E>,
+): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
+  const source = Atom.make((get: Atom.AtomContext) =>
+    options.load(
+      previousValue(get.self<AsyncResult.AsyncResult<A, unknown>>()),
+    ),
+  );
+  const retained = options.keepAlive ? source.pipe(Atom.keepAlive) : source;
+  const cached = retained.pipe(
     Atom.swr({
       staleTime: options.staleTime,
       revalidateOnMount: true,
@@ -76,8 +71,7 @@ export const makeAsyncQuery = <A>(
         typeof document === "undefined" ? undefined : Atom.windowFocusSignal,
     }),
   );
-  const retained = options.keepAlive ? cached.pipe(Atom.keepAlive) : cached;
   return options.pollInterval === undefined
-    ? retained
-    : retained.pipe(withPolling(options.pollInterval));
+    ? cached
+    : cached.pipe(withPolling(options.pollInterval));
 };
