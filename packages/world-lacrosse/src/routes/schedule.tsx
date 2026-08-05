@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
-import { TournamentDataBoundary } from "../components/tournament-data-state";
+import { EffectAtomTournamentDataBoundary } from "../components/tournament-data-state";
 import { TournamentPage } from "../components/tournament-page";
 import { useCurrentTournamentSnapshot } from "../lib/current-tournament";
 import { useFollowedTeams } from "../lib/followed-teams";
@@ -23,9 +23,9 @@ export const Route = createFileRoute("/schedule")({
 
 function ScheduleRoutePage() {
   return (
-    <TournamentDataBoundary>
+    <EffectAtomTournamentDataBoundary>
       <ScheduleContent />
-    </TournamentDataBoundary>
+    </EffectAtomTournamentDataBoundary>
   );
 }
 
