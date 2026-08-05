@@ -1,12 +1,9 @@
+import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Schema } from "effect";
+import { type Cause, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
-import {
-  type AsyncQueryState,
-  disabledAsyncQuery,
-  makeAsyncQuery,
-  useAsyncQuery,
-} from "./atom-query";
+import { makeAsyncQuery } from "./atom-query";
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { LiveSchedule } from "./schema";
@@ -76,24 +73,13 @@ export const liveScheduleQueryOptions = (
     staleTime: 15_000,
   });
 
-export type LiveScheduleState = AsyncQueryState<LiveSchedule>;
-
-export const useLiveSchedule = (enabled: boolean): LiveScheduleState => {
+export const useLiveSchedule = (enabled: boolean) => {
   const queryClient = useQueryClient();
-  const query = useQuery(
+  return useQuery(
     liveScheduleQueryOptions(enabled, () =>
       queryClient.getQueryData<LiveSchedule>(liveScheduleQueryKey),
     ),
   );
-  return {
-    data: query.data,
-    isPending: query.isPending,
-    isFetching: query.isFetching,
-    isError: query.isError,
-    refetch: () => {
-      void query.refetch();
-    },
-  };
 };
 
 const liveScheduleEffectAtom = makeAsyncQuery<LiveSchedule>({
@@ -108,11 +94,20 @@ const liveScheduleEffectAtom = makeAsyncQuery<LiveSchedule>({
       : "1 minute",
 });
 
-const disabledLiveScheduleEffectAtom = disabledAsyncQuery<LiveSchedule>();
+const disabledLiveScheduleResult: AsyncResult.AsyncResult<
+  LiveSchedule,
+  Cause.UnknownError
+> = AsyncResult.initial();
+const disabledLiveScheduleEffectAtom = Atom.make(disabledLiveScheduleResult);
 
 export const useEffectAtomLiveSchedule = (
   enabled: boolean,
-): LiveScheduleState =>
-  useAsyncQuery(
-    enabled ? liveScheduleEffectAtom : disabledLiveScheduleEffectAtom,
-  );
+): readonly [
+  AsyncResult.AsyncResult<LiveSchedule, Cause.UnknownError>,
+  () => void,
+] => {
+  const atom = enabled
+    ? liveScheduleEffectAtom
+    : disabledLiveScheduleEffectAtom;
+  return [useAtomValue(atom), useAtomRefresh(atom)];
+};

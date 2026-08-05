@@ -1,4 +1,5 @@
-import { Schema } from "effect";
+import { Option, Schema } from "effect";
+import { AsyncResult } from "effect/unstable/reactivity";
 import {
   createContext,
   createElement,
@@ -17,11 +18,7 @@ import {
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "./game-status";
-import {
-  type LiveScheduleState,
-  useEffectAtomLiveSchedule,
-  useLiveSchedule,
-} from "./live-schedule";
+import { useEffectAtomLiveSchedule, useLiveSchedule } from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
@@ -305,20 +302,24 @@ export type CurrentTournamentState =
   | LiveTournamentReadyState
   | ArchivedTournamentReadyState;
 
+interface LiveScheduleObservation {
+  readonly data: LiveSchedule | undefined;
+  readonly waiting: boolean;
+  readonly failed: boolean;
+  readonly retry: () => unknown;
+}
+
 const useCurrentTournamentStateFromLiveSchedule = (
-  liveQuery: LiveScheduleState,
+  live: LiveScheduleObservation,
 ): CurrentTournamentState => {
   const archiveEnabled = tournamentMode === "archived";
-  const liveRefetch = liveQuery.refetch;
   const retryLive = useCallback(() => {
-    liveRefetch();
-  }, [liveRefetch]);
+    void live.retry();
+  }, [live.retry]);
   const liveSnapshot = useMemo(
     () =>
-      liveQuery.data === undefined
-        ? null
-        : buildLiveTournamentSnapshot(liveQuery.data),
-    [liveQuery.data],
+      live.data === undefined ? null : buildLiveTournamentSnapshot(live.data),
+    [live.data],
   );
   const liveTimestamps =
     liveSnapshot === null || liveSnapshot.nextRefreshAt === null
@@ -341,7 +342,7 @@ const useCurrentTournamentStateFromLiveSchedule = (
     };
   }
   if (liveSnapshot === null) {
-    return liveQuery.isPending || liveQuery.isFetching
+    return live.waiting
       ? { mode: "live", status: "loading" }
       : { mode: "live", status: "unavailable", retry: retryLive };
   }
@@ -358,24 +359,33 @@ const useCurrentTournamentStateFromLiveSchedule = (
       },
       freshnessNow,
     ),
-    refresh: liveQuery.isError
-      ? "failed"
-      : liveQuery.isFetching
-        ? "refreshing"
-        : "idle",
+    refresh: live.failed ? "failed" : live.waiting ? "refreshing" : "idle",
     retry: retryLive,
   };
 };
 
-export const useCurrentTournamentState = (): CurrentTournamentState =>
-  useCurrentTournamentStateFromLiveSchedule(
-    useLiveSchedule(tournamentMode === "live"),
-  );
+export const useCurrentTournamentState = (): CurrentTournamentState => {
+  const query = useLiveSchedule(tournamentMode === "live");
+  return useCurrentTournamentStateFromLiveSchedule({
+    data: query.data,
+    waiting: query.isPending || query.isFetching,
+    failed: query.isError,
+    retry: query.refetch,
+  });
+};
 
-export const useEffectAtomCurrentTournamentState = (): CurrentTournamentState =>
-  useCurrentTournamentStateFromLiveSchedule(
-    useEffectAtomLiveSchedule(tournamentMode === "live"),
-  );
+export const useEffectAtomCurrentTournamentState =
+  (): CurrentTournamentState => {
+    const [result, refresh] = useEffectAtomLiveSchedule(
+      tournamentMode === "live",
+    );
+    return useCurrentTournamentStateFromLiveSchedule({
+      data: Option.getOrUndefined(AsyncResult.value(result)),
+      waiting: result.waiting,
+      failed: AsyncResult.isFailure(result),
+      retry: refresh,
+    });
+  };
 
 export type CurrentTournamentReadyState =
   | LiveTournamentReadyState

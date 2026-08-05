@@ -1,14 +1,5 @@
-import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { type Cause, Duration, Effect, Option, Schedule } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
-
-export interface AsyncQueryState<A> {
-  readonly data: A | undefined;
-  readonly isPending: boolean;
-  readonly isFetching: boolean;
-  readonly isError: boolean;
-  readonly refetch: () => void;
-}
 
 interface AsyncQueryOptions<A> {
   readonly load: (options: {
@@ -89,25 +80,4 @@ export const makeAsyncQuery = <A>(
   return options.pollInterval === undefined
     ? retained
     : retained.pipe(withPolling(options.pollInterval));
-};
-
-export const disabledAsyncQuery = <A>(): Atom.Atom<
-  AsyncResult.AsyncResult<A>
-> => {
-  const result: AsyncResult.AsyncResult<A> = AsyncResult.initial();
-  return Atom.make(result);
-};
-
-export const useAsyncQuery = <A, E>(
-  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-): AsyncQueryState<A> => {
-  const result = useAtomValue(atom);
-  const refetch = useAtomRefresh(atom);
-  return {
-    data: Option.getOrUndefined(AsyncResult.value(result)),
-    isPending: AsyncResult.isInitial(result),
-    isFetching: result.waiting,
-    isError: AsyncResult.isFailure(result),
-    refetch,
-  };
 };
