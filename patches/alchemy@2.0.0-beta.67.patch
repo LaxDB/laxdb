@@ -41,6 +41,13 @@ index 3c59039..34d7643 100644
  }
  
  /**
+diff --git a/src/Cloudflare/KV/Namespace.ts b/src/Cloudflare/KV/Namespace.ts
+index 634e3fb..eb4a6b3 100644
+--- a/src/Cloudflare/KV/Namespace.ts
++++ b/src/Cloudflare/KV/Namespace.ts
+@@ -96 +96 @@ export const ProviderLive = () =>
+-      const title = yield* createTitle(id, news.title);
++      const title = yield* createTitle(id, news.title ?? output?.title);
 diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
 index 8a1e02c..3063f01 100644
 --- a/src/Cloudflare/Workers/Vite.ts
