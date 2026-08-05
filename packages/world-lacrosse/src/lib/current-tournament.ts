@@ -1,4 +1,5 @@
-import { Schema } from "effect";
+import { Option, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import {
   createContext,
   createElement,
@@ -17,7 +18,10 @@ import {
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "./game-status";
-import { useLiveSchedule } from "./live-schedule";
+import {
+  currentLiveScheduleEffectAtom,
+  useLiveSchedule,
+} from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
@@ -275,7 +279,6 @@ export interface TournamentLoadingState {
 export interface TournamentUnavailableState {
   readonly mode: "live";
   readonly status: "unavailable";
-  readonly retry: () => void;
 }
 
 export interface LiveTournamentReadyState {
@@ -284,7 +287,6 @@ export interface LiveTournamentReadyState {
   readonly snapshot: CurrentTournamentSnapshot;
   readonly freshness: LiveSnapshotFreshness;
   readonly refresh: "idle" | "refreshing" | "failed";
-  readonly retry: () => void;
 }
 
 export interface ArchivedTournamentReadyState {
@@ -301,31 +303,17 @@ export type CurrentTournamentState =
   | LiveTournamentReadyState
   | ArchivedTournamentReadyState;
 
-export const useCurrentTournamentState = (): CurrentTournamentState => {
-  const liveEnabled = tournamentMode === "live";
-  const archiveEnabled = tournamentMode === "archived";
-  const liveQuery = useLiveSchedule(liveEnabled);
-  const liveRefetch = liveQuery.refetch;
-  const retryLive = useCallback(() => {
-    void liveRefetch();
-  }, [liveRefetch]);
-  const liveSnapshot = useMemo(
-    () =>
-      liveQuery.data === undefined
-        ? null
-        : buildLiveTournamentSnapshot(liveQuery.data),
-    [liveQuery.data],
-  );
-  const liveTimestamps =
-    liveSnapshot === null || liveSnapshot.nextRefreshAt === null
-      ? null
-      : {
-          updatedAt: liveSnapshot.updatedAt,
-          nextRefreshAt: liveSnapshot.nextRefreshAt,
-        };
-  const freshnessNow = useLiveFreshnessClock(liveTimestamps);
+interface LiveScheduleObservation {
+  readonly snapshot: CurrentTournamentSnapshot | null;
+  readonly waiting: boolean;
+  readonly failed: boolean;
+}
 
-  if (archiveEnabled) {
+const currentTournamentStateFromLiveSchedule = (
+  live: LiveScheduleObservation,
+  freshnessNow: number,
+): CurrentTournamentState => {
+  if (tournamentMode === "archived") {
     if (archivedTournamentSnapshot === null)
       throw new Error("Archived mode requires bundled tournament data");
     return {
@@ -336,57 +324,149 @@ export const useCurrentTournamentState = (): CurrentTournamentState => {
       refresh: "disabled",
     };
   }
-  if (liveSnapshot === null) {
-    return liveQuery.isPending || liveQuery.isFetching
+  if (live.snapshot === null) {
+    return live.waiting
       ? { mode: "live", status: "loading" }
-      : { mode: "live", status: "unavailable", retry: retryLive };
+      : { mode: "live", status: "unavailable" };
   }
-  if (liveSnapshot.nextRefreshAt === null)
+  if (live.snapshot.nextRefreshAt === null)
     throw new Error("Live tournament snapshot is missing nextRefreshAt");
   return {
     mode: "live",
     status: "ready",
-    snapshot: liveSnapshot,
+    snapshot: live.snapshot,
     freshness: classifyLiveSnapshotFreshness(
       {
-        updatedAt: liveSnapshot.updatedAt,
-        nextRefreshAt: liveSnapshot.nextRefreshAt,
+        updatedAt: live.snapshot.updatedAt,
+        nextRefreshAt: live.snapshot.nextRefreshAt,
       },
       freshnessNow,
     ),
-    refresh: liveQuery.isError
-      ? "failed"
-      : liveQuery.isFetching
-        ? "refreshing"
-        : "idle",
-    retry: retryLive,
+    refresh: live.failed ? "failed" : live.waiting ? "refreshing" : "idle",
   };
 };
+
+export interface CurrentTournamentController {
+  readonly state: CurrentTournamentState;
+  readonly retry: () => void;
+}
+
+export const useCurrentTournament = (): CurrentTournamentController => {
+  const query = useLiveSchedule(tournamentMode === "live");
+  const snapshot = useMemo(
+    () =>
+      query.data === undefined ? null : buildLiveTournamentSnapshot(query.data),
+    [query.data],
+  );
+  const timestamps =
+    snapshot === null || snapshot.nextRefreshAt === null
+      ? null
+      : {
+          updatedAt: snapshot.updatedAt,
+          nextRefreshAt: snapshot.nextRefreshAt,
+        };
+  const freshnessNow = useLiveFreshnessClock(timestamps);
+  const retry = useCallback(() => {
+    void query.refetch();
+  }, [query.refetch]);
+  return {
+    state: currentTournamentStateFromLiveSchedule(
+      {
+        snapshot,
+        waiting: query.isPending || query.isFetching,
+        failed: query.isError,
+      },
+      freshnessNow,
+    ),
+    retry,
+  };
+};
+
+export const currentTournamentAtom: Atom.Atom<CurrentTournamentState> =
+  currentLiveScheduleEffectAtom.pipe(
+    Atom.transform((get, scheduleAtom) => {
+      const result = get(scheduleAtom);
+      const schedule = Option.getOrUndefined(AsyncResult.value(result));
+      const snapshot =
+        schedule === undefined ? null : buildLiveTournamentSnapshot(schedule);
+      const state = currentTournamentStateFromLiveSchedule(
+        {
+          snapshot,
+          waiting: result.waiting,
+          failed: AsyncResult.isFailure(result),
+        },
+        Date.now(),
+      );
+
+      if (
+        state.mode === "live" &&
+        state.status === "ready" &&
+        typeof document !== "undefined"
+      ) {
+        const refreshFreshness = (): void => {
+          get.refreshSelf();
+        };
+        const nextRefreshAt = state.snapshot.nextRefreshAt;
+        let timer: number | undefined;
+        if (state.freshness === "fresh" && nextRefreshAt !== null) {
+          timer = window.setTimeout(
+            refreshFreshness,
+            Math.max(
+              0,
+              nextLiveFreshnessCheckAt({
+                updatedAt: state.snapshot.updatedAt,
+                nextRefreshAt,
+              }) - Date.now(),
+            ),
+          );
+        }
+        document.addEventListener("visibilitychange", refreshFreshness);
+        get.addFinalizer(() => {
+          if (timer !== undefined) window.clearTimeout(timer);
+          document.removeEventListener("visibilitychange", refreshFreshness);
+        });
+      }
+
+      return state;
+    }),
+  );
 
 export type CurrentTournamentReadyState =
   | LiveTournamentReadyState
   | ArchivedTournamentReadyState;
 
+export interface CurrentTournamentReadyController {
+  readonly state: CurrentTournamentReadyState;
+  readonly retry: () => void;
+}
+
 const CurrentTournamentContext =
-  createContext<CurrentTournamentReadyState | null>(null);
+  createContext<CurrentTournamentReadyController | null>(null);
 
 export const CurrentTournamentProvider = ({
-  state,
+  tournament,
   children,
 }: {
-  readonly state: CurrentTournamentReadyState;
+  readonly tournament: CurrentTournamentReadyController;
   readonly children: ReactNode;
 }) =>
-  createElement(CurrentTournamentContext.Provider, { value: state }, children);
+  createElement(CurrentTournamentContext.Provider, {
+    value: tournament,
+    children,
+  });
+
+export const useOptionalCurrentTournament =
+  (): CurrentTournamentReadyController | null =>
+    useContext(CurrentTournamentContext);
 
 export const useCurrentTournamentReadyState =
   (): CurrentTournamentReadyState => {
-    const state = useContext(CurrentTournamentContext);
-    if (state === null)
+    const tournament = useOptionalCurrentTournament();
+    if (tournament === null)
       throw new Error(
         "Current tournament data must be used inside CurrentTournamentProvider",
       );
-    return state;
+    return tournament.state;
   };
 
 export const useCurrentTournamentSnapshot = (): CurrentTournamentSnapshot =>

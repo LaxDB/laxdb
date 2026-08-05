@@ -257,6 +257,7 @@
       "name": "@laxdb/world-lacrosse",
       "dependencies": {
         "@cloudflare/vite-plugin": "^1.50.0",
+        "@effect/atom-react": "4.0.0-beta.103",
         "@effect/platform-bun": "4.0.0-beta.103",
         "@laxdb/ui": "workspace:*",
         "@tanstack/charts": "0.5.1",
@@ -272,6 +273,7 @@
         "effect": "4.0.0-beta.103",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "scheduler": "^0.27.0",
         "vite": "^8.2.0",
       },
       "devDependencies": {
@@ -533,6 +535,8 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.12.0", "", {}, "sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ=="],
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.6", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g=="],
+
+    "@effect/atom-react": ["@effect/atom-react@4.0.0-beta.103", "", { "peerDependencies": { "effect": "^4.0.0-beta.103", "react": "^19.2.4", "scheduler": "*" } }, "sha512-1HJ+Cyq4ssLnH2UZ8OVnhtMGAySabtzZo7imKC+vEfxOW3lvJYpGZeicxQX5Ii/7AdvlR+19p/6K2a5IPKYAow=="],
 
     "@effect/build-utils": ["@effect/build-utils@0.8.9", "", { "dependencies": { "micromatch": "^4.0.8", "pkg-entry-points": "^1.1.1" }, "bin": { "build-utils": "main.js" } }, "sha512-wzunjr8pyNjghLueo5ePQD7vaM3qeO2H/jF57hNYbQM/rxfipBWYKukoqWyp04qGZ+V86FyOHb8zD5+PMZvH2A=="],
 

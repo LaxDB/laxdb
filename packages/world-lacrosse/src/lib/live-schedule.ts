@@ -1,9 +1,13 @@
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Schema } from "effect";
+import { Effect, Schedule, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
+import { makeAsyncQuery } from "./atom-query";
+import { FetchError } from "./error";
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { LiveSchedule } from "./schema";
+import { tournamentMode } from "./tournament-mode";
 
 const decodeLiveSchedule = Schema.decodeUnknownSync(LiveSchedule);
 
@@ -78,3 +82,42 @@ export const useLiveSchedule = (enabled: boolean) => {
     ),
   );
 };
+
+const fetchLiveScheduleEffect = (previous: LiveSchedule | undefined) =>
+  Effect.tryPromise({
+    try: (signal) => fetchLiveSchedule(previous, signal),
+    catch: (cause) =>
+      FetchError.make({
+        url: endpoint(),
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Failed to fetch the live schedule",
+        cause,
+      }),
+  }).pipe(
+    Effect.retry(
+      Schedule.max([Schedule.spaced("1 second"), Schedule.recurs(1)]),
+    ),
+  );
+
+const liveScheduleEffectAtom = makeAsyncQuery({
+  load: fetchLiveScheduleEffect,
+  staleTime: "15 seconds",
+  revalidateOnFocus: true,
+  keepAlive: true,
+  pollInterval: (schedule) =>
+    schedule?.schedule.some((game) => isActiveGameStatus(game.status))
+      ? "30 seconds"
+      : "1 minute",
+});
+
+const disabledLiveScheduleResult: AsyncResult.AsyncResult<
+  LiveSchedule,
+  FetchError
+> = AsyncResult.initial();
+const disabledLiveScheduleEffectAtom = Atom.make(disabledLiveScheduleResult);
+export const currentLiveScheduleEffectAtom =
+  tournamentMode === "live"
+    ? liveScheduleEffectAtom
+    : disabledLiveScheduleEffectAtom;
