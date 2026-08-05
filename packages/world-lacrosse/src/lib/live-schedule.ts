@@ -1,4 +1,3 @@
-import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Effect, Schedule, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
@@ -118,15 +117,7 @@ const disabledLiveScheduleResult: AsyncResult.AsyncResult<
   FetchError
 > = AsyncResult.initial();
 const disabledLiveScheduleEffectAtom = Atom.make(disabledLiveScheduleResult);
-const currentLiveScheduleEffectAtom =
+export const currentLiveScheduleEffectAtom =
   tournamentMode === "live"
     ? liveScheduleEffectAtom
     : disabledLiveScheduleEffectAtom;
-
-export const useEffectAtomLiveSchedule = (): readonly [
-  AsyncResult.AsyncResult<LiveSchedule, FetchError>,
-  () => void,
-] => [
-  useAtomValue(currentLiveScheduleEffectAtom),
-  useAtomRefresh(currentLiveScheduleEffectAtom),
-];

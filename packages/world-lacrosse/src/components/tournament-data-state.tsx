@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 
 import {
+  type CurrentTournamentController,
+  type CurrentTournamentReadyController,
   CurrentTournamentProvider,
-  useCurrentTournamentReadyState,
-  useCurrentTournamentState,
-  useEffectAtomCurrentTournamentState,
+  useCurrentTournament,
+  useOptionalCurrentTournament,
 } from "../lib/current-tournament";
 
 import { PageMetadata } from "./page-metadata";
@@ -86,8 +87,16 @@ export const TournamentDataUnavailable = ({
   </main>
 );
 
-export const TournamentDataStatus = () => {
-  const state = useCurrentTournamentReadyState();
+export const TournamentDataStatus = ({
+  tournament: providedTournament,
+}: {
+  readonly tournament?: CurrentTournamentReadyController | undefined;
+} = {}) => {
+  const contextTournament = useOptionalCurrentTournament();
+  const tournament = providedTournament ?? contextTournament;
+  if (tournament === null)
+    throw new Error("TournamentDataStatus requires tournament state");
+  const state = tournament.state;
   if (state.mode === "archived") return null;
   const delayed = state.freshness === "stale";
   const refreshFailed = state.refresh === "failed";
@@ -120,7 +129,7 @@ export const TournamentDataStatus = () => {
         <button
           type="button"
           className="button-secondary"
-          onClick={state.retry}
+          onClick={tournament.retry}
         >
           Retry update
         </button>
@@ -129,39 +138,34 @@ export const TournamentDataStatus = () => {
   );
 };
 
-const TournamentDataBoundaryContent = ({
+export const TournamentData = ({
   children,
-  state,
+  tournament,
 }: {
-  readonly children: ReactNode;
-  readonly state: ReturnType<typeof useCurrentTournamentState>;
+  readonly children: (
+    tournament: CurrentTournamentReadyController,
+  ) => ReactNode;
+  readonly tournament: CurrentTournamentController;
 }) => {
-  if (state.status === "loading") return <TournamentDataLoading />;
-  if (state.status === "unavailable")
-    return <TournamentDataUnavailable retry={state.retry} />;
-  return (
-    <CurrentTournamentProvider state={state}>
-      {children}
-    </CurrentTournamentProvider>
-  );
+  if (tournament.state.status === "loading") return <TournamentDataLoading />;
+  if (tournament.state.status === "unavailable")
+    return <TournamentDataUnavailable retry={tournament.retry} />;
+  return children({ state: tournament.state, retry: tournament.retry });
 };
 
 export const TournamentDataBoundary = ({
   children,
 }: {
   readonly children: ReactNode;
-}) => (
-  <TournamentDataBoundaryContent state={useCurrentTournamentState()}>
-    {children}
-  </TournamentDataBoundaryContent>
-);
-
-export const EffectAtomTournamentDataBoundary = ({
-  children,
-}: {
-  readonly children: ReactNode;
-}) => (
-  <TournamentDataBoundaryContent state={useEffectAtomCurrentTournamentState()}>
-    {children}
-  </TournamentDataBoundaryContent>
-);
+}) => {
+  const tournament = useCurrentTournament();
+  return (
+    <TournamentData tournament={tournament}>
+      {(ready) => (
+        <CurrentTournamentProvider tournament={ready}>
+          {children}
+        </CurrentTournamentProvider>
+      )}
+    </TournamentData>
+  );
+};
