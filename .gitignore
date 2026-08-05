@@ -3,6 +3,7 @@ node_modules
 
 # pi
 .pi
+.auto
 
 # ts build
 *.tsbuildinfo
@@ -17,14 +18,8 @@ packages/marketing/src/content/Templates
 # fumadocs
 .source
 
-# tmp
-tmp
-
 # claude
 .claude
-
-# ralph logs
-.ralph
 
 # coverage
 .coverage
@@ -33,9 +28,6 @@ coverage
 # Python bytecode
 __pycache__/
 *.py[cod]
-
-# opencode
-.sisyphus
 
 # wrangler
 .wrangler
@@ -47,6 +39,7 @@ wrangler.json
 
 # tmp files
 .#*
+tmp
 
 # env
 .env*.local
@@ -89,3 +82,5 @@ dist-ssr
 
 # pipeline extraction output
 packages/pipeline/output
+
+RAMBLINGS.md

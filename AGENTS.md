@@ -1,14 +1,51 @@
-# LaxDB Project Instructions
+## MUST KNOW
 
-## Public Publishing
+- **Public Publishing**: you must consult `PUBLIC_PUBLISHING.md` before making any commits, pushes, merges. Not following this rule will cause major issues
+- **Type safety is non-negotiable**: No `any`, no `!`, no `as Type`
+- **Infisical for secrets**: `infisical run --env=dev --` prefix for local dev
+- **CSS tokens live in `@laxdb/ui`**: `packages/ui/src/globals.css` is single source of truth for all runtime design tokens (colors, fonts, animations). Other packages import via `@import "@laxdb/ui/globals.css"`. Never duplicate tokens.
+- **DESIGN.md guides visual intent**: read root `DESIGN.md` before visual UI changes. Keep it semantically aligned with `packages/ui/src/globals.css`; validate edits with `bun run design:lint`.
+  **Data flow**: App routes and server functions call `packages/api`, which delegates to `packages/core` services. Services use repos for DB access. All Effect-based with typed errors.
 
-- This is the sanitized public checkout for `LaxDB/laxdb`. Keep its history and remotes separate from any private backup checkout.
-- Never publish with personal GitHub credentials, `gh`, the GitHub web UI, or a modified remote push URL. Public publishing must use the `laxdb-publisher` GitHub App so activity and commits remain unlinked to a personal identity.
-- Publish branches with `~/.config/laxdb-publisher/push.sh`. Create pull requests with `~/.config/laxdb-publisher/create-pr.sh`. Merge pull requests with `~/.config/laxdb-publisher/merge-pr.sh`.
-- Standard merges must wait for the helper's required CI checks and use squash merge.
-- When the user explicitly instructs the agent to force-merge a specific PR, the agent may use a force/bypass option without waiting for CI. A general request to merge is not authorization to force. Never force after a required check has failed unless the user explicitly confirms that failure may be bypassed.
-- A forced merge may bypass only CI completion/success requirements. It must preserve every identity, authentication, authorization, clean-checkout, forbidden-path, blocked-identity, neutral-metadata, unlinked-tip, published-SHA, and branch-deletion safeguard.
-- Report which checks were pending or failed when a force merge was performed. Do not claim the change was validated by checks that were bypassed.
-- Keep checkout commit identity set to `LaxDB <noreply@laxdb.io>` with `user.useConfigOnly=true`, and verify public commits remain unlinked to a GitHub user.
-- When migrating work from a private checkout, copy only the final patch/state. Never copy private history, submodule configuration, vendored private dependencies, local secret configuration, secrets, or personal metadata into this checkout.
-- The public checkout intentionally has a disabled push URL; do not change it.
+## COMMON TASKS
+
+| Task                  | Package | Pattern                                                                |
+| --------------------- | ------- | ---------------------------------------------------------------------- |
+| Add domain entity     | `core`  | schema.ts → {domain}.sql.ts → repo → service → contract                |
+| Add API endpoint      | `api`   | core contract → {domain}.api.ts → {domain}.handlers.ts                 |
+| Add UI component      | `ui`    | `bunx --bun shadcn@latest add <component>`                             |
+| Modify DB schema      | `core`  | Edit sql.ts → `bun run db:generate` → deploy via Alchemy D1 migrations |
+| Deploy infrastructure | root    | `bun run deploy` (runs alchemy.run.ts)                                 |
+
+## ANTI-PATTERNS (BLOCKING)
+
+| Pattern                    | Why Bad                | Do Instead        |
+| -------------------------- | ---------------------- | ----------------- |
+| `Effect.catchAll`          | Swallows typed errors  | `Effect.catchTag` |
+| Direct DB in routes        | Bypasses service layer | service → repo    |
+| `useState` for server data | Missing cache/sync     | TanStack Query    |
+
+<!-- effect-solutions:start -->
+
+## Effect Best Practices
+
+**IMPORTANT:** Always consult effect-solutions before writing Effect code.
+
+1. Run `effect-solutions list` to see available guides
+2. Run `effect-solutions show <topic>...` for relevant patterns (supports multiple topics)
+3. Inspect `node_modules/effect/src` for version-specific behavior and implementations
+
+Topics: quick-start, project-setup, tsconfig, basics, services-and-layers, data-modeling, error-handling, config, testing, cli.
+
+The installed `node_modules/effect/src` source is authoritative for the Effect version used by this repository. Treat effect-solutions as pattern guidance. Never guess at Effect patterns or rely on a separately cloned Effect repository.
+
+<!-- effect-solutions:end -->
+
+## CHILD INTENT NODES
+
+- `packages/core/CLAUDE.md` - Domain logic, services, DB (CRITICAL - read first for backend work)
+- `packages/api/CLAUDE.md` - HttpApi/generated client patterns
+- `packages/ui/CLAUDE.md` - Base UI component APIs
+- `packages/pipeline/CLAUDE.md` - Data ingestion, external APIs, scraping patterns
+- `packages/cli/CLAUDE.md` - CLI tools for API interaction
+- `packages/practice-planner/CLAUDE.md` - Visual practice planning canvas
