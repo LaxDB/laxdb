@@ -24,33 +24,6 @@ const config = {
   },
 };
 
-const productionResourceNames = {
-  api: "laxdb-api-prod-xqx5lmt2dyrquwyo",
-  database: "laxdb",
-  kv: "laxdb-kv-prod-zqgfz3pmsr6hkagh",
-  malvern: "laxdb-malvern-prod-mt2btieeewnlce2z",
-  marketing: "laxdb-marketing-prod-i3szrrzo7l76j367",
-  practicePlanner: "laxdb-practice-planner-prod-punt22szu2pkbalb",
-  rulesWiki: "laxdb-rules-wiki-prod-r4bpiodvcf3x5ttp",
-  storage: "laxdb-storage-prod-azrkjfqwevvivjj5",
-  worldLacrosse: "laxdb-world-lacrosse-prod-h3yguv2nasspclur",
-  worldLacrosseLive: "laxdb-world-lacrosse-live-prod-vejmi57hlcmhmglh",
-  worldLacrosseLiveScores:
-    "laxdb-world-lacrosse-live-scores-prod-rc4epu642f45btiq",
-} as const;
-
-type ProductionResource = keyof typeof productionResourceNames;
-
-// Production names identify existing live resources. Recover missing state by
-// adopting these exact names before deployment; never generate replacements.
-const physicalName = (stage: string, resource: ProductionResource) =>
-  stage === config.stages.prod ? productionResourceNames[resource] : undefined;
-
-const withPhysicalName = (stage: string, resource: ProductionResource) => {
-  const name = physicalName(stage, resource);
-  return name === undefined ? {} : { name };
-};
-
 const baseDomainForStage = (stage: string) =>
   stage === config.stages.prod
     ? config.domains.production
@@ -64,7 +37,10 @@ export const database = Cloudflare.D1.Database(
     const stage = yield* Alchemy.Stage;
 
     return {
-      name: physicalName(stage, "database") ?? `${config.stack}-${stage}`,
+      name:
+        stage === config.stages.prod
+          ? config.stack
+          : `${config.stack}-${stage}`,
       migrationsDir: "./packages/core/migrations",
       readReplication: {
         mode:
@@ -76,29 +52,11 @@ export const database = Cloudflare.D1.Database(
   }),
 );
 
-export const kv = Cloudflare.KV.Namespace(
-  "kv",
-  Effect.gen(function* () {
-    const stage = yield* Alchemy.Stage;
-    const title = physicalName(stage, "kv");
-    return title === undefined ? {} : { title };
-  }),
-);
+export const kv = Cloudflare.KV.Namespace("kv");
 export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
   "world-lacrosse-live-scores",
-  Effect.gen(function* () {
-    const stage = yield* Alchemy.Stage;
-    const title = physicalName(stage, "worldLacrosseLiveScores");
-    return title === undefined ? {} : { title };
-  }),
 );
-export const storage = Cloudflare.R2.Bucket(
-  "storage",
-  Effect.gen(function* () {
-    const stage = yield* Alchemy.Stage;
-    return withPhysicalName(stage, "storage");
-  }),
-);
+export const storage = Cloudflare.R2.Bucket("storage");
 
 const stackSecrets = Config.all({
   betterAuthSecret: Config.redacted("BETTER_AUTH_SECRET").pipe(
@@ -168,25 +126,21 @@ export default Alchemy.Stack(
           ].join(",")
         : secrets.trustedOrigins;
 
-    const api = yield* makeApiWorker(
-      {
-        DB: db,
-        BETTER_AUTH_SECRET: secrets.betterAuthSecret,
-        BETTER_AUTH_URL:
-          secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
-        EMAIL_SENDER: secrets.emailSender,
-        IS_LOCAL: isLocal ? "true" : "",
-        GOOGLE_CLIENT_ID: secrets.googleClientId,
-        GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
-        RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
-        TRUSTED_ORIGINS: trustedOrigins,
-        STORAGE: bucket,
-      },
-      withPhysicalName(stage, "api"),
-    );
+    const api = yield* makeApiWorker({
+      DB: db,
+      BETTER_AUTH_SECRET: secrets.betterAuthSecret,
+      BETTER_AUTH_URL:
+        secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
+      EMAIL_SENDER: secrets.emailSender,
+      IS_LOCAL: isLocal ? "true" : "",
+      GOOGLE_CLIENT_ID: secrets.googleClientId,
+      GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
+      RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
+      TRUSTED_ORIGINS: trustedOrigins,
+      STORAGE: bucket,
+    });
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {
-      ...withPhysicalName(stage, "marketing"),
       rootDir: "./packages/marketing",
       workersDev: true,
       domain: baseDomain,
@@ -198,7 +152,6 @@ export default Alchemy.Stack(
     });
 
     const rulesWiki = yield* Cloudflare.Website.Vite("rules-wiki", {
-      ...withPhysicalName(stage, "rulesWiki"),
       rootDir: "./packages/rules-wiki",
       workersDev: true,
       domain: `rules.${baseDomain}`,
@@ -209,7 +162,6 @@ export default Alchemy.Stack(
     });
 
     const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
-      ...withPhysicalName(stage, "practicePlanner"),
       rootDir: "./packages/practice-planner",
       workersDev: true,
       domain: `planner.${baseDomain}`,
@@ -226,7 +178,6 @@ export default Alchemy.Stack(
     });
 
     const malvern = yield* Cloudflare.Website.Vite("malvern", {
-      ...withPhysicalName(stage, "malvern"),
       rootDir: "./packages/malvern",
       workersDev: true,
       domain: `malvern.${baseDomain}`,
@@ -245,7 +196,6 @@ export default Alchemy.Stack(
     });
 
     const worldLacrosseLive = yield* Cloudflare.Worker("world-lacrosse-live", {
-      ...withPhysicalName(stage, "worldLacrosseLive"),
       main: "./packages/world-lacrosse/src/live-scores-worker.ts",
       workersDev: true,
       domain: `live.world.${baseDomain}`,
@@ -261,7 +211,6 @@ export default Alchemy.Stack(
     });
 
     const worldLacrosse = yield* Cloudflare.Website.Vite("world-lacrosse", {
-      ...withPhysicalName(stage, "worldLacrosse"),
       rootDir: "./packages/world-lacrosse",
       workersDev: true,
       domain: `world.${baseDomain}`,
