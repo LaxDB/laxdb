@@ -1,8 +1,8 @@
 diff --git a/src/Bundle/Bundle.ts b/src/Bundle/Bundle.ts
-index 0c34dd7743cae605cdcae9f35f7f33b52e6595f4..91676c529b11863cc1451e5a622cb65cff97c598 100644
+index 3c59039..34d7643 100644
 --- a/src/Bundle/Bundle.ts
 +++ b/src/Bundle/Bundle.ts
-@@ -264,21 +264,28 @@ export function bundleOutputFromRolldownOutputBundle(
+@@ -333,21 +333,28 @@ export function bundleOutputFromRolldownOutputBundle(
    bundle: rolldown.OutputBundle,
  ): Effect.Effect<BundleOutput, BundleError> {
    const files = Object.values(bundle);
@@ -42,10 +42,10 @@ index 0c34dd7743cae605cdcae9f35f7f33b52e6595f4..91676c529b11863cc1451e5a622cb65c
  
  /**
 diff --git a/src/Cloudflare/Workers/Vite.ts b/src/Cloudflare/Workers/Vite.ts
-index a8f696fd0276eec6e09b9e07bf812ee787d81217..6badf50c69540b5e0b422b22ee0eff66637e4d07 100644
+index 8a1e02c..3063f01 100644
 --- a/src/Cloudflare/Workers/Vite.ts
 +++ b/src/Cloudflare/Workers/Vite.ts
-@@ -4,10 +4,43 @@ import cloudflare, {
+@@ -5,6 +5,7 @@ import * as ConsoleService from "effect/Console";
  import * as Effect from "effect/Effect";
  import * as Redacted from "effect/Redacted";
  import { createRequire } from "node:module";
@@ -53,6 +53,9 @@ index a8f696fd0276eec6e09b9e07bf812ee787d81217..6badf50c69540b5e0b422b22ee0eff66
  import path from "node:path";
  import { pathToFileURL } from "node:url";
  import type * as vite from "vite";
+@@ -77,6 +78,38 @@ const makeViteLogger = (console: ConsoleService.Console): vite.Logger => {
+  */
+ const ALCHEMY_CLOUDFLARE_VITE_INJECTED = "ALCHEMY_CLOUDFLARE_VITE_INJECTED";
  
 +const reservedVitePorts = new Set<number>();
 +const viteServerPorts = new WeakMap<vite.ViteDevServer, number>();
@@ -89,51 +92,54 @@ index a8f696fd0276eec6e09b9e07bf812ee787d81217..6badf50c69540b5e0b422b22ee0eff66
  export const viteDev = (
    rootDir: string = process.cwd(),
    env: Record<string, unknown>,
-@@ -16,19 +49,48 @@ export const viteDev = (
- ) =>
-   Effect.acquireRelease(
-     Effect.promise(async () => {
--      const vite = await loadVite(rootDir);
--      const devServer = await vite.createServer({
--        root: rootDir,
--        define: getDefine(env),
--        plugins: [cloudflare(pluginOptions)],
--        server: serverOptions,
--      });
--      await devServer.listen();
--      return devServer;
-+      const reservedPort =
-+        serverOptions.port === 0
-+          ? await reserveAvailableVitePort()
-+          : undefined;
-+      try {
-+        const vite = await loadVite(rootDir);
-+        const devServer = await vite.createServer({
-+          root: rootDir,
-+          define: getDefine(env),
-+          plugins: [cloudflare(pluginOptions)],
-+          server:
-+            reservedPort === undefined
-+              ? serverOptions
-+              : {
-+                  ...serverOptions,
-+                  host: "127.0.0.1",
-+                  port: reservedPort,
-+                  strictPort: true,
-+                },
-+        });
-+        await devServer.listen();
-+        if (reservedPort !== undefined) {
-+          viteServerPorts.set(devServer, reservedPort);
+@@ -87,21 +120,50 @@ export const viteDev = (
+     ConsoleService.consoleWith((console) =>
+       Effect.promise(async () => {
+         process.env[ALCHEMY_CLOUDFLARE_VITE_INJECTED] = "1";
+-        const vite = await loadVite(rootDir);
+-        const devServer = await vite.createServer({
+-          root: rootDir,
+-          define: getDefine(env),
+-          plugins: [cloudflare(pluginOptions)],
+-          server: serverOptions,
+-          customLogger: makeViteLogger(console),
+-        });
+-        await devServer.listen();
+-        return devServer;
++        const reservedPort =
++          serverOptions.port === 0
++            ? await reserveAvailableVitePort()
++            : undefined;
++        try {
++          const vite = await loadVite(rootDir);
++          const devServer = await vite.createServer({
++            root: rootDir,
++            define: getDefine(env),
++            plugins: [cloudflare(pluginOptions)],
++            server:
++              reservedPort === undefined
++                ? serverOptions
++                : {
++                    ...serverOptions,
++                    host: "127.0.0.1",
++                    port: reservedPort,
++                    strictPort: true,
++                  },
++            customLogger: makeViteLogger(console),
++          });
++          await devServer.listen();
++          if (reservedPort !== undefined) {
++            viteServerPorts.set(devServer, reservedPort);
++          }
++          return devServer;
++        } catch (error) {
++          if (reservedPort !== undefined) {
++            reservedVitePorts.delete(reservedPort);
++          }
++          throw error;
 +        }
-+        return devServer;
-+      } catch (error) {
-+        if (reservedPort !== undefined) {
-+          reservedVitePorts.delete(reservedPort);
-+        }
-+        throw error;
-+      }
-     }),
+       }),
+     ),
      (devServer) =>
        Effect.promise(async () => {
 -        await devServer.close();
@@ -148,13 +154,13 @@ index a8f696fd0276eec6e09b9e07bf812ee787d81217..6badf50c69540b5e0b422b22ee0eff66
        }),
    );
  
-diff --git a/src/Cloudflare/Workers/Worker.ts b/src/Cloudflare/Workers/Worker.ts
-index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..022cb95e2a70108d6387e169cc4c43160d54208a 100644
---- a/src/Cloudflare/Workers/Worker.ts
-+++ b/src/Cloudflare/Workers/Worker.ts
-@@ -775,6 +775,28 @@ export const LiveWorkerProvider = () =>
-           })
-           .pipe(Effect.map((result) => result.subdomain));
+diff --git a/src/Cloudflare/Workers/WorkerProvider.ts b/src/Cloudflare/Workers/WorkerProvider.ts
+index b86be59..3d34e4a 100644
+--- a/src/Cloudflare/Workers/WorkerProvider.ts
++++ b/src/Cloudflare/Workers/WorkerProvider.ts
+@@ -1181,6 +1181,28 @@ export const LiveWorkerProvider = () =>
+           );
+         });
  
 +      // Cloudflare can return HTTP 200 with an empty body after deleting a
 +      // domain, which the generated client reports as a response parse error.
@@ -178,10 +184,10 @@ index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..022cb95e2a70108d6387e169cc4c4316
 +          }),
 +        );
 +
-       // Toggle the workers.dev subdomain via `POST /subdomain` with
-       // `enabled: true | false`. Mirrors the upstream Alchemy
-       // implementation in `.vendor/alchemy/.../worker-subdomain.ts`.
-@@ -953,10 +975,8 @@ export const LiveWorkerProvider = () =>
+       const reconcileDomains = (scriptName: string, desired: string[]) =>
+         Effect.gen(function* () {
+           const { accountId } = yield* yield* CloudflareEnvironment;
+@@ -1220,11 +1242,7 @@ export const LiveWorkerProvider = () =>
            // don't try to delete domains we no longer track.
            const toRemove = liveAll.filter((d) => !desiredSet.has(d.hostname));
            yield* Effect.all(
@@ -189,12 +195,12 @@ index 356e26c5423039ebde64ab0e1b32e2f4e21a58ec..022cb95e2a70108d6387e169cc4c4316
 -              workers
 -                .deleteDomain({ accountId, domainId: d.id })
 -                .pipe(Effect.catchTag("DomainNotFound", () => Effect.void)),
-+            toRemove.map((domain) =>
-+              deleteWorkerDomain(accountId, domain.id),
-             ),
+-            ),
++            toRemove.map((d) => deleteWorkerDomain(accountId, d.id)),
              { concurrency: "unbounded" },
            );
-@@ -2187,16 +2207,7 @@ export const LiveWorkerProvider = () =>
+ 
+@@ -4821,16 +4839,7 @@ export const LiveWorkerProvider = () =>
              yield* Effect.all(
                liveDomains.flatMap((d) =>
                  d.id

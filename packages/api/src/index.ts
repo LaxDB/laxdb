@@ -210,20 +210,12 @@ export const makeApiWorker = (
       },
     },
     Effect.gen(function* () {
-      yield* Cloudflare.cron(GAMEDAY_FIXTURE_SYNC_CRON)
-        .subscribe(() =>
-          Effect.gen(function* () {
-            const matchService = yield* MatchService;
-            yield* matchService.syncAllLinkedFixtures();
-          }).pipe(Effect.provide(ServicesLive)),
-        )
-        .pipe(
-          Effect.provide(
-            Cloudflare.CronEventSourceLive.pipe(
-              Layer.provide(Cloudflare.CronEventSourcePolicyLive),
-            ),
-          ),
-        );
+      yield* Cloudflare.cron(GAMEDAY_FIXTURE_SYNC_CRON, () =>
+        Effect.gen(function* () {
+          const matchService = yield* MatchService;
+          yield* matchService.syncAllLinkedFixtures();
+        }).pipe(Effect.provide(ServicesLive)),
+      ).pipe(Effect.provide(Cloudflare.CronEventSourceLive));
 
       return {
         fetch: routes.pipe(

@@ -14,10 +14,10 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.0.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "vite": "^7.3.0"
+    "vite": "^8.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
