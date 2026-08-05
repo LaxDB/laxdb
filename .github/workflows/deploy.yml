@@ -76,15 +76,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Test
-        shell: bash
-        run: |
-          test_log="${RUNNER_TEMP}/test.log"
-          if bun run test:ci >"$test_log" 2>&1; then
-            exit 0
-          fi
-
-          cat "$test_log"
-          exit 1
+        run: bun run test:ci
 
   deploy:
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.fork == false) }}

@@ -12,7 +12,7 @@
     "dev": "alchemy dev",
     "test": "bun ./scripts/run-workspace-tests.mjs",
     "test:integration": "bun ./scripts/run-workspace-integration-tests.mjs",
-    "test:ci": "bun run test && bun run test:integration",
+    "test:ci": "bash ./scripts/run-ci-tests.sh",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "design:lint": "bunx @google/design.md lint DESIGN.md",
