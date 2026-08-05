@@ -1,4 +1,9 @@
-const EXCLUDED_TEST_PACKAGES = new Set(["@laxdb/pipeline"]);
+const EXCLUDED_TEST_PACKAGES = new Set([
+  "@laxdb/api",
+  "@laxdb/cli",
+  "@laxdb/pipeline",
+  "@laxdb/world-lacrosse",
+]);
 const SERIAL_TEST_PACKAGES = new Set(["@laxdb/core"]);
 const TEST_ARGS = process.argv.slice(2);
 
@@ -6,29 +11,41 @@ async function discoverTestPackages() {
   const packageJsonGlob = new Bun.Glob("packages/*/package.json");
   const packages = [];
 
-  for await (const packageJsonPath of packageJsonGlob.scan({ cwd: Bun.cwd })) {
-    const packageJson = await Bun.file(packageJsonPath).json();
-    const testScript = packageJson.scripts?.test;
+  const packageJsonPaths = await Array.fromAsync(
+    packageJsonGlob.scan({ cwd: Bun.cwd }),
+  );
+  const discoveredPackages = await Promise.all(
+    packageJsonPaths.map(async (packageJsonPath) => {
+      const packageJson = await Bun.file(packageJsonPath).json();
+      const testScript = packageJson.scripts?.test;
 
-    if (typeof testScript !== "string") continue;
+      if (typeof testScript !== "string") return null;
 
-    const name =
-      typeof packageJson.name === "string"
-        ? packageJson.name
-        : packageJsonPath.split("/").at(-2);
-    const script =
-      typeof packageJson.scripts?.["test:run"] === "string"
-        ? "test:run"
-        : "test";
+      const name =
+        typeof packageJson.name === "string"
+          ? packageJson.name
+          : packageJsonPath.split("/").at(-2);
+      const script =
+        typeof packageJson.scripts?.["test:run"] === "string"
+          ? "test:run"
+          : "test";
 
-    if (EXCLUDED_TEST_PACKAGES.has(name)) continue;
+      if (EXCLUDED_TEST_PACKAGES.has(name)) return null;
 
-    packages.push({
-      name,
-      dir: packageJsonPath.replace(/\/package\.json$/u, ""),
-      script,
-    });
-  }
+      return {
+        name,
+        dir: packageJsonPath.replace(/\/package\.json$/u, ""),
+        script,
+      };
+    }),
+  );
+  packages.push(...discoveredPackages.filter((pkg) => pkg !== null));
+
+  packages.push({
+    name: "@laxdb/small-workspaces",
+    dir: Bun.cwd,
+    script: "test:small",
+  });
 
   return packages.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -39,6 +56,7 @@ async function runPackageTest(pkg) {
   try {
     const subprocess = Bun.spawn(["bun", "run", pkg.script, ...TEST_ARGS], {
       cwd: pkg.dir,
+      env: { ...process.env, NO_COLOR: "1" },
       stdin: "inherit",
       stdout: "inherit",
       stderr: "inherit",

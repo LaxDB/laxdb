@@ -10,7 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "better-auth:gen": "npx @better-auth/cli@latest generate",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "bun --bun vitest run --reporter=dot --configLoader=runner",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint --type-aware",

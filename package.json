@@ -11,6 +11,7 @@
     "destroy": "alchemy destroy",
     "dev": "alchemy dev",
     "test": "bun ./scripts/run-workspace-tests.mjs",
+    "test:small": "bun --bun vitest run --config vitest.small.config.mts --testTimeout=120000 --reporter=dot --maxWorkers=2",
     "test:integration": "bun ./scripts/run-workspace-integration-tests.mjs",
     "test:ci": "bash ./scripts/run-ci-tests.sh",
     "typecheck": "turbo typecheck",
