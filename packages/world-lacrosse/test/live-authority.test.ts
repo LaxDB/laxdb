@@ -124,7 +124,7 @@ describe("live tournament authority", () => {
 
     expect(formatRoute).not.toContain("TournamentDataBoundary");
     expect(tournamentPage).toContain(
-      "showTournamentStatus && <TournamentDataStatus />",
+      "showTournamentStatus && <TournamentDataStatus tournament={tournament} />",
     );
   });
 

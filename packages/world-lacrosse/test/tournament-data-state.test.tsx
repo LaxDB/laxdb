@@ -31,7 +31,6 @@ const liveState = (): LiveTournamentReadyState => ({
   ),
   freshness: "stale",
   refresh: "failed",
-  retry,
 });
 
 describe("tournament data state", () => {
@@ -58,7 +57,7 @@ describe("tournament data state", () => {
   it("labels retained stale live data with its verified timestamp", () => {
     const state = liveState();
     const markup = renderToStaticMarkup(
-      <CurrentTournamentProvider state={state}>
+      <CurrentTournamentProvider tournament={{ state, retry }}>
         <TournamentDataStatus />
       </CurrentTournamentProvider>,
     );
@@ -92,7 +91,7 @@ describe("tournament data state", () => {
       refresh: "disabled",
     };
     const markup = renderToStaticMarkup(
-      <CurrentTournamentProvider state={state}>
+      <CurrentTournamentProvider tournament={{ state, retry }}>
         <TournamentDataStatus />
       </CurrentTournamentProvider>,
     );
