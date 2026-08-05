@@ -1,12 +1,14 @@
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Cause, Schema } from "effect";
+import { Effect, Schedule, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
 import { makeAsyncQuery } from "./atom-query";
+import { FetchError } from "./error";
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { LiveSchedule } from "./schema";
+import { tournamentMode } from "./tournament-mode";
 
 const decodeLiveSchedule = Schema.decodeUnknownSync(LiveSchedule);
 
@@ -82,32 +84,49 @@ export const useLiveSchedule = (enabled: boolean) => {
   );
 };
 
-const liveScheduleEffectAtom = makeAsyncQuery<LiveSchedule>({
-  load: ({ previous, signal }) => fetchLiveSchedule(previous, signal),
+const fetchLiveScheduleEffect = (previous: LiveSchedule | undefined) =>
+  Effect.tryPromise({
+    try: (signal) => fetchLiveSchedule(previous, signal),
+    catch: (cause) =>
+      FetchError.make({
+        url: endpoint(),
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Failed to fetch the live schedule",
+        cause,
+      }),
+  }).pipe(
+    Effect.retry(
+      Schedule.max([Schedule.spaced("1 second"), Schedule.recurs(1)]),
+    ),
+  );
+
+const liveScheduleEffectAtom = makeAsyncQuery({
+  load: fetchLiveScheduleEffect,
   staleTime: "15 seconds",
-  retries: 1,
   revalidateOnFocus: true,
   keepAlive: true,
   pollInterval: (schedule) =>
-    schedule.schedule.some((game) => isActiveGameStatus(game.status))
+    schedule?.schedule.some((game) => isActiveGameStatus(game.status))
       ? "30 seconds"
       : "1 minute",
 });
 
 const disabledLiveScheduleResult: AsyncResult.AsyncResult<
   LiveSchedule,
-  Cause.UnknownError
+  FetchError
 > = AsyncResult.initial();
 const disabledLiveScheduleEffectAtom = Atom.make(disabledLiveScheduleResult);
-
-export const useEffectAtomLiveSchedule = (
-  enabled: boolean,
-): readonly [
-  AsyncResult.AsyncResult<LiveSchedule, Cause.UnknownError>,
-  () => void,
-] => {
-  const atom = enabled
+const currentLiveScheduleEffectAtom =
+  tournamentMode === "live"
     ? liveScheduleEffectAtom
     : disabledLiveScheduleEffectAtom;
-  return [useAtomValue(atom), useAtomRefresh(atom)];
-};
+
+export const useEffectAtomLiveSchedule = (): readonly [
+  AsyncResult.AsyncResult<LiveSchedule, FetchError>,
+  () => void,
+] => [
+  useAtomValue(currentLiveScheduleEffectAtom),
+  useAtomRefresh(currentLiveScheduleEffectAtom),
+];
