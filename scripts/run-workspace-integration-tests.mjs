@@ -1,4 +1,5 @@
 const EXCLUDED_TEST_PACKAGES = new Set(["@laxdb/pipeline"]);
+const TEST_ARGS = process.argv.slice(2);
 
 async function discoverIntegrationPackages() {
   const packageJsonGlob = new Bun.Glob("packages/*/package.json");
@@ -31,7 +32,8 @@ async function runPackageIntegrationTest(pkg) {
   console.log(`\n=== ${pkg.name}: test:integration ===`);
 
   try {
-    const subprocess = Bun.spawn(["bun", "run", "test:integration"], {
+    const command = ["bun", "run", "test:integration", ...TEST_ARGS];
+    const subprocess = Bun.spawn(command, {
       cwd: pkg.dir,
       stdin: "inherit",
       stdout: "inherit",

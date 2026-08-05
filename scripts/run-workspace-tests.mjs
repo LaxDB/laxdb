@@ -1,5 +1,6 @@
 const EXCLUDED_TEST_PACKAGES = new Set(["@laxdb/pipeline"]);
 const SERIAL_TEST_PACKAGES = new Set(["@laxdb/core"]);
+const TEST_ARGS = process.argv.slice(2);
 
 async function discoverTestPackages() {
   const packageJsonGlob = new Bun.Glob("packages/*/package.json");
@@ -36,7 +37,7 @@ async function runPackageTest(pkg) {
   console.log(`\n=== ${pkg.name}: test ===`);
 
   try {
-    const subprocess = Bun.spawn(["bun", "run", pkg.script], {
+    const subprocess = Bun.spawn(["bun", "run", pkg.script, ...TEST_ARGS], {
       cwd: pkg.dir,
       stdin: "inherit",
       stdout: "inherit",
