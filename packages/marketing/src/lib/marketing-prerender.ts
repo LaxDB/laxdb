@@ -165,6 +165,7 @@ export function marketingPrerenderConfig({
 
 export const runMarketingPrerenderConfig = (options: MarketingPrerenderOptions) =>
   marketingPrerenderConfig(options).pipe(
+    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- This function runs the complete prerender program.
     Effect.provide(Layer.merge(NodeFileSystem.layer, NodePath.layer)),
     Effect.runPromise,
   );

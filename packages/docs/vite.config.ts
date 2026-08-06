@@ -8,7 +8,7 @@ import tsConfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   build: {
     target: "esnext",
-    rollupOptions: {
+    rolldownOptions: {
       external: ["node:async_hooks", "cloudflare:workers"],
     },
   },

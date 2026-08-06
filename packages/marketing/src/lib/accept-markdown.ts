@@ -77,13 +77,13 @@ export function negotiateAcceptHeader(header: string | null): NegotiatedContent 
 function mergeVary(existing: string | null, value: string): string {
   if (existing === null || existing.trim().length === 0) return value;
 
-  const values = new Set(
-    existing
+  const values = new Set([
+    ...existing
       .split(",")
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0),
-  );
-  values.add(value);
+    value,
+  ]);
   return [...values].join(", ");
 }
 

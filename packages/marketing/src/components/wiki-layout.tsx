@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 
 type WikiTocItem = Post["tableOfContents"][number];
 
+const EMPTY_TABLE_OF_CONTENTS: readonly WikiTocItem[] = [];
+
 type WikiLayoutProps = {
   posts: Post[];
   currentSlug?: string;
@@ -17,7 +19,7 @@ type WikiLayoutProps = {
 export function WikiLayout({
   posts,
   currentSlug,
-  tableOfContents = [],
+  tableOfContents = EMPTY_TABLE_OF_CONTENTS,
   children,
 }: WikiLayoutProps) {
   const groupedPosts = groupWikiPostsBySection(posts);

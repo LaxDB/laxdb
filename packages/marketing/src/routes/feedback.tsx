@@ -52,8 +52,8 @@ function FeedbackPage() {
         .filter((msg, i, arr) => arr.indexOf(msg) === i);
       setError(reasons.join(". "));
     }
-    const withPreviews = accepted.map(
-      (file) => Object.assign(file, { preview: URL.createObjectURL(file) }) as FileWithPreview,
+    const withPreviews = accepted.map((file) =>
+      Object.assign(file, { preview: URL.createObjectURL(file) }),
     );
     setFiles((prev) => [...prev, ...withPreviews].slice(0, MAX_FILES));
   }, []);

@@ -20,7 +20,7 @@ export default defineConfig(async () => {
     build: {
       outDir: `${import.meta.dirname}/dist`,
       target: "esnext",
-      rollupOptions: {
+      rolldownOptions: {
         external: ["node:async_hooks", "cloudflare:workers"],
       },
     },
