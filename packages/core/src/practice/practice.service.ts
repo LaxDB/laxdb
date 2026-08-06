@@ -41,12 +41,11 @@ export class PracticeService extends Context.Service<PracticeService>()(
         // Practice CRUD
         // -----------------------------------------------------------------
 
-        list: () =>
-          repo.list().pipe(
-            Effect.map((rows) => rows.map((row) => asPractice(row))),
-            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
-            Effect.tapError(Effect.logError),
-          ),
+        list: repo.list.pipe(
+          Effect.map((rows) => rows.map((row) => asPractice(row))),
+          Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+          Effect.tapError(Effect.logError),
+        ),
 
         get: (input: SchemaInput<typeof GetPracticeInput>) =>
           Effect.gen(function* () {

@@ -3,7 +3,6 @@ import { ClubService } from "@laxdb/core/club/club.service";
 import { DatabaseError, ValidationError } from "@laxdb/core/error";
 import type { MatchApiPayload } from "@laxdb/core/match/match.contract";
 import { MatchService } from "@laxdb/core/match/match.service";
-import * as Cloudflare from "alchemy/Cloudflare";
 import { Effect } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 
@@ -181,7 +180,7 @@ export const MatchesHandlers = HttpApiBuilder.group(
         );
 
       const listGamedaySeasons = () =>
-        withAdminOrganization(authService, () => service.listGamedaySeasons());
+        withAdminOrganization(authService, () => service.listGamedaySeasons);
 
       const listGamedayClubs = (
         payload: typeof MatchApiPayload.listGamedayClubs.Type,
@@ -234,10 +233,10 @@ export const MatchesHandlers = HttpApiBuilder.group(
           Effect.gen(function* () {
             if (payload.fixtureId !== undefined) {
               yield* authorizeFixture(session, payload.fixtureId);
-            } else if (payload.teamId !== undefined) {
-              yield* authorizeTeam(session, payload.teamId);
-            } else {
+            } else if (payload.teamId === undefined) {
               yield* requireTeamManager(session, null);
+            } else {
+              yield* authorizeTeam(session, payload.teamId);
             }
             return yield* service.listMatchImages({
               organizationId: session.organizationId,

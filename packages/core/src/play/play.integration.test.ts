@@ -71,7 +71,7 @@ layer(TestLayer)("PlayService integration", (it) => {
       yield* svc.create(validCreatePlay({ name: "Play A" }));
       yield* svc.create(validCreatePlay({ name: "Play B", category: "ride" }));
 
-      const plays = yield* svc.list();
+      const plays = yield* svc.list;
 
       expect(plays).toHaveLength(2);
       expect(plays.map((play) => play.name)).toEqual(["Play A", "Play B"]);

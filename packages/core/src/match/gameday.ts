@@ -536,32 +536,31 @@ export class GamedayClient extends Context.Service<GamedayClient>()(
 
       return {
         /** Available GameDay seasons, newest first. */
-        fetchSeasons: () =>
-          Effect.gen(function* () {
-            const html = yield* fetchPage(
-              `${BASE_URL}/assoc_page.cgi?c=${LACROSSE_VICTORIA_CLIENT}&a=COMPS`,
-            );
-            const seasons: GamedaySeason[] = [];
-            const seen = new Set<string>();
-            for (const match of html.matchAll(SEASON_RE)) {
-              const seasonId = match[1];
-              const name = match[2];
-              if (
-                seasonId !== undefined &&
-                name !== undefined &&
-                !seen.has(seasonId)
-              ) {
-                seen.add(seasonId);
-                seasons.push(
-                  new GamedaySeason({
-                    seasonId,
-                    name: decodeEntities(name.trim()),
-                  }),
-                );
-              }
+        fetchSeasons: Effect.gen(function* () {
+          const html = yield* fetchPage(
+            `${BASE_URL}/assoc_page.cgi?c=${LACROSSE_VICTORIA_CLIENT}&a=COMPS`,
+          );
+          const seasons: GamedaySeason[] = [];
+          const seen = new Set<string>();
+          for (const match of html.matchAll(SEASON_RE)) {
+            const seasonId = match[1];
+            const name = match[2];
+            if (
+              seasonId !== undefined &&
+              name !== undefined &&
+              !seen.has(seasonId)
+            ) {
+              seen.add(seasonId);
+              seasons.push(
+                new GamedaySeason({
+                  seasonId,
+                  name: decodeEntities(name.trim()),
+                }),
+              );
             }
-            return seasons;
-          }),
+          }
+          return seasons;
+        }),
 
         /** Competitions for a season (current season when no seasonId). */
         fetchCompetitions: fetchCompetitionList,

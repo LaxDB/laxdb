@@ -19,12 +19,11 @@ export class PlayService extends Context.Service<PlayService>()("PlayService", {
     const repo = yield* PlayRepo;
 
     return {
-      list: () =>
-        repo.list().pipe(
-          Effect.map((rows) => rows.map((row) => asPlay(row))),
-          Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
-          Effect.tapError(Effect.logError),
-        ),
+      list: repo.list.pipe(
+        Effect.map((rows) => rows.map((row) => asPlay(row))),
+        Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+        Effect.tapError(Effect.logError),
+      ),
 
       get: (input: SchemaInput<typeof GetPlayInput>) =>
         Effect.gen(function* () {

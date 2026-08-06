@@ -51,6 +51,7 @@ export class D1DatabaseBinding extends Context.Service<
 export const DatabaseLive = Layer.effect(
   DrizzleService,
   Effect.gen(function* () {
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- The API boundary validates the D1 binding; Drizzle's optional Workers type resolves as an error type here.
     const binding = yield* D1DatabaseBinding;
     return drizzle(binding);
   }),

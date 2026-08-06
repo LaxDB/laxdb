@@ -12,10 +12,9 @@ export class PlayerRepo extends Context.Service<PlayerRepo>()("PlayerRepo", {
     const { id: _, ...publicColumns } = getColumns(playerTable);
 
     return {
-      list: () =>
-        query(db.select(publicColumns).from(playerTable)).pipe(
-          Effect.tapError(Effect.logError),
-        ),
+      list: query(db.select(publicColumns).from(playerTable)).pipe(
+        Effect.tapError(Effect.logError),
+      ),
 
       getByPublicId: (publicId: string) =>
         query(

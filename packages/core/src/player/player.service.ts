@@ -20,14 +20,11 @@ export class PlayerService extends Context.Service<PlayerService>()(
       const repo = yield* PlayerRepo;
 
       return {
-        list: () =>
-          repo.list().pipe(
-            Effect.map((rows) => rows.map((row) => asPlayer(row))),
-            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
-            Effect.tapError((e) =>
-              Effect.logError("Failed to list players", e),
-            ),
-          ),
+        list: repo.list.pipe(
+          Effect.map((rows) => rows.map((row) => asPlayer(row))),
+          Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+          Effect.tapError((e) => Effect.logError("Failed to list players", e)),
+        ),
 
         getByPublicId: (input: SchemaInput<typeof PlayerByIdInput>) =>
           Effect.gen(function* () {

@@ -3,7 +3,6 @@ import { ClubService } from "@laxdb/core/club/club.service";
 import {
   AuthenticationError,
   AuthorizationError,
-  ConstraintViolationError,
   DatabaseError,
   NotFoundError,
   ValidationError,
@@ -163,6 +162,7 @@ const MatchImageRoute = HttpRouter.use((router) =>
         }),
       );
     }).pipe(
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The HTTP route is a request execution boundary.
       Effect.provide(ServicesLive),
       Effect.catchTags({
         AuthenticationError: (error) => Effect.succeed(errorResponse(error)),
@@ -209,9 +209,15 @@ export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
       yield* Cloudflare.cron(GAMEDAY_FIXTURE_SYNC_CRON, () =>
         Effect.gen(function* () {
           const matchService = yield* MatchService;
-          yield* matchService.syncAllLinkedFixtures();
-        }).pipe(Effect.provide(ServicesLive)),
-      ).pipe(Effect.provide(Cloudflare.CronEventSourceLive));
+          yield* matchService.syncAllLinkedFixtures;
+        }).pipe(
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The cron callback is a scheduled execution boundary.
+          Effect.provide(ServicesLive),
+        ),
+      ).pipe(
+        // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The worker registers the fully provided cron source.
+        Effect.provide(Cloudflare.CronEventSourceLive),
+      );
 
       return {
         fetch: routes.pipe(

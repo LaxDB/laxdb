@@ -18,10 +18,9 @@ export class DrillRepo extends Context.Service<DrillRepo>()("DrillRepo", {
     const { id: _, ...publicColumns } = getColumns(drillTable);
 
     return {
-      list: () =>
-        query(db.select(publicColumns).from(drillTable)).pipe(
-          Effect.tapError(Effect.logError),
-        ),
+      list: query(db.select(publicColumns).from(drillTable)).pipe(
+        Effect.tapError(Effect.logError),
+      ),
 
       get: (input: GetDrillInput) =>
         query(

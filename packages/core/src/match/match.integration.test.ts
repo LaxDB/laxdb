@@ -35,7 +35,7 @@ const TEAM_ID = "team-match-images";
 const FIXTURE_ID = "fixture-match-images";
 
 const UnexpectedGameDayLive = Layer.succeed(GamedayClient, {
-  fetchSeasons: () => Effect.die("GameDay should not be called"),
+  fetchSeasons: Effect.die("GameDay should not be called"),
   fetchCompetitions: () => Effect.die("GameDay should not be called"),
   fetchFixtures: () => Effect.die("GameDay should not be called"),
   fetchLadder: () => Effect.die("GameDay should not be called"),
@@ -63,10 +63,9 @@ const TestLayer = Layer.mergeAll(MatchServiceLive, TestDatabaseLive);
 const run = makeTestRunner(TestLayer);
 
 const RecoveryGameDayLive = Layer.succeed(GamedayClient, {
-  fetchSeasons: () =>
-    Effect.succeed([
-      new GamedaySeason({ seasonId: "season-2026", name: "2026" }),
-    ]),
+  fetchSeasons: Effect.succeed([
+    new GamedaySeason({ seasonId: "season-2026", name: "2026" }),
+  ]),
   fetchCompetitions: () =>
     Effect.succeed([
       new GamedayCompetition({ compId: "comp-images", name: "U14 Boys" }),

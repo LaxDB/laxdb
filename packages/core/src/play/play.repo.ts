@@ -18,10 +18,9 @@ export class PlayRepo extends Context.Service<PlayRepo>()("PlayRepo", {
     const { id: _, ...publicColumns } = getColumns(playTable);
 
     return {
-      list: () =>
-        query(db.select(publicColumns).from(playTable)).pipe(
-          Effect.tapError(Effect.logError),
-        ),
+      list: query(db.select(publicColumns).from(playTable)).pipe(
+        Effect.tapError(Effect.logError),
+      ),
 
       get: (input: GetPlayInput) =>
         query(

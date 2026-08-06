@@ -74,7 +74,7 @@ describe("PracticeService integration", () => {
         yield* svc.create(validCreatePractice({ name: "P1" }));
         yield* svc.create(validCreatePractice({ name: "P2" }));
 
-        const practices = yield* svc.list();
+        const practices = yield* svc.list;
         expect(practices).toHaveLength(2);
       }),
     ));
@@ -147,7 +147,7 @@ describe("PracticeService integration", () => {
         const created = yield* svc.create(validCreatePractice());
         yield* svc.delete({ publicId: created.publicId });
 
-        const list = yield* svc.list();
+        const list = yield* svc.list;
         expect(list).toHaveLength(0);
       }),
     ));
