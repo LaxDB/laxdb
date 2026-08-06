@@ -80,12 +80,6 @@ const uniqueStats = (
   return rows.length === 1 ? (rows[0]?.stats ?? null) : null;
 };
 
-const playerIdentity = (player: {
-  readonly id: string | null;
-  readonly name: string;
-  readonly team?: string;
-}): string => player.id ?? `${player.team ?? ""}\u0000${player.name}`;
-
 const sideFor = (game: Readonly<GameDetails>, team: string): "home" | "away" =>
   game.home.name === team ? "home" : "away";
 

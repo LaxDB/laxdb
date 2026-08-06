@@ -1250,17 +1250,7 @@ function StatisticsContent({
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}
           />
-        ) : !playerDataAvailable ? (
-          <>
-            <div className="statistics-controls">
-              {viewSwitcher}
-              {throughPicker}
-            </div>
-            <p className="statistics-unavailable">
-              Player statistics are temporarily unavailable.
-            </p>
-          </>
-        ) : (
+        ) : playerDataAvailable ? (
           <DataTable
             key={playerView}
             columns={currentPlayerColumns}
@@ -1284,6 +1274,16 @@ function StatisticsContent({
             fullscreen={tableFullscreen}
             onFullscreenChange={setTableFullscreen}
           />
+        ) : (
+          <>
+            <div className="statistics-controls">
+              {viewSwitcher}
+              {throughPicker}
+            </div>
+            <p className="statistics-unavailable">
+              Player statistics are temporarily unavailable.
+            </p>
+          </>
         )}
       </article>
     </main>

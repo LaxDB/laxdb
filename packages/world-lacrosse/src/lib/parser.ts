@@ -735,7 +735,7 @@ export const parsePlayerDetails = (
     root
       .find("#stats-tab .stats-table tbody tr")
       .toArray()
-      .map((row) => {
+      .map((row): readonly [string, string] => {
         const cells = $(row).find("th, td");
         return [text(cells.eq(0)), text(cells.eq(1))];
       })

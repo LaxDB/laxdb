@@ -57,8 +57,8 @@ export class CurrentTournamentSnapshot extends Schema.Class<CurrentTournamentSna
   issues: Schema.Array(Schema.String),
 }) {}
 
-const duplicateIds = <T extends { readonly id: string }>(
-  entries: readonly T[],
+const duplicateIds = (
+  entries: readonly { readonly id: string }[],
 ): ReadonlySet<string> => {
   const seen = new Set<string>();
   const duplicates = new Set<string>();

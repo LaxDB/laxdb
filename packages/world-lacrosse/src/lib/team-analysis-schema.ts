@@ -56,7 +56,6 @@ export const TeamRate = Schema.Struct({
         rate.value > 100)
     )
       return "percentage rate must remain between zero and 100";
-    return;
   }),
 );
 export type TeamRate = typeof TeamRate.Type;
@@ -74,7 +73,6 @@ export const TeamBenchmark = Schema.Struct({
         benchmark.rate.denominator !== benchmark.sampleGames)
     )
       return "benchmark scale and sample must match its metric";
-    return;
   }),
 );
 export type TeamBenchmark = typeof TeamBenchmark.Type;
@@ -228,7 +226,6 @@ export const TeamGameAnalysis = Schema.Struct({
         (game.result === "L" && game.goalsFor > game.goalsAgainst))
     )
       return "game result must match its verified score";
-    return;
   }),
 );
 export type TeamGameAnalysis = typeof TeamGameAnalysis.Type;
