@@ -227,7 +227,7 @@ function Invite({
       queryClient.invalidateQueries({ queryKey: ["fine-members"] }),
   });
 
-  const send = (event: React.FormEvent) => {
+  const send = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!email.trim()) return;
     inviteMutation.mutate({ email: email.trim(), role });

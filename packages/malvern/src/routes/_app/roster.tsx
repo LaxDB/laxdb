@@ -177,7 +177,7 @@ function Roster() {
     addPlayer.error ??
     syncRoster.error;
 
-  const add = (event: React.FormEvent) => {
+  const add = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!name.trim() || teamId === "") return;
     addPlayer.mutate({

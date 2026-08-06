@@ -143,7 +143,7 @@ function TeamRosterPage() {
   });
   const error = rosterQuery.error ?? addPlayer.error ?? syncRoster.error;
 
-  const add = (event: React.FormEvent) => {
+  const add = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (name.trim() === "") return;
     addPlayer.mutate({

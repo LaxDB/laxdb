@@ -42,9 +42,9 @@ const logBadResponse = (label: string, response: Response) =>
         Effect.as(response),
       );
 
-export const traceResponse = (
+export const traceResponse = <E>(
   label: string,
-  effect: Effect.Effect<Response, unknown>,
+  effect: Effect.Effect<Response, E>,
 ) =>
   Effect.runPromise(
     effect.pipe(

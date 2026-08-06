@@ -44,7 +44,7 @@ function Profile() {
     },
   });
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = name.trim();
     if (trimmed === "" || updateName.isPending) return;

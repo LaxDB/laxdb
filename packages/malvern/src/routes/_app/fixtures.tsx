@@ -40,7 +40,6 @@ export const Route = createFileRoute("/_app/fixtures")({
 
 const ALL_TEAMS_FILTER = "__all";
 const MY_TEAMS_FILTER = "__mine";
-type FixtureFilter = string;
 
 const formatKickoff = (fixture: FixtureView) =>
   fixture.scheduledAt === null
