@@ -25,7 +25,9 @@ export function ThemeToggle({ className }: { className?: string }) {
         <button
           key={value}
           type="button"
-          onClick={() => setTheme(value)}
+          onClick={() => {
+            setTheme(value);
+          }}
           aria-label={label}
           className={`relative rounded-sm p-1.5 transition-colors duration-150 ${
             theme === value

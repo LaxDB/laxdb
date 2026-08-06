@@ -33,6 +33,20 @@ export const hasErrorInput = [
 
 export type ColorUtility = "bg" | "stroke" | "fill" | "text";
 
+export const AvailableChartColors = [
+  "blue",
+  "emerald",
+  "violet",
+  "amber",
+  "gray",
+  "cyan",
+  "pink",
+  "lime",
+  "fuchsia",
+] as const;
+
+export type AvailableChartColorsKeys = (typeof AvailableChartColors)[number];
+
 export const chartColors = {
   blue: {
     bg: "bg-blue-500",
@@ -89,16 +103,10 @@ export const chartColors = {
     text: "text-fuchsia-500",
   },
 } as const satisfies {
-  [color: string]: {
+  [color in AvailableChartColorsKeys]: {
     [key in ColorUtility]: string;
   };
 };
-
-export type AvailableChartColorsKeys = keyof typeof chartColors;
-
-export const AvailableChartColors: AvailableChartColorsKeys[] = Object.keys(
-  chartColors,
-) as AvailableChartColorsKeys[];
 
 export const constructCategoryColors = (
   categories: string[],

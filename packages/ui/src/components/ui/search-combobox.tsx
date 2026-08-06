@@ -33,6 +33,7 @@ function useSearchCombobox<TItem>(): SearchComboboxContextValue<TItem> {
   if (!context) {
     throw new Error("useSearchCombobox must be used within a SearchComboboxProvider");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Context erases the item type.
   return context as SearchComboboxContextValue<TItem>;
 }
 
@@ -75,6 +76,7 @@ function SearchComboboxProvider<TItem>({
   );
 
   return (
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The provider stores all item types through one React Context.
     <SearchComboboxContext.Provider value={contextValue as SearchComboboxContextValue<unknown>}>
       {children}
     </SearchComboboxContext.Provider>
@@ -286,6 +288,8 @@ type MultiSearchComboboxProps<TItem> = {
   align?: "start" | "center" | "end";
 };
 
+const defaultNoResultsMessage = (query: string) => `No results match “${query}”.`;
+
 function MultiSearchCombobox<TItem>({
   items,
   selectedValues,
@@ -303,7 +307,7 @@ function MultiSearchCombobox<TItem>({
   loading = false,
   loadingMessage = "Loading…",
   emptyMessage = "No options available.",
-  noResultsMessage = (query) => `No results match “${query}”.`,
+  noResultsMessage = defaultNoResultsMessage,
   disabled = false,
   className,
   triggerClassName,

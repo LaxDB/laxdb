@@ -4,17 +4,19 @@ import * as RechartsPrimitive from "recharts";
 import type { Props as DefaultLegendContentProps } from "recharts/types/component/DefaultLegendContent";
 import type { TooltipContentProps } from "recharts/types/component/Tooltip";
 
-// Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } as const;
+// Format: [THEME_NAME, CSS_SELECTOR]
+const THEMES = [
+  ["light", ""],
+  ["dark", ".dark"],
+] as const;
+
+type ChartTheme = (typeof THEMES)[number][0];
 
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
     icon?: React.ComponentType;
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  );
+  } & ({ color?: string; theme?: never } | { color?: never; theme: Record<ChartTheme, string> });
 };
 
 type ChartContextProps = {
@@ -78,26 +80,40 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
+        __html: THEMES.map(
+          ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+    const color = itemConfig.theme?.[theme] || itemConfig.color;
     return color ? `  --color-${key}: ${color};` : null;
   })
   .join("\n")}
 }
 `,
-          )
-          .join("\n"),
+        ).join("\n"),
       }}
     />
   );
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
+
+function getPayloadFill(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null || !("fill" in payload)) {
+    return undefined;
+  }
+  return typeof payload.fill === "string" ? payload.fill : undefined;
+}
+
+function getChartKey(...candidates: readonly unknown[]): string {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" || typeof candidate === "number") {
+      return String(candidate);
+    }
+  }
+  return "value";
+}
 
 function ChartTooltipContent({
   active,
@@ -129,12 +145,10 @@ function ChartTooltipContent({
     }
 
     const [item] = payload;
-    const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
+    const key = getChartKey(labelKey, item?.dataKey, item?.name);
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
-      !labelKey && typeof label === "string"
-        ? config[label as keyof typeof config]?.label || label
-        : itemConfig?.label;
+      !labelKey && typeof label === "string" ? config[label]?.label || label : itemConfig?.label;
 
     if (labelFormatter) {
       return (
@@ -167,9 +181,16 @@ function ChartTooltipContent({
         {payload
           .filter((item) => item.type !== "none")
           .map((item, index) => {
-            const key = `${nameKey || item.name || item.dataKey || "value"}`;
+            const key = getChartKey(nameKey, item.name, item.dataKey);
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
-            const indicatorColor = color || item.payload.fill || item.color;
+            const indicatorColor = color || getPayloadFill(item.payload) || item.color;
+            const indicatorStyle: React.CSSProperties & {
+              "--color-bg": string | undefined;
+              "--color-border": string | undefined;
+            } = {
+              "--color-bg": indicatorColor,
+              "--color-border": indicatorColor,
+            };
 
             return (
               <div
@@ -179,14 +200,10 @@ function ChartTooltipContent({
                   indicator === "dot" && "items-center",
                 )}
               >
-                {formatter && item?.value !== undefined && item.name ? (
-                  formatter(
-                    item.value as string | number,
-                    String(item.name),
-                    item,
-                    index,
-                    item.payload,
-                  )
+                {formatter &&
+                (typeof item.value === "string" || typeof item.value === "number") &&
+                item.name ? (
+                  formatter(item.value, String(item.name), item, index, payload)
                 ) : (
                   <>
                     {itemConfig?.icon ? (
@@ -204,12 +221,7 @@ function ChartTooltipContent({
                               "my-0.5": nestLabel && indicator === "dashed",
                             },
                           )}
-                          style={
-                            {
-                              "--color-bg": indicatorColor,
-                              "--color-border": indicatorColor,
-                            } as React.CSSProperties
-                          }
+                          style={indicatorStyle}
                         />
                       )
                     )}
@@ -271,7 +283,7 @@ function ChartLegendContent({
       {payload
         .filter((item) => item.type !== "none")
         .map((item) => {
-          const key = `${nameKey || item.dataKey || "value"}`;
+          const key = getChartKey(nameKey, item.dataKey);
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
           return (
@@ -299,6 +311,16 @@ function ChartLegendContent({
   );
 }
 
+const hasProperty = (value: object, key: string): value is Record<string, unknown> => key in value;
+
+function getStringProperty(value: object, key: string): string | undefined {
+  if (!hasProperty(value, key)) {
+    return undefined;
+  }
+  const property = value[key];
+  return typeof property === "string" ? property : undefined;
+}
+
 function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
   if (typeof payload !== "object" || payload === null) {
     return;
@@ -309,19 +331,12 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
       ? payload.payload
       : undefined;
 
-  let configLabelKey: string = key;
+  const configLabelKey =
+    getStringProperty(payload, key) ??
+    (payloadPayload ? getStringProperty(payloadPayload, key) : undefined) ??
+    key;
 
-  if (key in payload && typeof payload[key as keyof typeof payload] === "string") {
-    configLabelKey = payload[key as keyof typeof payload] as string;
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
-  ) {
-    configLabelKey = payloadPayload[key as keyof typeof payloadPayload] as string;
-  }
-
-  return configLabelKey in config ? config[configLabelKey] : config[key as keyof typeof config];
+  return configLabelKey in config ? config[configLabelKey] : config[key];
 }
 
 export {

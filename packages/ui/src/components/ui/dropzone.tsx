@@ -9,6 +9,8 @@ interface FileWithPreview extends File {
   preview: string;
 }
 
+const EMPTY_FILES: FileWithPreview[] = [];
+
 interface DropzoneProps extends Omit<DropzoneOptions, "onDrop"> {
   value?: FileWithPreview[];
   onChange?: (files: FileWithPreview[]) => void;
@@ -19,7 +21,7 @@ interface DropzoneProps extends Omit<DropzoneOptions, "onDrop"> {
 }
 
 function Dropzone({
-  value = [],
+  value = EMPTY_FILES,
   onChange,
   onReject,
   className,
@@ -30,11 +32,10 @@ function Dropzone({
 }: DropzoneProps) {
   const onDrop = React.useCallback(
     (accepted: File[], rejected: FileRejection[]) => {
-      const withPreviews = accepted.map(
-        (file) =>
-          Object.assign(file, {
-            preview: URL.createObjectURL(file),
-          }) as FileWithPreview,
+      const withPreviews = accepted.map((file) =>
+        Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        }),
       );
 
       const next = [...value, ...withPreviews].slice(0, maxFiles);
@@ -59,7 +60,9 @@ function Dropzone({
   React.useEffect(() => {
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      value.forEach((file) => URL.revokeObjectURL(file.preview));
+      value.forEach((file) => {
+        URL.revokeObjectURL(file.preview);
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -120,7 +123,9 @@ function Dropzone({
                   src={file.preview}
                   alt={file.name}
                   className="size-full object-cover"
-                  onLoad={() => URL.revokeObjectURL(file.preview)}
+                  onLoad={() => {
+                    URL.revokeObjectURL(file.preview);
+                  }}
                 />
               ) : file.type.startsWith("video/") ? (
                 <video

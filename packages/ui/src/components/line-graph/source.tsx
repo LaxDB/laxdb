@@ -37,8 +37,14 @@ export interface GraphContext {
   isTouch: boolean;
 }
 
-const GraphContext = React.createContext<GraphContext>({} as GraphContext);
-export const useGraph = () => React.useContext(GraphContext);
+const GraphContext = React.createContext<GraphContext | null>(null);
+export const useGraph = (): GraphContext => {
+  const context = React.useContext(GraphContext);
+  if (context === null) {
+    throw new Error("useGraph must be used within a GraphContext provider");
+  }
+  return context;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -189,7 +195,9 @@ export default function LineGraph() {
       ref={rootRef}
       onPointerMove={onPointerMove}
       onPointerDown={onPointerDown}
-      onPointerUp={() => setPressed(false)}
+      onPointerUp={() => {
+        setPressed(false);
+      }}
       value={context}
     >
       {/* Lines */}
@@ -538,7 +546,9 @@ export function Time() {
       setTime(getTime());
     }, 1000);
 
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+    };
   }, []);
 
   return time;

@@ -13,6 +13,7 @@ function useDataTable<TData = unknown>(): DataTableContextValue<TData> {
   if (!context) {
     throw new Error("useDataTable must be used within a DataTableProvider");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Context erases the table row type.
   return context as DataTableContextValue<TData>;
 }
 

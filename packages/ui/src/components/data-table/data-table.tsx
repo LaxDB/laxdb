@@ -84,6 +84,7 @@ function DataTableProvider<TData>({
   );
 
   return (
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The provider stores all row types through one React Context.
     <DataTableContext.Provider value={value as DataTableContextValue}>
       {children}
     </DataTableContext.Provider>

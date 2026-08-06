@@ -42,6 +42,7 @@ function useRowActions<TData = unknown>(): RowActionsContextValue<TData> {
   if (!context) {
     throw new Error("useRowActions must be used within a RowActionsProvider");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Context erases the table row type.
   return context as RowActionsContextValue<TData>;
 }
 
@@ -61,6 +62,7 @@ function RowActionsProvider<TData>({ row, actions, children }: RowActionsProvide
   );
 
   return (
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The provider stores all row types through one React Context.
     <RowActionsContext.Provider value={value as RowActionsContextValue}>
       {children}
     </RowActionsContext.Provider>

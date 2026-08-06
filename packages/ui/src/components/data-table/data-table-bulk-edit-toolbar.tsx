@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@laxdb/ui/components/ui/tooltip";
 import { cn } from "@laxdb/ui/lib/utils";
+import { voidAsync } from "@laxdb/ui/lib/void-async";
 import type { RowSelectionState, Table } from "@tanstack/react-table";
 import type { LucideIcon } from "lucide-react";
 import { Copy, Edit, Trash2, UserMinus, X } from "lucide-react";
@@ -45,6 +46,7 @@ function useBulkEdit<TData = unknown>(): BulkEditContextValue<TData> {
   if (!context) {
     throw new Error("useBulkEdit must be used within a BulkEditProvider");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Context erases the table row type.
   return context as BulkEditContextValue<TData>;
 }
 
@@ -74,6 +76,7 @@ function BulkEditProvider<TData>({
   );
 
   return (
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The provider stores all row types through one React Context.
     <BulkEditContext.Provider value={value as BulkEditContextValue}>
       {children}
     </BulkEditContext.Provider>
@@ -332,6 +335,19 @@ function BulkEditToolbarRemoveAction({
   );
 }
 
+function formatCopyValue(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  return "";
+}
+
 function BulkEditToolbarCopyAction({
   className,
   icon,
@@ -351,7 +367,7 @@ function BulkEditToolbarCopyAction({
     const values = selectedRows
       .map((row) => {
         const value = row.getValue(columnId);
-        return value ? String(value) : "";
+        return formatCopyValue(value);
       })
       .filter(Boolean);
 
@@ -371,7 +387,7 @@ function BulkEditToolbarCopyAction({
         render={
           <Button
             className={cn("h-7 w-7 p-0", className)}
-            onClick={handleCopy}
+            onClick={voidAsync(handleCopy)}
             size="sm"
             variant="ghost"
           />
