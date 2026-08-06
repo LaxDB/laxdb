@@ -17,14 +17,22 @@
   },
   "rules": {
     "no-unused-vars": "warn",
+    "no-underscore-dangle": "off",
+    "no-shadow": "off",
+    "no-await-in-loop": "off",
+    "require-unicode-regexp": "off",
     "no-console": "off",
     "no-inline-comments": "off",
     "no-magic-numbers": "off",
     "max-lines-per-function": "off",
     "max-classes-per-file": "off",
+    "max-depth": "off",
     "require-yield": "off",
+    "typescript/consistent-return": "off",
     "typescript/no-explicit-any": "warn",
     "typescript/no-non-null-assertion": "warn",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "typescript/prefer-nullish-coalescing": "off",
     "typescript/consistent-type-imports": "error",
     "typescript/no-base-to-string": "warn",
     "typescript/no-redundant-type-constituents": "warn",
@@ -37,12 +45,64 @@
     "import/max-dependencies": "off",
     "react-hooks/rules-of-hooks": "off",
     "react-hooks/exhaustive-deps": "off",
+    "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+    "unicorn/consistent-function-scoping": "off",
     "unicorn/no-array-callback-reference": "off",
+    "unicorn/prefer-array-find": "off",
+    "unicorn/prefer-number-coercion": "off",
+    "unicorn/prefer-query-selector": "off",
+    "unicorn/prefer-top-level-await": "off",
     "max-lines": "off",
     "@typescript-eslint/strict-boolean-expressions": "off",
     "unicorn/no-empty-file": "warn",
-    "no-warning-comments": "off"
+    "no-warning-comments": "off",
+    "eqeqeq": ["warn", "always", { "null": "ignore" }]
   },
+  "overrides": [
+    {
+      "files": ["**/*.js"],
+      "rules": {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off"
+      }
+    },
+    {
+      "files": ["**/routes/**/*.tsx"],
+      "rules": {
+        "typescript/only-throw-error": "off"
+      }
+    },
+    {
+      "files": [
+        "**/extract/*/run.ts",
+        "**/extract/api.ts",
+        "**/src/test/**/*.ts"
+      ],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/scripts/**/*.ts",
+        "**/src/cli.ts",
+        "**/src/test/**/*.ts",
+        "**/run.ts",
+        "**/extract/api.ts",
+        "**/explore-data.ts",
+        "**/validate-*.ts"
+      ],
+      "rules": {
+        "effecttsgo/strict-effect-provide": "off",
+        "typescript/strict-void-return": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "node_modules/**",
     "packages/marketing/src/content/**/.*",
