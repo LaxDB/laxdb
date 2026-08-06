@@ -9,6 +9,8 @@ import { Effect, Layer } from "effect";
 import { Flag } from "effect/unstable/cli";
 import { FetchHttpClient } from "effect/unstable/http";
 
+import { CliInputError } from "./error";
+
 export const prettyFlag = Flag.boolean("pretty").pipe(
   Flag.withDescription("Pretty-print JSON output"),
   Flag.withDefault(false),
@@ -24,11 +26,16 @@ export const output = (data: unknown, pretty: boolean) =>
     console.log(pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data));
   });
 
-export const readStdin: Effect.Effect<unknown, Error> = Effect.tryPromise({
-  try: () => Bun.stdin.text().then((text): unknown => JSON.parse(text)),
-  catch: (e: unknown) =>
-    new Error(`Failed to read JSON from stdin: ${String(e)}`),
-});
+export const readStdin: Effect.Effect<unknown, CliInputError> =
+  Effect.tryPromise({
+    try: () => Bun.stdin.text().then((text): unknown => JSON.parse(text)),
+    catch: (cause: unknown) =>
+      new CliInputError({
+        source: "stdin",
+        message: "Failed to read JSON from stdin",
+        cause,
+      }),
+  });
 
 export const apiLayer = (baseUrl: string) =>
   makeApiClientLayer(baseUrl).pipe(Layer.provide(FetchHttpClient.layer));
