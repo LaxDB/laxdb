@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 
-import { CliInputError } from "./error";
+import { CliInputError } from "./input-error";
 
 export const parseJsonValue = (value: string, flagName: string) =>
   Effect.try({
