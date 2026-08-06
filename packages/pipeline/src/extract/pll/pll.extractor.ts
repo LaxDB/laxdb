@@ -4,6 +4,7 @@ import { FileSystem } from "effect/FileSystem";
 import { Path } from "effect/Path";
 import type { PlatformError } from "effect/PlatformError";
 
+import { ParseError } from "../../error";
 import { PLLClient } from "../../pll/pll.client";
 import {
   PLLEvent,
@@ -49,7 +50,7 @@ export class PLLExtractorService extends Context.Service<PLLExtractorService>()(
         Context.add(Path, path),
       );
 
-      const saveOutputJson = <T>(filePath: string, data: T) =>
+      const saveOutputJson = (filePath: string, data: unknown) =>
         saveJson(filePath, data).pipe(Effect.provide(ioServices));
 
       const readJsonFile = (filePath: string) =>
@@ -399,10 +400,11 @@ export class PLLExtractorService extends Context.Service<PLLExtractorService>()(
             const teamsData = yield* readJsonFile(teamsPath);
             const teams = yield* Effect.try({
               try: () => JSON.parse(teamsData) as unknown,
-              catch: (e) =>
-                new Error(
-                  `Failed to parse teams JSON for ${year}: ${String(e)}`,
-                ),
+              catch: (cause) =>
+                new ParseError({
+                  message: `Failed to parse teams JSON for ${year}`,
+                  cause,
+                }),
             }).pipe(
               Effect.flatMap((parsed) =>
                 Schema.decodeUnknownEffect(Schema.Array(PLLTeam))(parsed),
@@ -464,10 +466,11 @@ export class PLLExtractorService extends Context.Service<PLLExtractorService>()(
             const playersData = yield* readJsonFile(playersPath);
             const players = yield* Effect.try({
               try: () => JSON.parse(playersData) as unknown,
-              catch: (e) =>
-                new Error(
-                  `Failed to parse players JSON for ${year}: ${String(e)}`,
-                ),
+              catch: (cause) =>
+                new ParseError({
+                  message: `Failed to parse players JSON for ${year}`,
+                  cause,
+                }),
             }).pipe(
               Effect.flatMap((parsed) =>
                 Schema.decodeUnknownEffect(Schema.Array(PLLPlayer))(parsed),
@@ -516,10 +519,11 @@ export class PLLExtractorService extends Context.Service<PLLExtractorService>()(
             const eventsData = yield* readJsonFile(eventsPath);
             const events = yield* Effect.try({
               try: () => JSON.parse(eventsData) as unknown,
-              catch: (e) =>
-                new Error(
-                  `Failed to parse events JSON for ${year}: ${String(e)}`,
-                ),
+              catch: (cause) =>
+                new ParseError({
+                  message: `Failed to parse events JSON for ${year}`,
+                  cause,
+                }),
             }).pipe(
               Effect.flatMap((parsed) =>
                 Schema.decodeUnknownEffect(Schema.Array(PLLEvent))(parsed),

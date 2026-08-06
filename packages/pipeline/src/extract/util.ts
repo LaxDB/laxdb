@@ -28,7 +28,7 @@ export class FileWriteError extends Schema.TaggedErrorClass<FileWriteError>()(
  * File write failures should stop extraction, not continue silently.
  * A failed write with manifest marked complete = permanent data loss.
  */
-export const saveJson = <T>(filePath: string, data: T) =>
+export const saveJson = (filePath: string, data: unknown) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem;
     const path = yield* Path;
@@ -147,8 +147,5 @@ export const withRateLimitRetry =
       }
 
       // All retries exhausted - fail with the last rate limit error
-      // Safety: lastRateLimitError came from the input effect's error channel,
-      // so RateLimitError is assignable to E (the input effect's error type)
-      // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-      return yield* Effect.fail(lastRateLimitError as E);
+      return yield* Effect.fail(lastRateLimitError);
     });

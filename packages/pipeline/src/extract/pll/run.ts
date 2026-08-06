@@ -76,7 +76,7 @@ const program = Effect.gen(function* () {
 
         if (yearValue !== null && (yearValue < 2019 || yearValue > 2030)) {
           yield* Effect.logError(
-            `Invalid year ${Number(yearValue)}. Must be 2019-2030.`,
+            `Invalid year ${yearValue}. Must be 2019-2030.`,
           );
           return yield* Effect.fail("Invalid year");
         }
