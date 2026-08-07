@@ -65,7 +65,7 @@ const TestGamedayLive = Layer.succeed(GamedayClient, {
         ],
       }),
     ),
-  fetchSeasons: () => Effect.die("GameDay seasons should not be called"),
+  fetchSeasons: Effect.die("GameDay seasons should not be called"),
   fetchCompetitions: () =>
     Effect.die("GameDay competitions should not be called"),
   fetchFixtures: () => Effect.die("GameDay fixtures should not be called"),

@@ -50,7 +50,7 @@ export class WLAExtractorService extends Context.Service<WLAExtractorService>()(
         Context.add(Path, path),
       );
 
-      const saveOutputJson = <T>(filePath: string, data: T) =>
+      const saveOutputJson = (filePath: string, data: unknown) =>
         saveJson(filePath, data).pipe(Effect.provide(ioServices));
 
       /** Extracts teams for a season. @see isCriticalError for error handling. */

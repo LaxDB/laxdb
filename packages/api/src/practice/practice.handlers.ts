@@ -12,7 +12,7 @@ export const PracticesHandlers = HttpApiBuilder.group(
       const service = yield* PracticeService;
 
       return handlers
-        .handle("listPractices", () => service.list())
+        .handle("listPractices", () => service.list)
         .handle("getPractice", ({ payload }) => service.get(payload))
         .handle("createPractice", ({ payload }) => service.create(payload))
         .handle("updatePractice", ({ payload }) => service.update(payload))

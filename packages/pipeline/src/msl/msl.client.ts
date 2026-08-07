@@ -720,7 +720,7 @@ export class MSLClient extends Context.Service<MSLClient>()("MSLClient", {
           }
 
           const game = new MSLGame({
-            id: String(gameId),
+            id: gameId,
             date,
             time,
             status,

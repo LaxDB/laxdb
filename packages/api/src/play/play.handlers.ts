@@ -12,7 +12,7 @@ export const PlaysHandlers = HttpApiBuilder.group(
       const service = yield* PlayService;
 
       return handlers
-        .handle("listPlays", () => service.list())
+        .handle("listPlays", () => service.list)
         .handle("getPlay", ({ payload }) => service.get(payload))
         .handle("createPlay", ({ payload }) => service.create(payload))
         .handle("updatePlay", ({ payload }) => service.update(payload))

@@ -81,7 +81,13 @@ function focusElement(target: HTMLElement) {
 
   if (!hadTabIndex) {
     target.setAttribute("tabindex", "-1");
-    target.addEventListener("blur", () => target.removeAttribute("tabindex"), { once: true });
+    target.addEventListener(
+      "blur",
+      () => {
+        target.removeAttribute("tabindex");
+      },
+      { once: true },
+    );
   }
 
   target.focus({ preventScroll: true });

@@ -76,7 +76,7 @@ layer(TestLayer)("DrillService integration", (it) => {
       yield* svc.create(validCreateDrill({ name: "Drill A" }));
       yield* svc.create(validCreateDrill({ name: "Drill B" }));
 
-      const drills = yield* svc.list();
+      const drills = yield* svc.list;
       expect(drills).toHaveLength(2);
     }),
   );
@@ -190,7 +190,7 @@ layer(TestLayer)("DrillService integration", (it) => {
 
       expect(deleted.publicId).toBe(created.publicId);
 
-      const list = yield* svc.list();
+      const list = yield* svc.list;
       expect(list).toHaveLength(0);
     }),
   );

@@ -39,7 +39,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.5",
     "serve": "^14.2.5",
-    "tailwindcss": "^4.1.18",
-    "vite-tsconfig-paths": "^5.1.4"
+    "tailwindcss": "^4.1.18"
   }
 }

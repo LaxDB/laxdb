@@ -31,12 +31,19 @@ const getSystemTheme = (e?: MediaQueryList | MediaQueryListEvent): "dark" | "lig
   return media.matches ? "dark" : "light";
 };
 
-const getTheme = (key: string, fallback?: string) => {
+const normalizeTheme = (value: string | null, fallback: Theme): Theme => {
+  if (value === "dark" || value === "light" || value === "system") {
+    return value;
+  }
+  return fallback;
+};
+
+const getTheme = (key: string, fallback: Theme): Theme => {
   if (typeof window === "undefined") {
     return fallback;
   }
   try {
-    return localStorage.getItem(key) ?? fallback;
+    return normalizeTheme(localStorage.getItem(key), fallback);
   } catch {
     return fallback;
   }
@@ -106,7 +113,7 @@ export function ThemeProvider({
   disableTransitionOnChange = false,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => getTheme(storageKey, defaultTheme) as Theme);
+  const [theme, setThemeState] = useState<Theme>(() => getTheme(storageKey, defaultTheme));
   const [resolvedTheme, setResolvedTheme] = useState<Theme>(() =>
     theme === "system" ? getSystemTheme() : theme,
   );
@@ -163,7 +170,7 @@ export function ThemeProvider({
 
   // Hydrate theme from localStorage on mount (SSR renders with fallback)
   useEffect(() => {
-    setThemeState(getTheme(storageKey, defaultTheme) as Theme);
+    setThemeState(getTheme(storageKey, defaultTheme));
   }, [storageKey, defaultTheme]);
 
   // Listen to system preference changes
@@ -182,7 +189,7 @@ export function ThemeProvider({
       if (e.key !== storageKey) {
         return;
       }
-      setThemeState((e.newValue as Theme) || defaultTheme);
+      setThemeState(normalizeTheme(e.newValue, defaultTheme));
     };
 
     window.addEventListener("storage", handleStorage);

@@ -1,6 +1,7 @@
 import { BunRuntime } from "@effect/platform-bun";
 import { Duration, Effect, Schema } from "effect";
 
+import { SyncStorageError } from "./lib/error";
 import { Championship } from "./lib/schema";
 import { DEFAULT_SCHEDULE_URL, WorldLacrosseScraper } from "./lib/scraper";
 import {
@@ -41,7 +42,7 @@ const poll = Effect.gen(function* () {
   yield* Effect.log(
     `Polling every ${liveIntervalSeconds}s during live games and ${intervalSeconds}s otherwise. Press Ctrl-C to stop.`,
   );
-  yield* Effect.gen(function* () {
+  return yield* Effect.gen(function* () {
     const result = yield* sync.syncOnce(syncOptions).pipe(
       Effect.catchTags({
         FetchError: (error) =>
@@ -72,7 +73,12 @@ const legacyScrape = Effect.gen(function* () {
   yield* Effect.tryPromise({
     try: () => Bun.write(outputPath, `${JSON.stringify(encoded, null, 2)}\n`),
     catch: (cause) =>
-      new Error(`Could not write ${outputPath}: ${String(cause)}`),
+      new SyncStorageError({
+        path: outputPath,
+        operation: "write legacy scrape output",
+        message: `Could not write ${outputPath}`,
+        cause,
+      }),
   });
   yield* Effect.log(
     `Wrote ${championship.games.length} games to ${outputPath}`,

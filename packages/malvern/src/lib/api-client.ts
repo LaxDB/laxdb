@@ -17,15 +17,35 @@ type CloudflareWorkersModule = {
   readonly env: { readonly API: ApiServiceBinding };
 };
 
+const isCloudflareWorkersModule = (
+  value: unknown,
+): value is CloudflareWorkersModule => {
+  if (typeof value !== "object" || value === null || !("env" in value)) {
+    return false;
+  }
+  const env = value.env;
+  return (
+    typeof env === "object" &&
+    env !== null &&
+    "API" in env &&
+    typeof env.API === "object" &&
+    env.API !== null &&
+    "fetch" in env.API &&
+    typeof env.API.fetch === "function"
+  );
+};
+
 const isLocal = process.env.IS_LOCAL === "true";
 const localApiUrl = `http://localhost:${process.env.API_PORT ?? "1437"}`;
 const apiUrl = isLocal ? localApiUrl : "http://api";
 
 const loadApiBinding = Effect.promise(async () => {
+  // oxlint-disable-next-line no-useless-concat -- A static specifier makes Vite resolve this worker runtime module at build time.
   const workerModule = "cloudflare:" + "workers";
-  const workers: CloudflareWorkersModule = await import(
-    /* @vite-ignore */ workerModule
-  );
+  const workers: unknown = await import(/* @vite-ignore */ workerModule);
+  if (!isCloudflareWorkersModule(workers)) {
+    throw new TypeError("Cloudflare workers module is missing the API binding");
+  }
   return workers.env.API;
 });
 
@@ -50,7 +70,7 @@ const boundApiFetch =
     return api.fetch(request);
   };
 
-export const apiAuth = createMiddleware().server(async ({ request, next }) =>
+export const apiAuth = createMiddleware().server(({ request, next }) =>
   next({ context: { apiCookie: request.headers.get("cookie") ?? undefined } }),
 );
 
@@ -71,6 +91,7 @@ export async function runApi<A, E>(
 ): Promise<A> {
   const result = await Effect.runPromise(
     effect.pipe(
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- runApi executes the fully provided effect at this Promise boundary.
       Effect.provide(clientLayer(cookie)),
       Effect.tapError((error) =>
         Effect.sync(() => {

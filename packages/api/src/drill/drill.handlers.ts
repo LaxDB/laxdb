@@ -12,7 +12,7 @@ export const DrillsHandlers = HttpApiBuilder.group(
       const service = yield* DrillService;
 
       return handlers
-        .handle("listDrills", () => service.list())
+        .handle("listDrills", () => service.list)
         .handle("getDrill", ({ payload }) => service.get(payload))
         .handle("createDrill", ({ payload }) => service.create(payload))
         .handle("updateDrill", ({ payload }) => service.update(payload))

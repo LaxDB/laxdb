@@ -49,7 +49,7 @@ function Login() {
     },
   });
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = email.trim();
     if (!trimmed || sendLink.isPending) return;

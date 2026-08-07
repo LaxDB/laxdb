@@ -42,10 +42,9 @@ export class PracticeRepo extends Context.Service<PracticeRepo>()(
         // Practice CRUD
         // -----------------------------------------------------------------
 
-        list: () =>
-          query(db.select(practiceCols).from(practiceTable)).pipe(
-            Effect.tapError(Effect.logError),
-          ),
+        list: query(db.select(practiceCols).from(practiceTable)).pipe(
+          Effect.tapError(Effect.logError),
+        ),
 
         get: (input: GetPracticeInput) =>
           query(

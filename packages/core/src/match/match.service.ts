@@ -7,7 +7,7 @@ import {
   parseSqlError,
   type SchemaInput,
 } from "@laxdb/core/util";
-import { Context, Effect, Layer, Option } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { nanoid } from "nanoid";
 
 import {
@@ -478,7 +478,7 @@ export class MatchService extends Context.Service<MatchService>()(
       const currentGamedaySeason = Effect.fn(
         "MatchService.currentGamedaySeason",
       )(function* () {
-        const seasons = yield* gameday.fetchSeasons();
+        const seasons = yield* gameday.fetchSeasons;
         const current = seasons[0];
         if (current === undefined) {
           return yield* Effect.fail(
@@ -518,76 +518,72 @@ export class MatchService extends Context.Service<MatchService>()(
           Effect.tapError((e) => Effect.logError("Failed to sync fixtures", e)),
         );
 
-      const syncAllLinkedFixtures = () =>
-        Effect.gen(function* () {
-          yield* gamedayRepo.upsertSource(
-            new UpsertGamedaySourceInput({
-              id: LACROSSE_VICTORIA_GAMEDAY_SOURCE_ID,
-              name: LACROSSE_VICTORIA_GAMEDAY_SOURCE_NAME,
-              clientId: LACROSSE_VICTORIA_CLIENT,
-              baseUrl: GAMEDAY_BASE_URL,
-            }),
-          );
-          const season = yield* currentGamedaySeason();
-          const competitions = yield* gameday.fetchCompetitions({
-            seasonId: season.seasonId,
-          });
-          const currentCompIds = new Set(
-            competitions.map((competition) => competition.compId),
-          );
-          const linkedTeams = yield* gamedayRepo.listLinkedClubTeams({
+      const syncAllLinkedFixtures = Effect.gen(function* () {
+        yield* gamedayRepo.upsertSource(
+          new UpsertGamedaySourceInput({
+            id: LACROSSE_VICTORIA_GAMEDAY_SOURCE_ID,
+            name: LACROSSE_VICTORIA_GAMEDAY_SOURCE_NAME,
+            clientId: LACROSSE_VICTORIA_CLIENT,
+            baseUrl: GAMEDAY_BASE_URL,
+          }),
+        );
+        const season = yield* currentGamedaySeason();
+        const competitions = yield* gameday.fetchCompetitions({
+          seasonId: season.seasonId,
+        });
+        const currentCompIds = new Set(
+          competitions.map((competition) => competition.compId),
+        );
+        const linkedTeams = yield* gamedayRepo.listLinkedClubTeams({
+          sourceId: LACROSSE_VICTORIA_GAMEDAY_SOURCE_ID,
+          seasonId: season.seasonId,
+        });
+        const unlinkedTeams =
+          yield* gamedayRepo.listUnlinkedClubTeamsWithFixtures({
             sourceId: LACROSSE_VICTORIA_GAMEDAY_SOURCE_ID,
             seasonId: season.seasonId,
           });
-          const unlinkedTeams =
-            yield* gamedayRepo.listUnlinkedClubTeamsWithFixtures({
-              sourceId: LACROSSE_VICTORIA_GAMEDAY_SOURCE_ID,
-              seasonId: season.seasonId,
-            });
-          const teamsByKey = new Map(
-            linkedTeams.map((team) => [
-              `${team.organizationId}:${team.clubTeamId}`,
-              team,
-            ]),
-          );
-          for (const team of unlinkedTeams) {
-            if (team.compId === null || !currentCompIds.has(team.compId))
-              continue;
-            teamsByKey.set(`${team.organizationId}:${team.clubTeamId}`, {
-              organizationId: team.organizationId,
-              clubTeamId: team.clubTeamId,
-            });
-          }
-          const teams = [...teamsByKey.values()];
-          const results = yield* Effect.forEach(
-            teams,
-            ({ organizationId, clubTeamId }) =>
-              syncFixturesForSeason(
-                { organizationId, teamId: clubTeamId },
-                season.seasonId,
-                currentCompIds,
-              ),
-            { concurrency: 2 },
-          );
-          return {
-            seasonId: season.seasonId,
-            teams: teams.length,
-            fixtures: results.reduce(
-              (total, result) => total + result.synced,
-              0,
-            ),
-          };
-        }).pipe(
-          Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
-          Effect.tap((result) =>
-            Effect.log(
-              `Daily GameDay sync updated ${result.fixtures} fixtures across ${result.teams} teams`,
-            ),
-          ),
-          Effect.tapError((e) =>
-            Effect.logError("Daily GameDay fixture sync failed", e),
-          ),
+        const teamsByKey = new Map(
+          linkedTeams.map((team) => [
+            `${team.organizationId}:${team.clubTeamId}`,
+            team,
+          ]),
         );
+        for (const team of unlinkedTeams) {
+          if (team.compId === null || !currentCompIds.has(team.compId))
+            continue;
+          teamsByKey.set(`${team.organizationId}:${team.clubTeamId}`, {
+            organizationId: team.organizationId,
+            clubTeamId: team.clubTeamId,
+          });
+        }
+        const teams = [...teamsByKey.values()];
+        const results = yield* Effect.forEach(
+          teams,
+          ({ organizationId, clubTeamId }) =>
+            syncFixturesForSeason(
+              { organizationId, teamId: clubTeamId },
+              season.seasonId,
+              currentCompIds,
+            ),
+          { concurrency: 2 },
+        );
+        return {
+          seasonId: season.seasonId,
+          teams: teams.length,
+          fixtures: results.reduce((total, result) => total + result.synced, 0),
+        };
+      }).pipe(
+        Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+        Effect.tap((result) =>
+          Effect.log(
+            `Daily GameDay sync updated ${result.fixtures} fixtures across ${result.teams} teams`,
+          ),
+        ),
+        Effect.tapError((e) =>
+          Effect.logError("Daily GameDay fixture sync failed", e),
+        ),
+      );
 
       return {
         listFixtures: (input: SchemaInput<typeof ListFixturesInput>) =>
@@ -712,7 +708,7 @@ export class MatchService extends Context.Service<MatchService>()(
               );
             }
 
-            const seasons = yield* gameday.fetchSeasons();
+            const seasons = yield* gameday.fetchSeasons;
             const selectedSeason =
               decoded.seasonId === undefined
                 ? seasons[0]
@@ -1101,14 +1097,11 @@ export class MatchService extends Context.Service<MatchService>()(
               ),
             ),
 
-        listGamedaySeasons: () =>
-          gameday
-            .fetchSeasons()
-            .pipe(
-              Effect.tapError((e) =>
-                Effect.logError("Failed to list GameDay seasons", e),
-              ),
-            ),
+        listGamedaySeasons: gameday.fetchSeasons.pipe(
+          Effect.tapError((e) =>
+            Effect.logError("Failed to list GameDay seasons", e),
+          ),
+        ),
 
         listGamedayClubs: (input?: {
           readonly seasonId?: string | undefined;

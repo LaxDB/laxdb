@@ -14,6 +14,20 @@ import type { PlatformError } from "effect/PlatformError";
 import { ExtractConfigService } from "./extract.config";
 import { isEntityStale } from "./extract.schema";
 
+class ManifestError extends Schema.TaggedErrorClass<ManifestError>()(
+  "ManifestError",
+  {
+    path: Schema.String,
+    operation: Schema.Union([
+      Schema.Literal("read"),
+      Schema.Literal("parse"),
+      Schema.Literal("write"),
+    ]),
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
 /** Entity status schema - same for all leagues */
 export const EntityStatusSchema = Schema.Struct({
   extracted: Schema.Boolean,
@@ -98,17 +112,28 @@ export const createManifestServiceEffect = <
         return createEmptyManifest();
       }
 
-      const content = yield* fs
-        .readFileString(manifestPath, "utf-8")
-        .pipe(
-          Effect.catchTag("PlatformError", (error: PlatformError) =>
-            Effect.fail(new Error(`Failed to read manifest: ${error.message}`)),
+      const content = yield* fs.readFileString(manifestPath, "utf-8").pipe(
+        Effect.catchTag("PlatformError", (cause: PlatformError) =>
+          Effect.fail(
+            new ManifestError({
+              path: manifestPath,
+              operation: "read",
+              message: `Failed to read manifest: ${cause.message}`,
+              cause,
+            }),
           ),
-        );
+        ),
+      );
 
       const parsed = yield* Effect.try({
         try: () => JSON.parse(content) as unknown,
-        catch: (e) => new Error(`Failed to parse manifest JSON: ${String(e)}`),
+        catch: (cause) =>
+          new ManifestError({
+            path: manifestPath,
+            operation: "parse",
+            message: "Failed to parse manifest JSON",
+            cause,
+          }),
       });
 
       return yield* Schema.decodeUnknownEffect(ExtractionManifestSchema)(
@@ -122,15 +147,22 @@ export const createManifestServiceEffect = <
       );
     });
 
-    const save = (manifest: Manifest): Effect.Effect<void, Error> =>
+    const save = (manifest: Manifest): Effect.Effect<void, ManifestError> =>
       Effect.gen(function* () {
         const dir = path.dirname(manifestPath);
         yield* fs.makeDirectory(dir, { recursive: true });
         const content = JSON.stringify(manifest, null, 2);
         yield* fs.writeFileString(manifestPath, content);
       }).pipe(
-        Effect.catchTag("PlatformError", (error: PlatformError) =>
-          Effect.fail(new Error(`Failed to write manifest: ${error.message}`)),
+        Effect.catchTag("PlatformError", (cause: PlatformError) =>
+          Effect.fail(
+            new ManifestError({
+              path: manifestPath,
+              operation: "write",
+              message: `Failed to write manifest: ${cause.message}`,
+              cause,
+            }),
+          ),
         ),
       );
 

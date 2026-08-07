@@ -21,12 +21,11 @@ export class DrillService extends Context.Service<DrillService>()(
       const repo = yield* DrillRepo;
 
       return {
-        list: () =>
-          repo.list().pipe(
-            Effect.map((rows) => rows.map((row) => asDrill(row))),
-            Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
-            Effect.tapError(Effect.logError),
-          ),
+        list: repo.list.pipe(
+          Effect.map((rows) => rows.map((row) => asDrill(row))),
+          Effect.catchTag("SqlError", (e) => Effect.fail(parseSqlError(e))),
+          Effect.tapError(Effect.logError),
+        ),
 
         get: (input: SchemaInput<typeof GetDrillInput>) =>
           Effect.gen(function* () {

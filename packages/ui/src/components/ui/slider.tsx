@@ -4,6 +4,11 @@ import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import { cn } from "@laxdb/ui/lib/utils";
 import * as React from "react";
 
+const sliderValues = (
+  value: number | readonly number[] | undefined,
+): readonly number[] | undefined =>
+  value === undefined ? undefined : typeof value === "number" ? [value] : value;
+
 function Slider({
   className,
   defaultValue,
@@ -13,7 +18,7 @@ function Slider({
   ...props
 }: SliderPrimitive.Root.Props) {
   const _values = React.useMemo(
-    () => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]),
+    () => sliderValues(value) ?? sliderValues(defaultValue) ?? [min, max],
     [value, defaultValue, min, max],
   );
 

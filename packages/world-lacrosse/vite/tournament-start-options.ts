@@ -1,4 +1,4 @@
-import type { TournamentMode } from "../src/lib/tournament-mode";
+import type { TournamentMode } from "../src/lib/tournament-mode.ts";
 
 export async function tournamentStartOptions(mode: TournamentMode) {
   if (mode === "live") {
@@ -7,7 +7,7 @@ export async function tournamentStartOptions(mode: TournamentMode) {
     };
   }
 
-  const { worldLacrossePrerenderPages } = await import("./prerender");
+  const { worldLacrossePrerenderPages } = await import("./prerender.ts");
 
   return {
     pages: worldLacrossePrerenderPages,

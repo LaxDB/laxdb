@@ -1,10 +1,9 @@
 import { Schema } from "effect";
 
-import {
-  championship as championshipJson,
-  tournament as tournamentJson,
-} from "../src/generated/dataset.json";
-import { GameId, PlayerId } from "../src/lib/schema";
+import dataset from "../src/generated/dataset.json" with { type: "json" };
+import { GameId, PlayerId } from "../src/lib/schema.ts";
+
+const { championship: championshipJson, tournament: tournamentJson } = dataset;
 
 class PrerenderGame extends Schema.Class<PrerenderGame>(
   "WorldLacrossePrerenderGame",

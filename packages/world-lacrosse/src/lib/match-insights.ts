@@ -488,11 +488,11 @@ const sideForPlay = (
     }),
   );
   const participantSide =
-    participantSides.size !== 1
-      ? null
-      : participantSides.has("home")
+    participantSides.size === 1
+      ? participantSides.has("home")
         ? "home"
-        : "away";
+        : "away"
+      : null;
   if (
     cellSide !== null &&
     participantSide !== null &&

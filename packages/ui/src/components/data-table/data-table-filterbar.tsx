@@ -32,6 +32,7 @@ function FilterBarProvider<TData>({ table, actions, children }: FilterBarProvide
   );
 
   return (
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The provider stores all row types through one React Context.
     <FilterBarContext.Provider value={value as FilterBarContextValue}>
       {children}
     </FilterBarContext.Provider>
@@ -97,7 +98,8 @@ function FilterBarViewOptions() {
             if (!column.getCanHide()) {
               return null;
             }
-            const label = (column.columnDef.meta?.displayName as string) || column.id;
+            const displayName = column.columnDef.meta?.displayName;
+            const label = typeof displayName === "string" ? displayName : column.id;
             return (
               <div
                 className="flex items-center gap-2 overflow-y-auto rounded-sm text-sm hover:bg-accent hover:text-accent-foreground"
@@ -108,7 +110,7 @@ function FilterBarViewOptions() {
                   checked={column.getIsVisible()}
                   id={column.id}
                   onCheckedChange={(value) => {
-                    column.toggleVisibility(!!value);
+                    column.toggleVisibility(value);
                   }}
                 />
                 <Label className="cursor-pointer text-sm font-normal" htmlFor={column.id}>

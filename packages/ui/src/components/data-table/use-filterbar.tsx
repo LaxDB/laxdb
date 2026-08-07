@@ -17,6 +17,7 @@ function useFilterBar<TData = unknown>(): FilterBarContextValue<TData> {
   if (!context) {
     throw new Error("useFilterBar must be used within a FilterBarProvider");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- React Context erases the table row type.
   return context as FilterBarContextValue<TData>;
 }
 

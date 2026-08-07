@@ -25,7 +25,7 @@ const getFileStats = (filePath: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem;
     return yield* fs.stat(filePath);
-  }).pipe(Effect.catch(() => Effect.fail(new Error("File not found"))));
+  });
 
 const runCheck = <R>(
   checkName: string,
@@ -166,7 +166,7 @@ export const validateJsonArray = <T>(
 
 export const validateSchema = <T>(
   data: unknown[],
-  schema: Schema.Schema<T>,
+  schema: Schema.Schema<T> & { readonly DecodingServices: never },
   sampleSize = 10,
 ) =>
   runCheck("schema_validation", () =>

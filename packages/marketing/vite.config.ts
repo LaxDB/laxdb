@@ -3,10 +3,9 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 
-import { runMarketingPrerenderConfig } from "./src/lib/marketing-prerender";
-import { pagefindSearch } from "./vite/pagefind";
+import { runMarketingPrerenderConfig } from "./src/lib/marketing-prerender.ts";
+import { pagefindSearch } from "./vite/pagefind.ts";
 
 const cssModuleLocalsConvention = "camelCase" as const;
 
@@ -20,13 +19,12 @@ export default defineConfig(async () => {
     build: {
       outDir: `${import.meta.dirname}/dist`,
       target: "esnext",
-      rollupOptions: {
+      rolldownOptions: {
         external: ["node:async_hooks", "cloudflare:workers"],
       },
     },
     plugins: [
       contentCollections(),
-      viteTsConfigPaths({ projects: ["./tsconfig.json"] }),
       tailwindcss(),
       tanstackStart({
         pages,
@@ -45,6 +43,9 @@ export default defineConfig(async () => {
         },
       }),
     ],
+    resolve: {
+      tsconfigPaths: true,
+    },
     server: {
       watch: {
         ignored: ["**/routeTree.gen.ts", "**/.tanstack/**"],

@@ -4,6 +4,10 @@
 
 import { Config, Effect, Redacted } from "effect";
 
+import { HttpError, NetworkError } from "../error";
+
+const PLL_GRAPHQL_URL = "https://api.stats.premierlacrosseleague.com/graphql";
+
 const EVENT_QUERY = `
 query($slug: ID!) {
   event(slug: $slug) {
@@ -35,7 +39,7 @@ const program = Effect.gen(function* () {
 
   const response = yield* Effect.tryPromise({
     try: () =>
-      fetch("https://api.stats.premierlacrosseleague.com/graphql", {
+      fetch(PLL_GRAPHQL_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,12 +49,24 @@ const program = Effect.gen(function* () {
         },
         body: JSON.stringify({ query: EVENT_QUERY, variables: { slug } }),
       }),
-    catch: (e) => new Error(`Fetch failed: ${String(e)}`),
+    catch: (cause) =>
+      new NetworkError({
+        message: "Failed to fetch PLL event",
+        url: PLL_GRAPHQL_URL,
+        cause,
+      }),
   });
 
   if (!response.ok) {
     const text = yield* Effect.tryPromise(() => response.text());
-    return yield* Effect.fail(new Error(`HTTP ${response.status}: ${text}`));
+    return yield* Effect.fail(
+      new HttpError({
+        message: text,
+        url: PLL_GRAPHQL_URL,
+        method: "POST",
+        statusCode: response.status,
+      }),
+    );
   }
 
   const result = yield* Effect.tryPromise(() => response.json());

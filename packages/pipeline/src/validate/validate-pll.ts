@@ -236,7 +236,7 @@ const program = Effect.gen(function* () {
   if (statLeadersFileResult.exists) {
     const statLeadersData = yield* readJsonFile<StatLeadersData>(
       statLeadersPath,
-    ).pipe(Effect.catch(() => Effect.succeed({} as StatLeadersData)));
+    ).pipe(Effect.catch(() => Effect.succeed({})));
 
     const yearCount = Object.keys(statLeadersData).length;
     const firstYearData = Object.values(statLeadersData)[0];

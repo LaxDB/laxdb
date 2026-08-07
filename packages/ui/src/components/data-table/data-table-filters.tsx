@@ -20,10 +20,36 @@ import React from "react";
 
 import { useFilterBar } from "./use-filterbar";
 
+const selectDisplayValue = (value: unknown, fallback: string): string =>
+  typeof value === "string" ? value : fallback;
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string");
+
+const EMPTY_STRING_FILTERS: string[] = [];
+
 export type ConditionFilter = {
   condition: string;
   value: [number | string, number | string];
 };
+
+const DEFAULT_CONDITION_FILTER: ConditionFilter = {
+  condition: "",
+  value: ["", ""],
+};
+
+const isFilterScalar = (value: unknown): value is number | string =>
+  typeof value === "number" || typeof value === "string";
+
+const isConditionFilter = (value: unknown): value is ConditionFilter =>
+  typeof value === "object" &&
+  value !== null &&
+  "condition" in value &&
+  typeof value.condition === "string" &&
+  "value" in value &&
+  Array.isArray(value.value) &&
+  value.value.length === 2 &&
+  value.value.every(isFilterScalar);
 
 type SharedFilterProps<TData, TValue> = {
   column: Column<TData, TValue> | undefined;
@@ -123,8 +149,9 @@ function FilterClear({ className }: FilterClearProps) {
 type FilterSelectProps<TData, TValue> = SharedFilterProps<TData, TValue>;
 
 function FilterSelect<TData, TValue>({ column, title, options }: FilterSelectProps<TData, TValue>) {
-  const columnFilters = column?.getFilterValue() as string;
-  const [selectedValues, setSelectedValues] = React.useState<string>(columnFilters || "");
+  const filterValue = column?.getFilterValue();
+  const columnFilters = typeof filterValue === "string" ? filterValue : "";
+  const [selectedValues, setSelectedValues] = React.useState<string>(columnFilters);
   const [open, setOpen] = React.useState(false);
 
   const columnFilterLabels = React.useMemo(() => {
@@ -218,7 +245,9 @@ function FilterSelect<TData, TValue>({ column, title, options }: FilterSelectPro
                 value={selectedValues}
               >
                 <SelectTrigger className="mt-2 sm:py-1">
-                  <SelectValue>{(value) => value ?? "Select"}</SelectValue>
+                  <SelectValue>
+                    {(value: unknown) => selectDisplayValue(value, "Select")}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {options.map((item) => (
@@ -256,8 +285,9 @@ function FilterCheckbox<TData, TValue>({
   title,
   options,
 }: FilterCheckboxProps<TData, TValue>) {
-  const columnFilters = column?.getFilterValue() as string[];
-  const [selectedValues, setSelectedValues] = React.useState<string[]>(columnFilters || []);
+  const filterValue = column?.getFilterValue();
+  const columnFilters = isStringArray(filterValue) ? filterValue : EMPTY_STRING_FILTERS;
+  const [selectedValues, setSelectedValues] = React.useState<string[]>(columnFilters);
   const [open, setOpen] = React.useState(false);
 
   const columnFilterLabels = React.useMemo(() => {
@@ -268,7 +298,7 @@ function FilterCheckbox<TData, TValue>({
   }, [selectedValues]);
 
   React.useEffect(() => {
-    setSelectedValues(columnFilters || []);
+    setSelectedValues(columnFilters);
   }, [columnFilters]);
 
   return (
@@ -392,16 +422,17 @@ type FilterNumberProps<TData, TValue> = SharedFilterProps<TData, TValue> & {
   formatter?: (value: string | number) => string;
 };
 
+const defaultNumberFormatter = (value: string | number): string => value.toString();
+
 function FilterNumber<TData, TValue>({
   column,
   title,
   options,
-  formatter = (value: string | number) => value.toString(),
+  formatter = defaultNumberFormatter,
 }: FilterNumberProps<TData, TValue>) {
-  const columnFilters = column?.getFilterValue() as ConditionFilter;
-  const [selectedValues, setSelectedValues] = React.useState<ConditionFilter>(
-    columnFilters || { condition: "", value: ["", ""] },
-  );
+  const filterValue = column?.getFilterValue();
+  const columnFilters = isConditionFilter(filterValue) ? filterValue : DEFAULT_CONDITION_FILTER;
+  const [selectedValues, setSelectedValues] = React.useState<ConditionFilter>(columnFilters);
   const [open, setOpen] = React.useState(false);
 
   const columnFilterLabels = React.useMemo(() => {
@@ -414,7 +445,7 @@ function FilterNumber<TData, TValue>({
       return;
     }
     if (!(selectedValues.value?.[0] || selectedValues.value?.[1])) {
-      return [`${condition}`];
+      return [condition];
     }
     if (!selectedValues.value?.[1]) {
       return [`${condition} ${formatter(selectedValues.value?.[0])}`];
@@ -427,7 +458,7 @@ function FilterNumber<TData, TValue>({
   }, [selectedValues, options, formatter]);
 
   React.useEffect(() => {
-    setSelectedValues(columnFilters || { condition: "", value: ["", ""] });
+    setSelectedValues(columnFilters);
   }, [columnFilters]);
 
   const isBetween = selectedValues?.condition === "is-between";
@@ -521,7 +552,9 @@ function FilterNumber<TData, TValue>({
                   value={selectedValues?.condition}
                 >
                   <SelectTrigger className="mt-2 sm:py-1">
-                    <SelectValue>{(value) => value ?? "Select condition"}</SelectValue>
+                    <SelectValue>
+                      {(value: unknown) => selectDisplayValue(value, "Select condition")}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {options.map((item) => (

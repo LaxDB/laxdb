@@ -38,7 +38,7 @@ layer(TestLayer)("PlayerService integration", (it) => {
       yield* svc.create(validCreatePlayer({ name: "A", email: "a@test.com" }));
       yield* svc.create(validCreatePlayer({ name: "B", email: "b@test.com" }));
 
-      const players = yield* svc.list();
+      const players = yield* svc.list;
       expect(players).toHaveLength(2);
     }),
   );
@@ -143,7 +143,7 @@ layer(TestLayer)("PlayerService integration", (it) => {
 
       expect(deleted.publicId).toBe(created.publicId);
 
-      const list = yield* svc.list();
+      const list = yield* svc.list;
       expect(list).toHaveLength(0);
     }),
   );

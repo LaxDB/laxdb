@@ -95,9 +95,9 @@ function Onboarding() {
           <CardContent className="flex flex-col gap-3">
             <p className="flex items-center gap-2 text-xs/relaxed text-muted-foreground">
               <Spinner className="size-3.5" />
-              {existingOrg !== undefined
-                ? `Rejoining ${existingOrg.name}…`
-                : "Checking memberships…"}
+              {existingOrg === undefined
+                ? "Checking memberships…"
+                : `Rejoining ${existingOrg.name}…`}
             </p>
             {rejoin.isError && (
               <Alert variant="destructive">

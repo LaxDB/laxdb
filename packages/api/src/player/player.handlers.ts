@@ -12,7 +12,7 @@ export const PlayersHandlers = HttpApiBuilder.group(
       const service = yield* PlayerService;
 
       return handlers
-        .handle("listPlayers", () => service.list())
+        .handle("listPlayers", () => service.list)
         .handle("getPlayer", ({ payload }) => service.getByPublicId(payload))
         .handle("createPlayer", ({ payload }) => service.create(payload))
         .handle("updatePlayer", ({ payload }) => service.update(payload))

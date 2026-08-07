@@ -798,7 +798,7 @@ function ReportFormInner(props: {
   const done = submitMutation.data ?? null;
   const err = submitMutation.error;
 
-  const submit = (event: React.FormEvent) => {
+  const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!top1) return;
     submitMutation.mutate();

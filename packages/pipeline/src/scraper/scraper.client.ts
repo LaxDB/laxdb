@@ -106,7 +106,7 @@ export class ScraperClient extends Context.Service<ScraperClient>()(
             contentType: response.headers.get("content-type"),
             fetchedAt: new Date(),
             durationMs,
-          } as ScrapeResponse;
+          };
         });
 
       const fetchWithRetry = (request: ScrapeRequest) =>
