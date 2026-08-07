@@ -2,8 +2,8 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
-import { tournamentMode } from "./src/lib/tournament-mode";
-import { tournamentStartOptions } from "./vite/tournament-start-options";
+import { tournamentMode } from "./src/lib/tournament-mode.ts";
+import { tournamentStartOptions } from "./vite/tournament-start-options.ts";
 
 function generatedDataReload(): Plugin {
   return {

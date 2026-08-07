@@ -3,7 +3,6 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import mdx from "fumadocs-mdx/vite";
 import { defineConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   build: {
@@ -13,10 +12,7 @@ export default defineConfig({
     },
   },
   plugins: [
-    tsConfigPaths({
-      projects: ["./tsconfig.json"],
-    }),
-    mdx(await import("./source.config")),
+    mdx(await import("./source.config.ts")),
     tailwindcss(),
     tanstackStart({
       spa: {
@@ -42,6 +38,9 @@ export default defineConfig({
     }),
     react(),
   ],
+  resolve: {
+    tsconfigPaths: true,
+  },
   server: {
     watch: {
       ignored: ["**/routeTree.gen.ts", "**/.tanstack/**"],
