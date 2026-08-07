@@ -1,6 +1,5 @@
+import { CliInputError } from "@laxdb/core/error";
 import { Effect } from "effect";
-
-import { CliInputError } from "./input-error";
 
 export const parseJsonValue = (value: string, flagName: string) =>
   Effect.try({

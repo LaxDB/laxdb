@@ -5,11 +5,10 @@
  */
 
 import { makeApiClientLayer } from "@laxdb/api/client";
+import { CliInputError } from "@laxdb/core/error";
 import { Effect, Layer } from "effect";
 import { Flag } from "effect/unstable/cli";
 import { FetchHttpClient } from "effect/unstable/http";
-
-import { CliInputError } from "./input-error";
 
 export const prettyFlag = Flag.boolean("pretty").pipe(
   Flag.withDescription("Pretty-print JSON output"),
