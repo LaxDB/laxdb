@@ -1,12 +1,8 @@
-import {
-  drizzle,
-  type AnyD1Database,
-  type DrizzleD1Database,
-} from "drizzle-orm/d1";
-import { Array as Arr, Data, Effect, Layer, Context } from "effect";
+import type { EffectSQLiteD1Database } from "drizzle-orm/effect-d1";
+import { Array as Arr, Cause, Context, Data, Effect, Layer } from "effect";
 
 // ---------------------------------------------------------------------------
-// SqlError — lightweight tagged error for drizzle query failures
+// SqlError — application-facing error for Drizzle query failures
 // ---------------------------------------------------------------------------
 
 export class SqlError extends Data.TaggedError("SqlError")<{
@@ -14,56 +10,46 @@ export class SqlError extends Data.TaggedError("SqlError")<{
   readonly message: string;
 }> {}
 
+const underlyingCause = (error: unknown, depth = 0): unknown => {
+  if (depth >= 8) return error;
+  if (Cause.isCause(error)) {
+    return underlyingCause(Cause.squash(error), depth + 1);
+  }
+  if (typeof error !== "object" || error === null || !("cause" in error)) {
+    return error;
+  }
+  const cause: unknown = Reflect.get(error, "cause");
+  return cause === undefined ? error : underlyingCause(cause, depth + 1);
+};
+
 // ---------------------------------------------------------------------------
-// Drizzle query helper — wraps a drizzle query builder into an Effect
+// Drizzle query helper — maps the native connector error into the app error
 // ---------------------------------------------------------------------------
 
-export const query = <T>(queryBuilder: {
-  execute(): T | Promise<T>;
-}): Effect.Effect<T, SqlError> =>
-  Effect.tryPromise({
-    try: () => Promise.resolve(queryBuilder.execute()),
-    catch: (cause) => new SqlError({ cause, message: "Query failed" }),
-  });
+export const query = <T, E, R>(
+  queryEffect: Effect.Effect<T, E, R>,
+): Effect.Effect<T, SqlError, R> =>
+  Effect.mapError(
+    queryEffect,
+    (error) =>
+      new SqlError({
+        cause: underlyingCause(error),
+        message: "Query failed",
+      }),
+  );
 
 /** Take first element from array as Effect — fails with NoSuchElementError */
 export const headOrFail = <A>(arr: readonly A[]) =>
   Effect.fromOption(Arr.head(arr));
 
 // ---------------------------------------------------------------------------
-// DrizzleService — provides a typed Cloudflare D1 drizzle instance
+// DrizzleService — provides Alchemy's Effect-native D1 Drizzle database
 // ---------------------------------------------------------------------------
 
 export class DrizzleService extends Context.Service<
   DrizzleService,
-  DrizzleD1Database
+  EffectSQLiteD1Database
 >()("DrizzleService") {}
 
-// ---------------------------------------------------------------------------
-// Layers
-// ---------------------------------------------------------------------------
-
-export class D1DatabaseBinding extends Context.Service<
-  D1DatabaseBinding,
-  AnyD1Database
->()("D1DatabaseBinding") {}
-
-export const DatabaseLive = Layer.effect(
-  DrizzleService,
-  Effect.gen(function* () {
-    // oxlint-disable-next-line typescript/no-unsafe-assignment -- The API boundary validates the D1 binding; Drizzle's optional Workers type resolves as an error type here.
-    const binding = yield* D1DatabaseBinding;
-    return drizzle(binding);
-  }),
-);
-
-export const DatabaseLiveFromBinding = (binding: AnyD1Database) =>
-  DatabaseLive.pipe(Layer.provide(Layer.succeed(D1DatabaseBinding, binding)));
-
-export const DatabaseLiveFromBindingEffect = (
-  binding: Effect.Effect<AnyD1Database>,
-) =>
-  Layer.effect(
-    DrizzleService,
-    Effect.map(binding, (db) => drizzle(db)),
-  );
+export const DatabaseLive = (database: Effect.Effect<EffectSQLiteD1Database>) =>
+  Layer.effect(DrizzleService, database);

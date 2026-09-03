@@ -55,6 +55,7 @@
       "name": "@laxdb/core",
       "dependencies": {
         "@aws-sdk/client-sesv2": "^3.972.0",
+        "@effect/sql-d1": "4.0.0-beta.103",
         "@polar-sh/better-auth": "^1.6.4",
         "@polar-sh/sdk": "^0.42.2",
         "better-auth": "^1.4.17",

@@ -1,4 +1,5 @@
-import { drizzle } from "drizzle-orm/d1";
+import * as D1Client from "@effect/sql-d1/D1Client";
+import * as DrizzleD1 from "drizzle-orm/effect-d1";
 import { Effect, Layer } from "effect";
 import { Miniflare } from "miniflare";
 
@@ -84,7 +85,12 @@ export const ensureTestDatabase = async () => {
 
 const TestDrizzleLive = Layer.effect(
   DrizzleService,
-  Effect.promise(async () => drizzle(await getTestD1Database())),
+  Effect.gen(function* () {
+    const db = yield* Effect.promise(getTestD1Database);
+    return yield* DrizzleD1.makeWithDefaults({}).pipe(
+      Effect.provide(D1Client.layer({ db }).pipe(Layer.orDie)),
+    );
+  }),
 );
 
 export const TestDatabaseLive = TestDrizzleLive;
