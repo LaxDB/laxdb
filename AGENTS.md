@@ -1,6 +1,5 @@
 ## MUST KNOW
 
-- **Public Publishing**: you must consult `PUBLIC_PUBLISHING.md` before making any commits, pushes, merges. Not following this rule will cause major issues
 - **Type safety is non-negotiable**: No `any`, no `!`, no `as Type`
 - **Infisical for secrets**: `infisical run --env=dev --` prefix for local dev
 - **CSS tokens live in `@laxdb/ui`**: `packages/ui/src/globals.css` is single source of truth for all runtime design tokens (colors, fonts, animations). Other packages import via `@import "@laxdb/ui/globals.css"`. Never duplicate tokens.
