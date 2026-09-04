@@ -1,4 +1,4 @@
-import { makeAsyncQuery } from "@laxdb/ui/lib/atom-query";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { Effect, Schema } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 

@@ -1,4 +1,4 @@
-import { makeAsyncQuery } from "@laxdb/ui/lib/atom-query";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Effect, Schedule, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
