@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
-
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
+import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
+import { Schema as DrizzleSchema } from "alchemy/Drizzle/Schema";
 import * as GitHub from "alchemy/GitHub";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
@@ -31,26 +31,26 @@ const baseDomainForStage = (stage: string) =>
       ? config.domains.development
       : `${stage}.${config.domains.development}`;
 
-export const database = Cloudflare.D1.Database(
-  "database",
-  Effect.gen(function* () {
-    const stage = yield* Alchemy.Stage;
+export const database = Effect.gen(function* () {
+  const stage = yield* Alchemy.Stage;
+  const schema = yield* DrizzleSchema("database-schema", {
+    schema: "./packages/core/src/drizzle/schema.ts",
+    out: "./packages/core/migrations",
+    dialect: "sqlite",
+  });
 
-    return {
-      name:
+  return yield* Cloudflare.D1.Database("database", {
+    name:
+      stage === config.stages.prod ? config.stack : `${config.stack}-${stage}`,
+    migrationsDir: schema.out,
+    readReplication: {
+      mode:
         stage === config.stages.prod
-          ? config.stack
-          : `${config.stack}-${stage}`,
-      migrationsDir: "./packages/core/migrations",
-      readReplication: {
-        mode:
-          stage === config.stages.prod
-            ? ("auto" as const)
-            : ("disabled" as const),
-      },
-    };
-  }),
-);
+          ? ("auto" as const)
+          : ("disabled" as const),
+    },
+  });
+});
 
 export const kv = Cloudflare.KV.Namespace("kv");
 export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
@@ -80,30 +80,12 @@ export default Alchemy.Stack(
   config.stack,
   {
     providers: Cloudflare.providers().pipe(
+      Layer.provideMerge(drizzleProviders()),
       Layer.provideMerge(GitHub.providers()),
     ),
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
-    if ((process.env.ALCHEMY_PHASE ?? "plan") === "dev") {
-      yield* Effect.sync(() =>
-        spawnSync("bun", ["run", "db:generate"], {
-          cwd: "packages/core",
-          stdio: "inherit",
-        }),
-      ).pipe(
-        Effect.flatMap((result) =>
-          result.status === 0
-            ? Effect.void
-            : Effect.die(
-                new Error(
-                  `Drizzle migration generation failed with exit code ${result.status ?? "unknown"}`,
-                ),
-              ),
-        ),
-      );
-    }
-
     const stage = yield* Alchemy.Stage;
     const db = yield* database;
     const kvNamespace = yield* kv;
