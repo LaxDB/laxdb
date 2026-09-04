@@ -1,3 +1,4 @@
+import { RegistryProvider } from "@effect/atom-react";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -53,7 +54,9 @@ function RootComponent() {
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <QueryClientProvider client={queryClient}>
-          <Outlet />
+          <RegistryProvider>
+            <Outlet />
+          </RegistryProvider>
         </QueryClientProvider>
         <Scripts />
       </body>

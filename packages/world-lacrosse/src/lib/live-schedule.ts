@@ -1,8 +1,8 @@
+import { makeAsyncQuery } from "@laxdb/ui/lib/atom-query";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Effect, Schedule, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
-import { makeAsyncQuery } from "./atom-query";
 import { FetchError } from "./error";
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
@@ -105,7 +105,7 @@ const liveScheduleEffectAtom = makeAsyncQuery({
   load: fetchLiveScheduleEffect,
   staleTime: "15 seconds",
   revalidateOnFocus: true,
-  keepAlive: true,
+  idleTTL: "Infinity",
   pollInterval: (schedule) =>
     schedule?.schedule.some((game) => isActiveGameStatus(game.status))
       ? "30 seconds"

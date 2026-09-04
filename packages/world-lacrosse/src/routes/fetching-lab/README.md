@@ -82,13 +82,15 @@ A later iteration should test `HttpClient` with `FetchHttpClient.layer`.
 
 That change can combine request errors, status checks, schema decoding, timeout, and interruption.
 
-### 5. The custom query helper was too early
+### 5. A second query defines the shared core
 
-The production helper copied a query-library option object for one endpoint.
+Malvern team standings now uses the same helper through an `Atom.family` keyed by team ID.
 
-The lab now keeps the concrete request atom and only extracts the polling transform.
+The two queries share acquisition, SWR, focus refresh, manual refresh, retained values, and idle lifetime.
 
-Do not add a general query abstraction until a second endpoint proves the shared behavior.
+Polling remains optional and schedule-specific. Parameterized caching stays outside the helper through `Atom.family`.
+
+This comparison replaces the `keepAlive` flag with `idleTTL`. World Lacrosse uses an infinite lifetime for application authority. Malvern standings uses a five-minute idle lifetime for route data.
 
 ### 6. Production converts async state twice
 
@@ -109,6 +111,17 @@ The integrity and detail reconciliation in `buildLiveTournamentSnapshot` must re
 The generated route tree includes `/fetching-lab` in all builds.
 
 Keep it only while this architecture work is active. Remove it before the final merge.
+
+## Shared query shape
+
+The shared helper now owns only these policies:
+
+- An Effect loader that can inspect the previous successful value.
+- SWR stale time and focus refresh.
+- An optional idle lifetime.
+- Optional polling for sources that require it.
+
+Callers own query keys with `Atom.family`, retries and timeouts in the loader Effect, domain mapping, and presentation.
 
 ## Recommended production shape
 

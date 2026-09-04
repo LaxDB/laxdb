@@ -103,6 +103,7 @@
     "packages/malvern": {
       "name": "@laxdb/malvern",
       "dependencies": {
+        "@effect/atom-react": "4.0.0-beta.103",
         "@laxdb/api": "workspace:*",
         "@laxdb/core": "workspace:*",
         "@laxdb/ui": "workspace:*",
@@ -115,6 +116,7 @@
         "lucide-react": "^0.475.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "scheduler": "^0.27.0",
       },
       "devDependencies": {
         "@types/react": "^19.2.0",
@@ -220,6 +222,7 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
+        "effect": "4.0.0-beta.103",
         "embla-carousel-react": "^8.6.0",
         "input-otp": "^1.4.2",
         "lucide-react": "^0.475.0",

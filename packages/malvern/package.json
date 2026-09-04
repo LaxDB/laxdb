@@ -15,6 +15,7 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
+    "@effect/atom-react": "4.0.0-beta.103",
     "@laxdb/api": "workspace:*",
     "@laxdb/core": "workspace:*",
     "@laxdb/ui": "workspace:*",
@@ -26,7 +27,8 @@
     "effect": "4.0.0-beta.103",
     "lucide-react": "^0.475.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "scheduler": "^0.27.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
