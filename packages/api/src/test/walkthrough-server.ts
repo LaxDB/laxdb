@@ -22,9 +22,9 @@ import { HttpGroups, ServicesLive } from "../layers";
 import { startNodeHttpTestServer } from "./http-test-server";
 
 const APP_ORIGIN = process.env.APP_ORIGIN ?? "http://localhost:3005";
-const db = await getTestD1Database();
+export const walkthroughDatabase = await getTestD1Database();
 const env = {
-  DB: db,
+  DB: walkthroughDatabase,
   BETTER_AUTH_URL: APP_ORIGIN,
   TRUSTED_ORIGINS: APP_ORIGIN,
   IS_LOCAL: "true",
@@ -32,7 +32,7 @@ const env = {
 
 const LocalAuthDatabase = Layer.succeed(Database, {
   provider: "sqlite",
-  runtime: Effect.succeed(db),
+  runtime: Effect.succeed(walkthroughDatabase),
 });
 
 const auth = await Effect.runPromise(

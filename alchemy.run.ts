@@ -79,11 +79,10 @@ export default Alchemy.Stack(
     const secrets = yield* stackSecrets;
     const trustedOrigins =
       secrets.trustedOrigins === ""
-        ? [
-            malvernOrigin,
-            "http://localhost:1437",
-            `https://malvern.${baseDomain}`,
-          ].join(",")
+        ? (isLocal
+            ? [malvernOrigin, "http://localhost:1437"]
+            : [malvernOrigin]
+          ).join(",")
         : secrets.trustedOrigins;
 
     const api = yield* makeApiWorker({

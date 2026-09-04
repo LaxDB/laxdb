@@ -35,7 +35,7 @@ export const isAuthEnv = (value: unknown): value is AuthEnv =>
   (value.TRUSTED_ORIGINS === undefined ||
     typeof value.TRUSTED_ORIGINS === "string");
 
-/** Email config from the worker environment; empty api key = log-only mode. */
+/** Email config from the worker environment. */
 export const emailConfigFromEnv = (env: unknown): EmailConfig => {
   const read = (key: string) => {
     if (!isRecord(env)) return;
@@ -56,8 +56,8 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
-const deliverAuthEmail = async (
-  env: AuthEnv,
+export const deliverAuthEmail = async (
+  env: Pick<AuthEnv, "EMAIL_SENDER" | "IS_LOCAL" | "RESEND_API_KEY">,
   input: {
     readonly to: string;
     readonly subject: string;
@@ -68,11 +68,14 @@ const deliverAuthEmail = async (
 ) => {
   const config = emailConfigFromEnv(env);
   const isLocal = env.IS_LOCAL === "true";
-  if (isLocal || config.apiKey === "") {
+  if (isLocal) {
     console.log(
       `[email:dev] to=${input.to} subject=${input.subject} link=${input.link}`,
     );
     return;
+  }
+  if (config.apiKey === "") {
+    throw new Error("RESEND_API_KEY is required outside local development");
   }
   await sendViaResend(config, {
     to: [input.to],

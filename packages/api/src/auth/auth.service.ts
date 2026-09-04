@@ -1,31 +1,40 @@
+import type { BetterAuthApiError } from "@alchemy.run/better-auth";
 import type { Me } from "@laxdb/core/auth/auth.schema";
 import type { RuntimeContext } from "alchemy";
 import { Context, Effect, Layer } from "effect";
 
 import type { Auth } from "./auth";
 
+const dieWithAuthError = (message: string, error: BetterAuthApiError) =>
+  Effect.logError(message, error).pipe(Effect.andThen(Effect.die(error)));
+
+const recoverSessionError = (error: BetterAuthApiError) =>
+  error.statusCode === 401
+    ? Effect.succeed(null)
+    : dieWithAuthError("Better Auth failed to resolve the session", error);
+
+const recoverActiveMemberError = (error: BetterAuthApiError) =>
+  error.body?.code === "MEMBER_NOT_FOUND" ||
+  error.body?.code === "NO_ACTIVE_ORGANIZATION"
+    ? Effect.succeed(null)
+    : dieWithAuthError(
+        "Better Auth failed to resolve the active member",
+        error,
+      );
+
 const resolveMe = (auth: Auth, headers: Headers) =>
   Effect.gen(function* () {
-    const result = yield* auth.getSession(headers).pipe(
-      Effect.tapError((error) =>
-        Effect.logError("Better Auth failed to resolve the session", error),
-      ),
-      Effect.orDie,
-    );
+    const result = yield* auth
+      .getSession(headers)
+      .pipe(Effect.catchTag("BetterAuthApiError", recoverSessionError));
 
     if (result === null) return null;
 
     const { user, session } = result;
     const activeMember = session.activeOrganizationId
-      ? yield* auth.api.getActiveMember({ headers }).pipe(
-          Effect.tapError((error) =>
-            Effect.logError(
-              "Better Auth failed to resolve the active member",
-              error,
-            ),
-          ),
-          Effect.orDie,
-        )
+      ? yield* auth.api
+          .getActiveMember({ headers })
+          .pipe(Effect.catchTag("BetterAuthApiError", recoverActiveMemberError))
       : null;
 
     return {
