@@ -188,7 +188,8 @@ CREATE TABLE IF NOT EXISTS `invitation` (
   `role` text,
   `status` text DEFAULT 'pending' NOT NULL,
   `expires_at` integer NOT NULL,
-  `inviter_id` text NOT NULL REFERENCES `user`(`id`) ON DELETE cascade
+  `inviter_id` text NOT NULL REFERENCES `user`(`id`) ON DELETE cascade,
+  `created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `fine_templates` (

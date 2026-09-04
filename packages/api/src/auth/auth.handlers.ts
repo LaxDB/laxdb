@@ -1,10 +1,10 @@
-import { AuthService } from "@laxdb/core/auth/auth.service";
 import { Effect } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 
 import { LaxdbApi } from "../definition";
 
 import { currentSession } from "./auth";
+import { AuthService } from "./auth.service";
 
 export const AuthHandlers = HttpApiBuilder.group(LaxdbApi, "Auth", (handlers) =>
   Effect.gen(function* () {

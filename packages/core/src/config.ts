@@ -3,7 +3,6 @@ import { Config } from "effect";
 export const AppConfig = Config.all({
   apiUrl: Config.string("API_URL"),
 
-  betterAuthSecret: Config.redacted("BETTER_AUTH_SECRET"),
   googleClientId: Config.string("GOOGLE_CLIENT_ID"),
   googleClientSecret: Config.redacted("GOOGLE_CLIENT_SECRET"),
   polarWebhookSecret: Config.redacted("POLAR_WEBHOOK_SECRET"),

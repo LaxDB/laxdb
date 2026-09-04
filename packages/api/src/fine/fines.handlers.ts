@@ -1,4 +1,3 @@
-import { AuthService } from "@laxdb/core/auth/auth.service";
 import type { FineApiPayload } from "@laxdb/core/fine/fine.contract";
 import { FineService } from "@laxdb/core/fine/fine.service";
 import { Effect } from "effect";
@@ -9,6 +8,7 @@ import {
   withAdminSession,
   withOrganization,
 } from "../auth/auth";
+import { AuthService } from "../auth/auth.service";
 import { LaxdbApi } from "../definition";
 
 export const FinesHandlers = HttpApiBuilder.group(

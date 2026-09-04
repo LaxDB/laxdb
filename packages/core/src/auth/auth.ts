@@ -1,24 +1,12 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import type { BetterAuthPlugin } from "better-auth";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink, organization } from "better-auth/plugins";
 import { asc, count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
-import {
-  accounts,
-  invitations,
-  members,
-  organizations,
-  sessions,
-  users,
-  verifications,
-} from "./auth.sql.ts";
+import { members, organizations } from "./auth.sql.ts";
 
 export type AuthConfig = {
-  db: D1Database;
-  secret: string;
+  db?: D1Database | undefined;
   baseURL: string;
   trustedOrigins?: string[] | undefined;
   useSecureCookies?: boolean | undefined;
@@ -26,7 +14,6 @@ export type AuthConfig = {
     clientId: string;
     clientSecret: string;
   };
-  extraPlugins?: BetterAuthPlugin[] | undefined;
   sendMagicLink: (args: {
     email: string;
     url: string;
@@ -40,29 +27,119 @@ export type AuthConfig = {
   }) => Promise<void> | void;
 };
 
-export const createAuth = (config: AuthConfig) => {
-  const db = drizzle(config.db);
+/**
+ * Better Auth options shared by the Alchemy runtime and local test harnesses.
+ * Alchemy supplies the database and signing secret in deployed workers.
+ */
+export const createAuthOptions = (config: AuthConfig) => {
+  const db = config.db === undefined ? undefined : drizzle(config.db);
+  const requireDb = () => {
+    if (db === undefined) {
+      throw new Error("Better Auth database binding is unavailable");
+    }
+    return db;
+  };
 
-  return betterAuth({
+  const magicLinkPlugin = magicLink({
+    expiresIn: 60 * 15,
+    sendMagicLink: async ({ email, url, token }) => {
+      await config.sendMagicLink({ email, url, token });
+    },
+  });
+  const organizationPlugin = organization({
+    schema: {
+      session: {
+        fields: {
+          activeOrganizationId: "active_organization_id",
+        },
+      },
+      organization: {
+        fields: {
+          createdAt: "created_at",
+        },
+      },
+      member: {
+        fields: {
+          organizationId: "organization_id",
+          userId: "user_id",
+          createdAt: "created_at",
+        },
+      },
+      invitation: {
+        fields: {
+          organizationId: "organization_id",
+          expiresAt: "expires_at",
+          createdAt: "created_at",
+          inviterId: "inviter_id",
+        },
+      },
+    },
+    allowUserToCreateOrganization: async () => {
+      const [row] = await requireDb()
+        .select({ value: count() })
+        .from(organizations);
+      return (row?.value ?? 0) === 0;
+    },
+    sendInvitationEmail: async (data) => {
+      const inviteLink = `${config.baseURL.replace(/\/api\/auth$/u, "")}/accept-invitation/${data.id}`;
+      await config.sendInvitationEmail({
+        email: data.email,
+        inviteLink,
+        inviterName: data.inviter.user.name,
+        organizationName: data.organization.name,
+      });
+    },
+  });
+  const plugins: [typeof magicLinkPlugin, typeof organizationPlugin] = [
+    magicLinkPlugin,
+    organizationPlugin,
+  ];
+
+  return {
     baseURL: config.baseURL,
-    secret: config.secret,
     trustedOrigins: config.trustedOrigins,
     advanced: {
       useSecureCookies: config.useSecureCookies ?? true,
     },
-    database: drizzleAdapter(db, {
-      provider: "sqlite",
-      schema: {
-        user: users,
-        session: sessions,
-        account: accounts,
-        verification: verifications,
-        organization: organizations,
-        member: members,
-        invitation: invitations,
-      },
-    }),
     emailAndPassword: { enabled: false },
+    user: {
+      fields: {
+        emailVerified: "email_verified",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    session: {
+      fields: {
+        expiresAt: "expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+        ipAddress: "ip_address",
+        userAgent: "user_agent",
+        userId: "user_id",
+      },
+    },
+    account: {
+      fields: {
+        accountId: "account_id",
+        providerId: "provider_id",
+        userId: "user_id",
+        accessToken: "access_token",
+        refreshToken: "refresh_token",
+        idToken: "id_token",
+        accessTokenExpiresAt: "access_token_expires_at",
+        refreshTokenExpiresAt: "refresh_token_expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    verification: {
+      fields: {
+        expiresAt: "expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
     socialProviders: {
       google: config.google,
     },
@@ -72,8 +149,8 @@ export const createAuth = (config: AuthConfig) => {
           // New sessions start with no active organization, which would send
           // returning members back through onboarding. Activate their first
           // membership up front.
-          before: async (session) => {
-            const [membership] = await db
+          before: async (session: { readonly userId: string }) => {
+            const [membership] = await requireDb()
               .select({ organizationId: members.organizationId })
               .from(members)
               .where(eq(members.userId, session.userId))
@@ -90,31 +167,6 @@ export const createAuth = (config: AuthConfig) => {
         },
       },
     },
-    plugins: [
-      magicLink({
-        expiresIn: 60 * 15,
-        sendMagicLink: async ({ email, url, token }) => {
-          await config.sendMagicLink({ email, url, token });
-        },
-      }),
-      organization({
-        allowUserToCreateOrganization: async () => {
-          const [row] = await db.select({ c: count() }).from(organizations);
-          return (row?.c ?? 0) === 0;
-        },
-        sendInvitationEmail: async (data) => {
-          const inviteLink = `${config.baseURL.replace(/\/api\/auth$/u, "")}/accept-invitation/${data.id}`;
-          await config.sendInvitationEmail({
-            email: data.email,
-            inviteLink,
-            inviterName: data.inviter.user.name,
-            organizationName: data.organization.name,
-          });
-        },
-      }),
-      ...(config.extraPlugins ?? []),
-    ],
-  });
+    plugins,
+  };
 };
-
-export type Auth = ReturnType<typeof createAuth>;

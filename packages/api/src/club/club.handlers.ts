@@ -1,4 +1,3 @@
-import { AuthService } from "@laxdb/core/auth/auth.service";
 import type { ClubApiPayload } from "@laxdb/core/club/club.contract";
 import { ClubService } from "@laxdb/core/club/club.service";
 import { MatchService } from "@laxdb/core/match/match.service";
@@ -11,6 +10,7 @@ import {
   withMemberSession,
   withOrganization,
 } from "../auth/auth";
+import { AuthService } from "../auth/auth.service";
 import { LaxdbApi } from "../definition";
 import { deleteMatchImageObjects } from "../match/match-images";
 

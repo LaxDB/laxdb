@@ -1,4 +1,4 @@
-import * as D1Client from "@effect/sql-d1/D1Client";
+import { D1Client } from "@effect/sql-d1";
 import * as DrizzleD1 from "drizzle-orm/effect-d1";
 import { Effect, Layer } from "effect";
 import { Miniflare } from "miniflare";

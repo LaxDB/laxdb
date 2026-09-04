@@ -1,7 +1,6 @@
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
-import { Schema as DrizzleSchema } from "alchemy/Drizzle/Schema";
 import * as GitHub from "alchemy/GitHub";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
@@ -9,8 +8,11 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 
+import { database } from "./packages/api/src/database.ts";
 import { makeApiWorker } from "./packages/api/src/index.ts";
 import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/lib/tournament-mode.ts";
+
+export { database };
 
 const config = {
   stack: "laxdb",
@@ -31,27 +33,6 @@ const baseDomainForStage = (stage: string) =>
       ? config.domains.development
       : `${stage}.${config.domains.development}`;
 
-export const database = Effect.gen(function* () {
-  const stage = yield* Alchemy.Stage;
-  const schema = yield* DrizzleSchema("database-schema", {
-    schema: "./packages/core/src/drizzle/schema.ts",
-    out: "./packages/core/migrations",
-    dialect: "sqlite",
-  });
-
-  return yield* Cloudflare.D1.Database("database", {
-    name:
-      stage === config.stages.prod ? config.stack : `${config.stack}-${stage}`,
-    migrationsDir: schema.out,
-    readReplication: {
-      mode:
-        stage === config.stages.prod
-          ? ("auto" as const)
-          : ("disabled" as const),
-    },
-  });
-});
-
 export const kv = Cloudflare.KV.Namespace("kv");
 export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
   "world-lacrosse-live-scores",
@@ -59,9 +40,6 @@ export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
 export const storage = Cloudflare.R2.Bucket("storage");
 
 const stackSecrets = Config.all({
-  betterAuthSecret: Config.redacted("BETTER_AUTH_SECRET").pipe(
-    Config.withDefault(Redacted.make("")),
-  ),
   betterAuthUrl: Config.string("BETTER_AUTH_URL").pipe(Config.withDefault("")),
   emailSender: Config.string("EMAIL_SENDER").pipe(Config.withDefault("")),
   googleClientId: Config.string("GOOGLE_CLIENT_ID").pipe(
@@ -101,16 +79,14 @@ export default Alchemy.Stack(
     const secrets = yield* stackSecrets;
     const trustedOrigins =
       secrets.trustedOrigins === ""
-        ? [
-            malvernOrigin,
-            "http://localhost:1437",
-            `https://malvern.${baseDomain}`,
-          ].join(",")
+        ? (isLocal
+            ? [malvernOrigin, "http://localhost:1437"]
+            : [malvernOrigin]
+          ).join(",")
         : secrets.trustedOrigins;
 
     const api = yield* makeApiWorker({
       DB: db,
-      BETTER_AUTH_SECRET: secrets.betterAuthSecret,
       BETTER_AUTH_URL:
         secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
       EMAIL_SENDER: secrets.emailSender,

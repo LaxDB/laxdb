@@ -12,7 +12,6 @@
   "globalPassThroughEnv": [
     "CLOUDFLARE_ACCOUNT_ID",
     "CLOUDFLARE_API_TOKEN",
-    "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL"
   ],
   "tasks": {
