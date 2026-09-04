@@ -52,7 +52,9 @@ const escapeHtml = (value: string) =>
   value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 
 const deliverAuthEmail = async (
   env: AuthEnv,
@@ -78,7 +80,7 @@ const deliverAuthEmail = async (
     text: `${input.intro}\n\n${input.link}\n\nIf you weren't expecting this email, you can ignore it.`,
     html: [
       `<p>${escapeHtml(input.intro)}</p>`,
-      `<p><a href="${input.link}">${escapeHtml(input.linkLabel)}</a></p>`,
+      `<p><a href="${escapeHtml(input.link)}">${escapeHtml(input.linkLabel)}</a></p>`,
       `<p style="color:#888;font-size:0.85em">If you weren't expecting this email, you can ignore it.</p>`,
     ].join("\n"),
   });
@@ -93,7 +95,6 @@ export const makeAuth = (
   runtimeOptions: {
     readonly secret?: string;
     readonly migrate?: boolean;
-    readonly databaseMode?: "native" | "drizzle";
   } = {},
 ) => {
   const runtimeEnv = isAuthEnv(env) ? env : undefined;
@@ -112,46 +113,43 @@ export const makeAuth = (
     ...(runtimeOptions.secret === undefined
       ? {}
       : { secret: runtimeOptions.secret }),
-    ...createAuthOptions(
-      {
-        db: runtimeEnv?.DB,
-        baseURL,
-        trustedOrigins: runtimeEnv?.TRUSTED_ORIGINS?.split(",")
-          .map((origin) => origin.trim())
-          .filter(Boolean),
-        useSecureCookies: !baseURL.startsWith("http://"),
-        google: {
-          clientId: runtimeEnv?.GOOGLE_CLIENT_ID ?? "",
-          clientSecret: runtimeEnv?.GOOGLE_CLIENT_SECRET ?? "",
-        },
-        sendMagicLink: ({ email, url }) => {
-          const env = requireRuntimeEnv();
-          return deliverAuthEmail(env, {
-            to: email,
-            subject: "Sign in to Malvern Lacrosse",
-            intro: "Use the link below to sign in. It expires in 15 minutes.",
-            linkLabel: "Sign in",
-            link: url,
-          });
-        },
-        sendInvitationEmail: ({
-          email,
-          inviteLink,
-          inviterName,
-          organizationName,
-        }) => {
-          const env = requireRuntimeEnv();
-          return deliverAuthEmail(env, {
-            to: email,
-            subject: `You're invited to ${organizationName}`,
-            intro: `${inviterName} invited you to join ${organizationName} on Malvern Lacrosse.`,
-            linkLabel: "Accept invitation",
-            link: inviteLink,
-          });
-        },
+    ...createAuthOptions({
+      db: runtimeEnv?.DB,
+      baseURL,
+      trustedOrigins: runtimeEnv?.TRUSTED_ORIGINS?.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+      useSecureCookies: !baseURL.startsWith("http://"),
+      google: {
+        clientId: runtimeEnv?.GOOGLE_CLIENT_ID ?? "",
+        clientSecret: runtimeEnv?.GOOGLE_CLIENT_SECRET ?? "",
       },
-      runtimeOptions.databaseMode,
-    ),
+      sendMagicLink: ({ email, url }) => {
+        const env = requireRuntimeEnv();
+        return deliverAuthEmail(env, {
+          to: email,
+          subject: "Sign in to Malvern Lacrosse",
+          intro: "Use the link below to sign in. It expires in 15 minutes.",
+          linkLabel: "Sign in",
+          link: url,
+        });
+      },
+      sendInvitationEmail: ({
+        email,
+        inviteLink,
+        inviterName,
+        organizationName,
+      }) => {
+        const env = requireRuntimeEnv();
+        return deliverAuthEmail(env, {
+          to: email,
+          subject: `You're invited to ${organizationName}`,
+          intro: `${inviterName} invited you to join ${organizationName} on Malvern Lacrosse.`,
+          linkLabel: "Accept invitation",
+          link: inviteLink,
+        });
+      },
+    }),
   });
 };
 

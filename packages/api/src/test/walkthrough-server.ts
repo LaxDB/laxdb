@@ -7,12 +7,10 @@
  *
  * Magic links are printed to stdout (log-only email mode without a key).
  */
-import { Drizzle } from "@alchemy.run/better-auth/Drizzle";
-import * as authSchema from "@laxdb/core/auth/auth.sql";
+import { Database } from "@alchemy.run/better-auth";
 import { getTestD1Database } from "@laxdb/core/test/db";
 import { RuntimeContext, type BaseRuntimeContext } from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
-import { drizzle } from "drizzle-orm/d1";
 import { Context, DateTime, Effect, Layer } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
@@ -32,27 +30,16 @@ const env = {
   IS_LOCAL: "true",
 };
 
+const LocalAuthDatabase = Layer.succeed(Database, {
+  provider: "sqlite",
+  runtime: Effect.succeed(db),
+});
+
 const auth = await Effect.runPromise(
   makeAuth(env, {
     secret: "walkthrough-local-secret-0123456789abcdef",
     migrate: false,
-    databaseMode: "drizzle",
-  }).pipe(
-    Effect.provide(
-      Drizzle(drizzle(db), {
-        provider: "sqlite",
-        schema: {
-          account: authSchema.accounts,
-          invitation: authSchema.invitations,
-          member: authSchema.members,
-          organization: authSchema.organizations,
-          session: authSchema.sessions,
-          user: authSchema.users,
-          verification: authSchema.verifications,
-        },
-      }),
-    ),
-  ),
+  }).pipe(Effect.provide(LocalAuthDatabase)),
 );
 
 const runtimeContext: BaseRuntimeContext = {

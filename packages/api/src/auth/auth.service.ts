@@ -1,33 +1,32 @@
-import {
-  ActiveMember,
-  AuthSessionResult,
-  type Me,
-} from "@laxdb/core/auth/auth.schema";
+import type { Me } from "@laxdb/core/auth/auth.schema";
 import type { RuntimeContext } from "alchemy";
-import { Context, Effect, Layer, Option, Schema } from "effect";
+import { Context, Effect, Layer } from "effect";
 
 import type { Auth } from "./auth";
 
-const decodeSession = Schema.decodeUnknownOption(AuthSessionResult);
-const decodeMember = Schema.decodeUnknownOption(ActiveMember);
-
 const resolveMe = (auth: Auth, headers: Headers) =>
   Effect.gen(function* () {
-    const rawSession = yield* auth.getSession(headers).pipe(Effect.option);
+    const result = yield* auth.getSession(headers).pipe(
+      Effect.tapError((error) =>
+        Effect.logError("Better Auth failed to resolve the session", error),
+      ),
+      Effect.orDie,
+    );
 
-    if (Option.isNone(rawSession)) return null;
+    if (result === null) return null;
 
-    const parsedSession = decodeSession(rawSession.value);
-    if (Option.isNone(parsedSession)) return null;
-
-    const { user, session } = parsedSession.value;
-
-    const rawMember = session.activeOrganizationId
-      ? yield* auth.api.getActiveMember({ headers }).pipe(Effect.option)
-      : Option.none();
-
-    const parsedMember = Option.flatMap(rawMember, decodeMember);
-    const activeMember = Option.getOrNull(parsedMember);
+    const { user, session } = result;
+    const activeMember = session.activeOrganizationId
+      ? yield* auth.api.getActiveMember({ headers }).pipe(
+          Effect.tapError((error) =>
+            Effect.logError(
+              "Better Auth failed to resolve the active member",
+              error,
+            ),
+          ),
+          Effect.orDie,
+        )
+      : null;
 
     return {
       userId: user.id,

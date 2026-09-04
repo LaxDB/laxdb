@@ -30,9 +30,11 @@ import { LaxdbApi } from "./definition";
 import { HttpGroups, ServicesLive } from "./layers";
 import { matchImagesBucket } from "./match/match-images";
 
-const makeHttpApiRouter = (auth: Auth) =>
+type ServicesLayer = ReturnType<typeof ServicesLive>;
+
+const makeHttpApiRouter = (services: ServicesLayer) =>
   HttpApiBuilder.layer(LaxdbApi).pipe(
-    Layer.provide(HttpGroups.pipe(Layer.provide(ServicesLive(auth)))),
+    Layer.provide(HttpGroups.pipe(Layer.provide(services))),
   );
 
 const DocsRoute = HttpApiScalar.layer(LaxdbApi);
@@ -69,7 +71,7 @@ const HealthRoute = HttpRouter.use((router) =>
   router.add("GET", "/health", HttpServerResponse.text("OK")),
 );
 
-const makeMatchImageRoute = (auth: Auth) =>
+const makeMatchImageRoute = (services: ServicesLayer) =>
   HttpRouter.use((router) =>
     router.add(
       "GET",
@@ -125,7 +127,7 @@ const makeMatchImageRoute = (auth: Auth) =>
         );
       }).pipe(
         // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The HTTP route is a request execution boundary.
-        Effect.provide(ServicesLive(auth)),
+        Effect.provide(services),
         Effect.catchTags({
           AuthenticationError: (error) => Effect.succeed(errorResponse(error)),
           AuthorizationError: (error) => Effect.succeed(errorResponse(error)),
@@ -141,14 +143,14 @@ const makeMatchImageRoute = (auth: Auth) =>
 
 export const GAMEDAY_FIXTURE_SYNC_CRON = "15 19 * * *";
 
-const makeRoutes = (auth: Auth) =>
+const makeRoutes = (auth: Auth, services: ServicesLayer) =>
   Layer.mergeAll(
-    makeHttpApiRouter(auth),
+    makeHttpApiRouter(services),
     DocsRoute,
     makeAuthRoute(auth),
     RootRoute,
     HealthRoute,
-    makeMatchImageRoute(auth),
+    makeMatchImageRoute(services),
   ).pipe(Layer.provide(DateTime.layerCurrentZoneLocal));
 
 export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
@@ -171,6 +173,7 @@ export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
     Effect.gen(function* () {
       const workerEnv = yield* Cloudflare.WorkerEnvironment;
       const auth = yield* makeAuth(workerEnv);
+      const services = ServicesLive(auth);
 
       yield* Cloudflare.cron(GAMEDAY_FIXTURE_SYNC_CRON, () =>
         Effect.gen(function* () {
@@ -178,7 +181,7 @@ export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
           yield* matchService.syncAllLinkedFixtures;
         }).pipe(
           // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The cron callback is a scheduled execution boundary.
-          Effect.provide(ServicesLive(auth)),
+          Effect.provide(services),
         ),
       ).pipe(
         // oxlint-disable-next-line effecttsgo/strict-effect-provide -- The worker registers the fully provided cron source.
@@ -186,7 +189,7 @@ export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
       );
 
       return {
-        fetch: makeRoutes(auth).pipe(
+        fetch: makeRoutes(auth, services).pipe(
           Layer.provide(HttpServer.layerServices),
           HttpRouter.toHttpEffect,
         ),

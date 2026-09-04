@@ -31,10 +31,7 @@ export type AuthConfig = {
  * Better Auth options shared by the Alchemy runtime and local test harnesses.
  * Alchemy supplies the database and signing secret in deployed workers.
  */
-export const createAuthOptions = (
-  config: AuthConfig,
-  databaseMode: "native" | "drizzle" = "native",
-) => {
+export const createAuthOptions = (config: AuthConfig) => {
   const db = config.db === undefined ? undefined : drizzle(config.db);
   const requireDb = () => {
     if (db === undefined) {
@@ -50,37 +47,33 @@ export const createAuthOptions = (
     },
   });
   const organizationPlugin = organization({
-    ...(databaseMode === "native"
-      ? {
-          schema: {
-            session: {
-              fields: {
-                activeOrganizationId: "active_organization_id",
-              },
-            },
-            organization: {
-              fields: {
-                createdAt: "created_at",
-              },
-            },
-            member: {
-              fields: {
-                organizationId: "organization_id",
-                userId: "user_id",
-                createdAt: "created_at",
-              },
-            },
-            invitation: {
-              fields: {
-                organizationId: "organization_id",
-                expiresAt: "expires_at",
-                createdAt: "created_at",
-                inviterId: "inviter_id",
-              },
-            },
-          },
-        }
-      : {}),
+    schema: {
+      session: {
+        fields: {
+          activeOrganizationId: "active_organization_id",
+        },
+      },
+      organization: {
+        fields: {
+          createdAt: "created_at",
+        },
+      },
+      member: {
+        fields: {
+          organizationId: "organization_id",
+          userId: "user_id",
+          createdAt: "created_at",
+        },
+      },
+      invitation: {
+        fields: {
+          organizationId: "organization_id",
+          expiresAt: "expires_at",
+          createdAt: "created_at",
+          inviterId: "inviter_id",
+        },
+      },
+    },
     allowUserToCreateOrganization: async () => {
       const [row] = await requireDb()
         .select({ value: count() })
@@ -109,48 +102,44 @@ export const createAuthOptions = (
       useSecureCookies: config.useSecureCookies ?? true,
     },
     emailAndPassword: { enabled: false },
-    ...(databaseMode === "native"
-      ? {
-          user: {
-            fields: {
-              emailVerified: "email_verified",
-              createdAt: "created_at",
-              updatedAt: "updated_at",
-            },
-          },
-          session: {
-            fields: {
-              expiresAt: "expires_at",
-              createdAt: "created_at",
-              updatedAt: "updated_at",
-              ipAddress: "ip_address",
-              userAgent: "user_agent",
-              userId: "user_id",
-            },
-          },
-          account: {
-            fields: {
-              accountId: "account_id",
-              providerId: "provider_id",
-              userId: "user_id",
-              accessToken: "access_token",
-              refreshToken: "refresh_token",
-              idToken: "id_token",
-              accessTokenExpiresAt: "access_token_expires_at",
-              refreshTokenExpiresAt: "refresh_token_expires_at",
-              createdAt: "created_at",
-              updatedAt: "updated_at",
-            },
-          },
-          verification: {
-            fields: {
-              expiresAt: "expires_at",
-              createdAt: "created_at",
-              updatedAt: "updated_at",
-            },
-          },
-        }
-      : {}),
+    user: {
+      fields: {
+        emailVerified: "email_verified",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    session: {
+      fields: {
+        expiresAt: "expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+        ipAddress: "ip_address",
+        userAgent: "user_agent",
+        userId: "user_id",
+      },
+    },
+    account: {
+      fields: {
+        accountId: "account_id",
+        providerId: "provider_id",
+        userId: "user_id",
+        accessToken: "access_token",
+        refreshToken: "refresh_token",
+        idToken: "id_token",
+        accessTokenExpiresAt: "access_token_expires_at",
+        refreshTokenExpiresAt: "refresh_token_expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
+    verification: {
+      fields: {
+        expiresAt: "expires_at",
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      },
+    },
     socialProviders: {
       google: config.google,
     },
