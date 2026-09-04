@@ -70,6 +70,7 @@ function readRequestBody(
 
 export async function startNodeHttpTestServer(
   routes: Parameters<typeof HttpRouter.toWebHandler>[0],
+  requestContext: Context.Context<unknown> = emptyRequestContext,
 ): Promise<TestServer> {
   const { handler, dispose } = HttpRouter.toWebHandler(routes);
 
@@ -80,7 +81,7 @@ export async function startNodeHttpTestServer(
       body: await readRequestBody(req),
     });
 
-    const response = await handler(request, emptyRequestContext);
+    const response = await handler(request, requestContext);
     res.writeHead(response.status, Object.fromEntries(response.headers));
     const responseBody = await response.arrayBuffer();
     res.end(Buffer.from(responseBody));

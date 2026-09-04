@@ -1,4 +1,3 @@
-import { AuthService } from "@laxdb/core/auth/auth.service";
 import { ClubService } from "@laxdb/core/club/club.service";
 import { MatchService } from "@laxdb/core/match/match.service";
 import type { StatsApiPayload } from "@laxdb/core/stats/stats.contract";
@@ -11,6 +10,7 @@ import {
   withMemberSession,
   type MemberSessionContext,
 } from "../auth/auth";
+import { AuthService } from "../auth/auth.service";
 import { LaxdbApi } from "../definition";
 
 export const StatsHandlers = HttpApiBuilder.group(

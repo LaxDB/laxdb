@@ -38,7 +38,9 @@
     "packages/api": {
       "name": "@laxdb/api",
       "dependencies": {
+        "@alchemy.run/better-auth": "2.0.0-beta.73",
         "@laxdb/core": "workspace:*",
+        "drizzle-orm": "1.0.0-rc.4",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "^4.20241218.0",
@@ -290,6 +292,8 @@
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
 
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.2.5", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-3NX/MpTdroi0aKz134A6RC2Gb2iXVECN4QaAXnvCIxxIm3C3AVB1mkUe8NaaiyvOpDfsrqWhYtj+Q6a62RrTsw=="],
+
+    "@alchemy.run/better-auth": ["@alchemy.run/better-auth@2.0.0-beta.73", "", { "peerDependencies": { "@cloudflare/workers-types": "^5.20260812.1", "@distilled.cloud/aws": "1.0.0-rc.6", "@neondatabase/serverless": "^1.0.1", "alchemy": "2.0.0-beta.73", "better-auth": "^1.6.2", "drizzle-orm": "1.0.0-rc.5-ab785fc", "effect": ">=4.0.0-rc.110 || >=4.0.0", "kysely": "^0.29.4", "mysql2": "^3.23.2", "pg": "^8.22.0" }, "optionalPeers": ["@cloudflare/workers-types", "@distilled.cloud/aws", "@neondatabase/serverless", "drizzle-orm", "kysely", "mysql2", "pg"] }, "sha512-Bu1vRM9mreCyGI8+zX+GW+g9iD1ss24g41aXli7LF/nuJMRdFKvDL2O4HP03kWjgqKahj+yjQ1E0q/fAnTmK4Q=="],
 
     "@alchemy.run/node-utils": ["@alchemy.run/node-utils@0.0.5", "", {}, "sha512-5agdhQxWBodxa5hDRyjnpx91RTU3g+qd5fxYB7uNDCaOzB0XC47UU/KHR6zf6jhz/NXf61gJS+vhYwn8NHeRoQ=="],
 

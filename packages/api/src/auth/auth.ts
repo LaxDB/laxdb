@@ -1,20 +1,20 @@
+import { BetterAuth } from "@alchemy.run/better-auth";
 import type { D1Database } from "@cloudflare/workers-types";
-import { createAuth, type Auth } from "@laxdb/core/auth/auth";
+import { createAuthOptions } from "@laxdb/core/auth/auth";
 import type { Me } from "@laxdb/core/auth/auth.schema";
-import type { AuthService } from "@laxdb/core/auth/auth.service";
 import {
   DEFAULT_EMAIL_SENDER,
   sendViaResend,
   type EmailConfig,
 } from "@laxdb/core/email/email.service";
 import { AuthenticationError, AuthorizationError } from "@laxdb/core/error";
-import * as Cloudflare from "alchemy/Cloudflare";
 import { Effect } from "effect";
 import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
 
+import type { AuthService } from "./auth.service";
+
 export type AuthEnv = {
   readonly DB: D1Database;
-  readonly BETTER_AUTH_SECRET: string;
   readonly BETTER_AUTH_URL: string;
   readonly TRUSTED_ORIGINS?: string;
   readonly RESEND_API_KEY?: string;
@@ -30,7 +30,7 @@ const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
 export const isAuthEnv = (value: unknown): value is AuthEnv =>
   isRecord(value) &&
   isRecord(value.DB) &&
-  typeof value.BETTER_AUTH_SECRET === "string" &&
+  typeof value.DB.prepare === "function" &&
   typeof value.BETTER_AUTH_URL === "string" &&
   (value.TRUSTED_ORIGINS === undefined ||
     typeof value.TRUSTED_ORIGINS === "string");
@@ -84,72 +84,86 @@ const deliverAuthEmail = async (
   });
 };
 
-const buildAuth = (env: AuthEnv): Auth =>
-  createAuth({
-    db: env.DB,
-    secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: env.TRUSTED_ORIGINS?.split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-    useSecureCookies: !env.BETTER_AUTH_URL.startsWith("http://"),
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
-    },
-    sendMagicLink: ({ email, url }) =>
-      deliverAuthEmail(env, {
-        to: email,
-        subject: "Sign in to Malvern Lacrosse",
-        intro: "Use the link below to sign in. It expires in 15 minutes.",
-        linkLabel: "Sign in",
-        link: url,
-      }),
-    sendInvitationEmail: ({
-      email,
-      inviteLink,
-      inviterName,
-      organizationName,
-    }) =>
-      deliverAuthEmail(env, {
-        to: email,
-        subject: `You're invited to ${organizationName}`,
-        intro: `${inviterName} invited you to join ${organizationName} on Malvern Lacrosse.`,
-        linkLabel: "Accept invitation",
-        link: inviteLink,
-      }),
-  });
-
 /**
- * Better Auth instance for the worker environment. Construction builds the
- * drizzle adapter and plugin chain, so cache per D1 binding (one per worker
- * isolate) instead of rebuilding on every request.
+ * Build Alchemy's Effect-native Better Auth service. Alchemy supplies the D1
+ * adapter, signing secret, request scope, and deploy-time schema migration.
  */
-const authCache = new WeakMap<object, Auth>();
+export const makeAuth = (
+  env: unknown,
+  runtimeOptions: {
+    readonly secret?: string;
+    readonly migrate?: boolean;
+    readonly databaseMode?: "native" | "drizzle";
+  } = {},
+) => {
+  const runtimeEnv = isAuthEnv(env) ? env : undefined;
+  const baseURL = runtimeEnv?.BETTER_AUTH_URL ?? "http://localhost";
 
-export const makeAuth = (env: AuthEnv): Auth => {
-  const cached = authCache.get(env.DB);
-  if (cached !== undefined) return cached;
-  const auth = buildAuth(env);
-  authCache.set(env.DB, auth);
-  return auth;
+  const requireRuntimeEnv = () => {
+    if (runtimeEnv === undefined) {
+      throw new Error("Better Auth worker environment is invalid");
+    }
+    return runtimeEnv;
+  };
+
+  return BetterAuth({
+    id: "LaxdbAuth",
+    migrate: runtimeOptions.migrate ?? true,
+    ...(runtimeOptions.secret === undefined
+      ? {}
+      : { secret: runtimeOptions.secret }),
+    ...createAuthOptions(
+      {
+        db: runtimeEnv?.DB,
+        baseURL,
+        trustedOrigins: runtimeEnv?.TRUSTED_ORIGINS?.split(",")
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+        useSecureCookies: !baseURL.startsWith("http://"),
+        google: {
+          clientId: runtimeEnv?.GOOGLE_CLIENT_ID ?? "",
+          clientSecret: runtimeEnv?.GOOGLE_CLIENT_SECRET ?? "",
+        },
+        sendMagicLink: ({ email, url }) => {
+          const env = requireRuntimeEnv();
+          return deliverAuthEmail(env, {
+            to: email,
+            subject: "Sign in to Malvern Lacrosse",
+            intro: "Use the link below to sign in. It expires in 15 minutes.",
+            linkLabel: "Sign in",
+            link: url,
+          });
+        },
+        sendInvitationEmail: ({
+          email,
+          inviteLink,
+          inviterName,
+          organizationName,
+        }) => {
+          const env = requireRuntimeEnv();
+          return deliverAuthEmail(env, {
+            to: email,
+            subject: `You're invited to ${organizationName}`,
+            intro: `${inviterName} invited you to join ${organizationName} on Malvern Lacrosse.`,
+            linkLabel: "Accept invitation",
+            link: inviteLink,
+          });
+        },
+      },
+      runtimeOptions.databaseMode,
+    ),
+  });
 };
+
+export type Auth = Effect.Success<ReturnType<typeof makeAuth>>;
 
 type AuthServiceImpl = typeof AuthService.Service;
 
 export const currentSession = (authService: AuthServiceImpl) =>
   Effect.gen(function* () {
-    const env = yield* Cloudflare.WorkerEnvironment;
     const request = yield* HttpServerRequest.HttpServerRequest;
-    if (!isAuthEnv(env)) {
-      return yield* new AuthenticationError({
-        message: "auth environment is invalid",
-      });
-    }
-    const session = yield* authService.resolveMe(
-      makeAuth(env),
-      new Headers(request.headers),
-    );
+    const headers = new Headers(request.headers);
+    const session = yield* authService.resolveMe(headers);
     if (session === null) {
       return yield* new AuthenticationError({ message: "unauthorized" });
     }

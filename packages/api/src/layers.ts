@@ -1,5 +1,4 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import { AuthService } from "@laxdb/core/auth/auth.service";
 import { ClubService } from "@laxdb/core/club/club.service";
 import { DefaultsService } from "@laxdb/core/defaults/defaults.service";
 import { DrillService } from "@laxdb/core/drill/drill.service";
@@ -16,8 +15,9 @@ import { D1 as drizzleD1 } from "alchemy/Drizzle/D1";
 import { Layer } from "effect";
 import * as Effect from "effect/Effect";
 
-import { emailConfigFromEnv } from "./auth/auth";
+import { type Auth, emailConfigFromEnv } from "./auth/auth";
 import { AuthHandlers } from "./auth/auth.handlers";
+import { AuthService } from "./auth/auth.service";
 import { ClubHandlers } from "./club/club.handlers";
 import { DefaultsHandlers } from "./defaults/defaults.handlers";
 import { DrillsHandlers } from "./drill/drill.handlers";
@@ -38,7 +38,6 @@ const isD1Env = (value: unknown): value is { readonly DB: D1Database } =>
   isRecord(value) && isD1Binding(value.DB);
 
 export const CoreServicesLive = Layer.mergeAll(
-  AuthService.layer,
   ClubService.layer,
   DefaultsService.layer,
   DrillService.layer,
@@ -69,9 +68,10 @@ export const EmailLive = Layer.unwrap(
   }),
 );
 
-export const ServicesLive = CoreServicesLive.pipe(
-  Layer.provide([DatabaseLive, EmailLive]),
-);
+export const ServicesLive = (auth: Auth) =>
+  Layer.mergeAll(CoreServicesLive, AuthService.layer(auth)).pipe(
+    Layer.provide([DatabaseLive, EmailLive]),
+  );
 
 export const HttpGroups = Layer.mergeAll(
   AuthHandlers,
@@ -91,4 +91,5 @@ export const HttpGroups = Layer.mergeAll(
 export const HttpGroupsLive = HttpGroups.pipe(
   Layer.provide(CoreServicesLive),
   Layer.provide(EmailService.layer),
+  Layer.provide(AuthService.unauthenticatedLayer),
 );

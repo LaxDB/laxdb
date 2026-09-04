@@ -7,57 +7,71 @@
  *
  * Magic links are printed to stdout (log-only email mode without a key).
  */
-import { getTestD1Database, TestDatabaseLive } from "@laxdb/core/test/db";
+import { Drizzle } from "@alchemy.run/better-auth/Drizzle";
+import * as authSchema from "@laxdb/core/auth/auth.sql";
+import { getTestD1Database } from "@laxdb/core/test/db";
+import { RuntimeContext, type BaseRuntimeContext } from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
-import { DateTime, Effect, Layer } from "effect";
+import { drizzle } from "drizzle-orm/d1";
+import { Context, DateTime, Effect, Layer } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 
-import { isAuthEnv, makeAuth } from "../auth/auth";
+import { makeAuth } from "../auth/auth";
 import { LaxdbApi } from "../definition";
-import { HttpGroupsLive } from "../layers";
+import { HttpGroups, ServicesLive } from "../layers";
 
 import { startNodeHttpTestServer } from "./http-test-server";
 
 const APP_ORIGIN = process.env.APP_ORIGIN ?? "http://localhost:3005";
-
+const db = await getTestD1Database();
 const env = {
-  DB: await getTestD1Database(),
-  BETTER_AUTH_SECRET: "walkthrough-local-secret-0123456789abcdef",
+  DB: db,
   BETTER_AUTH_URL: APP_ORIGIN,
   TRUSTED_ORIGINS: APP_ORIGIN,
+  IS_LOCAL: "true",
 };
 
+const auth = await Effect.runPromise(
+  makeAuth(env, {
+    secret: "walkthrough-local-secret-0123456789abcdef",
+    migrate: false,
+    databaseMode: "drizzle",
+  }).pipe(
+    Effect.provide(
+      Drizzle(drizzle(db), {
+        provider: "sqlite",
+        schema: {
+          account: authSchema.accounts,
+          invitation: authSchema.invitations,
+          member: authSchema.members,
+          organization: authSchema.organizations,
+          session: authSchema.sessions,
+          user: authSchema.users,
+          verification: authSchema.verifications,
+        },
+      }),
+    ),
+  ),
+);
+
+const runtimeContext: BaseRuntimeContext = {
+  Type: "NodeTestServer",
+  id: "walkthrough",
+  env,
+  get: <T>() => Effect.succeed<T | undefined>(),
+  set: (id) => Effect.succeed(id),
+};
+const requestContext = Context.make(RuntimeContext, runtimeContext);
 const EnvLive = Layer.succeed(Cloudflare.WorkerEnvironment, env);
 
-const HttpHandlers = HttpGroupsLive.pipe(
-  Layer.provide(TestDatabaseLive),
+const HttpApiRouter = HttpApiBuilder.layer(LaxdbApi).pipe(
+  Layer.provide(HttpGroups.pipe(Layer.provide(ServicesLive(auth)))),
   Layer.provide(EnvLive),
 );
 
-const HttpApiRouter = HttpApiBuilder.layer(LaxdbApi).pipe(
-  Layer.provide(HttpHandlers),
-);
-
 const AuthRoute = HttpRouter.use((router) =>
-  router.add("*", "/api/auth/*", (request) =>
-    Effect.gen(function* () {
-      const source = request.source;
-      if (!isAuthEnv(env)) {
-        return HttpServerResponse.text("Auth environment is invalid", {
-          status: 500,
-        });
-      }
-      if (!(source instanceof globalThis.Request)) {
-        return HttpServerResponse.text("Unsupported request source", {
-          status: 500,
-        });
-      }
-      return HttpServerResponse.raw(
-        yield* Effect.promise(() => makeAuth(env).handler(source)),
-      );
-    }),
-  ),
+  router.add("*", "/api/auth/*", auth.fetch),
 );
 
 const HealthRoute = HttpRouter.use((router) =>
@@ -68,5 +82,8 @@ const AllRoutes = Layer.mergeAll(HttpApiRouter, AuthRoute, HealthRoute).pipe(
   Layer.provide(DateTime.layerCurrentZoneLocal),
 );
 
-const server = await startNodeHttpTestServer(AllRoutes);
-console.log(`[walkthrough-api] listening at ${server.url}`);
+export const walkthroughServer = await startNodeHttpTestServer(
+  AllRoutes,
+  requestContext,
+);
+console.log(`[walkthrough-api] listening at ${walkthroughServer.url}`);
