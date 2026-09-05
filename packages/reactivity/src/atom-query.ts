@@ -1,8 +1,25 @@
-import { Duration, type Effect, Option } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { Duration, Effect, Option, type Schema } from "effect";
+import { AsyncResult, Atom, AtomRegistry } from "effect/unstable/reactivity";
+
+/** Wait for a refresh; query consumers display any refresh error. */
+export const waitForQuery = <A, E>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+) =>
+  Effect.runPromiseExit(
+    AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
+  );
 
 export interface AsyncQueryOptions<A, E> {
   readonly load: (previous: A | undefined) => Effect.Effect<A, E>;
+  readonly refreshSignal?: Atom.Atom<unknown>;
+  readonly serialization?: {
+    readonly key: string;
+    readonly schema: Schema.ConstraintCodec<
+      AsyncResult.AsyncResult<A, E>,
+      unknown
+    >;
+  };
   readonly staleTime?: Duration.Input | undefined;
   readonly idleTTL?: Duration.Input | undefined;
   readonly pollInterval?:
@@ -75,7 +92,16 @@ export const makeAsyncQuery = <A, E>(
       previousValue(get.self<AsyncResult.AsyncResult<A, unknown>>()),
     ),
   );
-  const cached = source.pipe(
+  // Hydrate the source, not its SWR wrapper, so the first read uses seeded data.
+  const hydratable =
+    options.serialization === undefined
+      ? source
+      : source.pipe(Atom.serializable(options.serialization));
+  const refreshable =
+    options.refreshSignal === undefined
+      ? hydratable
+      : hydratable.pipe(Atom.makeRefreshOnSignal(options.refreshSignal));
+  const cached = refreshable.pipe(
     Atom.swr({
       staleTime,
       revalidateOnMount,

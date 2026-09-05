@@ -1,21 +1,20 @@
-import { QueryClient } from "@tanstack/react-query";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { AtomRegistry, Hydration } from "effect/unstable/reactivity";
 
 import { routeTree } from "./route-tree.gen";
 
 export function getRouter() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60, // 1 minute
-      },
-    },
-  });
+  // Each server request and browser router owns a separate cache.
+  const registry = AtomRegistry.make();
 
   return createTanStackRouter({
     routeTree,
     defaultPreload: "intent",
-    context: { queryClient },
+    context: { registry },
+    dehydrate: () => ({ atoms: Hydration.dehydrate(registry) }),
+    hydrate: (state) => {
+      Hydration.hydrate(registry, state.atoms);
+    },
   });
 }
 

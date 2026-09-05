@@ -1,3 +1,4 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import {
   Card,
@@ -14,11 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
-import { listFixtures, type FixtureView } from "../../../lib/matches";
+import { fixturesAtom, type FixtureView } from "../../../lib/matches";
 
 export const Route = createFileRoute("/_app/teams/$teamId_/fixtures")({
   beforeLoad: ({ context, params }) => {
@@ -58,10 +58,7 @@ function TeamFixturesPage() {
   const { teamId } = Route.useParams();
   const ctx = Route.useRouteContext();
   const team = ctx.teams.find((entry) => entry.id === teamId);
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", teamId],
-    queryFn: () => listFixtures({ data: { teamId } }),
-  });
+  const fixturesQuery = useAsyncQuery(fixturesAtom(teamId));
   const now = Date.now();
   const fixtures = fixturesQuery.data ?? [];
   const upcoming = fixtures
@@ -99,7 +96,7 @@ function TeamFixturesPage() {
           <AlertDescription>{fixturesQuery.error.message}</AlertDescription>
         </Alert>
       )}
-      {fixturesQuery.isPending ? (
+      {fixturesQuery.isLoading ? (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Spinner /> Loading fixtures…
         </p>

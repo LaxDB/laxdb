@@ -1,14 +1,14 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
 import {
-  listFixtures,
-  listReports,
+  fixturesAtom,
+  reportsAtom,
   type FixtureView,
 } from "../../../lib/matches";
 
@@ -31,14 +31,8 @@ function TeamReportsPage() {
   const { teamId } = Route.useParams();
   const ctx = Route.useRouteContext();
   const team = ctx.teams.find((entry) => entry.id === teamId);
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", teamId],
-    queryFn: () => listFixtures({ data: { teamId } }),
-  });
-  const reportsQuery = useQuery({
-    queryKey: ["reports", teamId],
-    queryFn: () => listReports({ data: { teamId } }),
-  });
+  const fixturesQuery = useAsyncQuery(fixturesAtom(teamId));
+  const reportsQuery = useAsyncQuery(reportsAtom(teamId));
   const fixturesById = useMemo(
     () =>
       new Map(
@@ -76,7 +70,7 @@ function TeamReportsPage() {
           <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
-      {fixturesQuery.isPending || reportsQuery.isPending ? (
+      {fixturesQuery.isLoading || reportsQuery.isLoading ? (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Spinner /> Loading reports…
         </p>

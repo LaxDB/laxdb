@@ -1,3 +1,7 @@
+import { RegistryContext } from "@effect/atom-react";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
@@ -19,18 +23,19 @@ import {
   TableRow,
 } from "@laxdb/ui/components/ui/table";
 import { cn } from "@laxdb/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import {
+  rosterChanged,
+  teamsAtom,
+  rosterAtom,
   addRosterPlayer,
-  listRoster,
-  listTeams,
   updateRosterPlayer,
   type RosterPlayerView,
 } from "../../lib/club";
 import { syncGamedayRoster } from "../../lib/matches";
+import { statsChanged } from "../../lib/stats";
 
 export const Route = createFileRoute("/_app/roster")({
   validateSearch: (search) =>
@@ -49,18 +54,20 @@ function RosterRow({
   const [jersey, setJersey] = useState(
     player.jerseyNumber === null ? "" : String(player.jerseyNumber),
   );
-  const mutation = useMutation({
-    mutationFn: (input: { readonly active?: boolean }) =>
-      updateRosterPlayer({
+  const mutation = useAsyncAction(
+    async (input: { readonly active?: boolean }) => {
+      const result = await updateRosterPlayer({
         data: {
           id: player.id,
           name: name.trim(),
           jerseyNumber: jersey === "" ? null : Number(jersey),
           ...(input.active === undefined ? {} : { active: input.active }),
         },
-      }),
-    onSuccess: onSaved,
-  });
+      });
+      await onSaved();
+      return result;
+    },
+  );
 
   return (
     <TableRow>
@@ -93,7 +100,7 @@ function RosterRow({
             variant="outline"
             disabled={mutation.isPending || name.trim() === ""}
             onClick={() => {
-              mutation.mutate({});
+              mutation.execute({});
             }}
           >
             Save
@@ -102,7 +109,7 @@ function RosterRow({
             variant="outline"
             disabled={mutation.isPending}
             onClick={() => {
-              mutation.mutate({ active: !player.active });
+              mutation.execute({ active: !player.active });
             }}
           >
             {player.active ? "Deactivate" : "Reactivate"}
@@ -115,17 +122,14 @@ function RosterRow({
 
 function Roster() {
   const routeContext = Route.useRouteContext();
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const search = Route.useSearch();
 
   const [pickedTeamId, setPickedTeamId] = useState(search.teamId ?? "");
   const [name, setName] = useState("");
   const [jersey, setJersey] = useState("");
 
-  const teamsQuery = useQuery({
-    queryKey: ["teams"],
-    queryFn: () => listTeams(),
-  });
+  const teamsQuery = useAsyncQuery(teamsAtom);
   const teams = teamsQuery.data ?? [];
   const activeMemberId = routeContext.me?.activeMemberId ?? null;
   const availableTeams = routeContext.isAdmin
@@ -138,37 +142,37 @@ function Roster() {
     ? pickedTeamId
     : (availableTeams.at(0)?.id ?? "");
 
-  const rosterQuery = useQuery({
-    queryKey: ["roster", teamId],
-    queryFn: () => listRoster({ data: { teamId } }),
-    enabled: teamId !== "",
-  });
+  const rosterQuery = useAsyncQuery(
+    teamId === "" ? undefined : rosterAtom(teamId),
+  );
   const roster = rosterQuery.data ?? [];
 
-  const invalidateRoster = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["roster", teamId] }),
-      queryClient.invalidateQueries({
-        queryKey: ["team-player-stats", teamId],
-      }),
-    ]);
+  const invalidateRoster = () => {
+    registry.update(rosterChanged, (value) => value + 1);
+    registry.update(statsChanged, (value) => value + 1);
+    return waitForQuery(registry, rosterAtom(teamId));
+  };
 
-  const addPlayer = useMutation({
-    mutationFn: (vars: {
+  const addPlayer = useAsyncAction(
+    async (vars: {
       teamId: string;
       name: string;
       jerseyNumber: number | null;
-    }) => addRosterPlayer({ data: vars }),
-    onSuccess: () => {
+    }) => {
+      const result = await addRosterPlayer({ data: vars });
+
       setName("");
       setJersey("");
-      return invalidateRoster();
-    },
-  });
+      await invalidateRoster();
 
-  const syncRoster = useMutation({
-    mutationFn: () => syncGamedayRoster({ data: { teamId } }),
-    onSuccess: invalidateRoster,
+      return result;
+    },
+  );
+
+  const syncRoster = useAsyncAction(async () => {
+    const result = await syncGamedayRoster({ data: { teamId } });
+    await invalidateRoster();
+    return result;
   });
 
   const err =
@@ -180,7 +184,7 @@ function Roster() {
   const add = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!name.trim() || teamId === "") return;
-    addPlayer.mutate({
+    addPlayer.execute({
       teamId,
       name: name.trim(),
       jerseyNumber: jersey === "" ? null : Number(jersey),
@@ -203,7 +207,7 @@ function Roster() {
               variant="outline"
               disabled={syncRoster.isPending}
               onClick={() => {
-                syncRoster.mutate();
+                syncRoster.execute();
               }}
             >
               {syncRoster.isPending ? "Syncing…" : "Sync GameDay roster"}
@@ -249,7 +253,7 @@ function Roster() {
         </Alert>
       )}
 
-      {teamsQuery.isSuccess && availableTeams.length === 0 ? (
+      {teamsQuery.data !== undefined && availableTeams.length === 0 ? (
         <Card>
           <CardContent>
             <p className="text-muted-foreground">
@@ -286,7 +290,7 @@ function Roster() {
               </Button>
             </form>
 
-            {rosterQuery.isPending ? (
+            {rosterQuery.isLoading ? (
               <p className="flex items-center gap-2 text-muted-foreground">
                 <Spinner />
                 Loading…

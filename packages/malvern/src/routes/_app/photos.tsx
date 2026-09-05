@@ -1,3 +1,4 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import {
@@ -15,14 +16,13 @@ import {
   SelectValue,
 } from "@laxdb/ui/components/ui/select";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { listTeams } from "../../lib/club";
+import { teamsAtom } from "../../lib/club";
 import {
-  listFixtures,
-  listMatchImages,
+  selectedFixturesAtom,
+  selectedImagesAtom,
   type FixtureView,
   type MatchImageView,
 } from "../../lib/matches";
@@ -45,24 +45,12 @@ const gameDate = (fixture: FixtureView) =>
         year: "numeric",
       });
 
-const uniqueById = <T extends { readonly id: string }>(items: readonly T[]) => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-};
-
 function Photos() {
   const ctx = Route.useRouteContext();
   const [selectedFilter, setSelectedFilter] = useState(
     ctx.isAdmin ? ALL_TEAMS : MY_TEAMS,
   );
-  const teamsQuery = useQuery({
-    queryKey: ["teams"],
-    queryFn: () => listTeams(),
-  });
+  const teamsQuery = useAsyncQuery(teamsAtom);
   const teams = teamsQuery.data ?? [];
   const activeMemberId = ctx.me?.activeMemberId ?? null;
   const myTeams = useMemo(
@@ -86,41 +74,23 @@ function Photos() {
     [visibleTeams],
   );
 
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", "photos-page", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS) return listFixtures({ data: {} });
-      return uniqueById(
-        (
-          await Promise.all(
-            selectedTeamIds.map((teamId) => listFixtures({ data: { teamId } })),
-          )
-        ).flat(),
-      );
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
+  const fixturesQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedFixturesAtom(
+          effectiveFilter === ALL_TEAMS ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
   const fixtures = fixturesQuery.data ?? [];
-  const imagesQuery = useQuery({
-    queryKey: ["match-images", "photos-page", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS) return listMatchImages({ data: {} });
-      return uniqueById(
-        (
-          await Promise.all(
-            selectedTeamIds.map((teamId) =>
-              listMatchImages({ data: { teamId } }),
-            ),
-          )
-        ).flat(),
-      );
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
+  const imagesQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedImagesAtom(
+          effectiveFilter === ALL_TEAMS ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
   const imagesByFixture = useMemo(() => {
     const grouped = new Map<string, MatchImageView[]>();
     for (const image of imagesQuery.data ?? []) {
@@ -132,7 +102,7 @@ function Photos() {
   }, [imagesQuery.data]);
   const error = teamsQuery.error ?? fixturesQuery.error ?? imagesQuery.error;
   const loading =
-    teamsQuery.isPending || fixturesQuery.isPending || imagesQuery.isPending;
+    teamsQuery.isLoading || fixturesQuery.isLoading || imagesQuery.isLoading;
 
   return (
     <div className="flex flex-col gap-8">

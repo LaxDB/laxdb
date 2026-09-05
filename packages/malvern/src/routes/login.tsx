@@ -1,3 +1,4 @@
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -9,7 +10,6 @@ import {
 } from "@laxdb/ui/components/ui/card";
 import { Input } from "@laxdb/ui/components/ui/input";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -22,38 +22,32 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const [email, setEmail] = useState("");
 
-  const googleSignIn = useMutation({
-    mutationFn: async () => {
-      const result = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
-      if (result.error) {
-        throw new Error(
-          result.error.message ?? "Failed to start Google sign in",
-        );
-      }
-    },
+  const googleSignIn = useAsyncAction(async () => {
+    const result = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
+    if (result.error) {
+      throw new Error(result.error.message ?? "Failed to start Google sign in");
+    }
   });
 
-  const sendLink = useMutation({
-    mutationFn: async (address: string) => {
-      const result = await authClient.signIn.magicLink({
-        email: address,
-        callbackURL: "/",
-      });
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to send magic link");
-      }
-      return address;
-    },
+  const sendLink = useAsyncAction(async (address: string) => {
+    const result = await authClient.signIn.magicLink({
+      email: address,
+      callbackURL: "/",
+    });
+    if (result.error) {
+      throw new Error(result.error.message ?? "Failed to send magic link");
+    }
+    return address;
   });
 
   const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = email.trim();
     if (!trimmed || sendLink.isPending) return;
-    sendLink.mutate(trimmed);
+    sendLink.execute(trimmed);
   };
 
   return (
@@ -72,7 +66,7 @@ function Login() {
               size="lg"
               disabled={googleSignIn.isPending}
               onClick={() => {
-                googleSignIn.mutate();
+                googleSignIn.execute();
               }}
             >
               {googleSignIn.isPending && <Spinner />}
@@ -114,7 +108,8 @@ function Login() {
               </Alert>
             )}
 
-            {(googleSignIn.isError || sendLink.isError) && (
+            {(googleSignIn.error !== undefined ||
+              sendLink.error !== undefined) && (
               <Alert variant="destructive">
                 <AlertDescription>
                   {googleSignIn.error?.message ?? sendLink.error?.message}

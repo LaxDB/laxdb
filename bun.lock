@@ -109,7 +109,6 @@
         "@laxdb/reactivity": "workspace:*",
         "@laxdb/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
-        "@tanstack/react-query": "^5.95.2",
         "@tanstack/react-router": "^1.143.11",
         "@tanstack/react-start": "^1.143.12",
         "better-auth": "^1.6.5",
@@ -208,6 +207,9 @@
         "effect": "4.0.0-beta.103",
         "react": "^19.2.0",
         "scheduler": "^0.27.0",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.0",
       },
     },
     "packages/rules-wiki": {

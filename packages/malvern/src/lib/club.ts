@@ -1,11 +1,14 @@
 import { ApiClient } from "@laxdb/api/client";
-import type {
+import {
   ClubTeam,
-  ReportRecipient,
-  RosterPlayer,
+  type ReportRecipient,
+  type RosterPlayer,
 } from "@laxdb/core/club/club.schema";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
 
@@ -24,6 +27,20 @@ export const listTeams = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const teamsChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const teamsAtom = makeAsyncQuery({
+  refreshSignal: teamsChanged,
+  load: () => fromPromise(() => listTeams()),
+  staleTime: "1 minute",
+  serialization: {
+    key: "malvern/teams",
+    schema: AsyncResult.Schema({
+      success: Schema.Array(ClubTeam),
+      error: Schema.Error(),
+    }),
+  },
+}).pipe(Atom.optimistic);
 
 export const createTeam = createServerFn({ method: "POST" })
   .middleware([apiAuth])
@@ -56,6 +73,34 @@ export const updateTeam = createServerFn({ method: "POST" })
     ),
   );
 
+export type TeamUpdate = {
+  readonly id: string;
+  readonly name?: string;
+  readonly coachMemberId?: string | null;
+};
+export const updateTeamAtom = Atom.optimisticFn(teamsAtom, {
+  reducer: (current, update: TeamUpdate) =>
+    AsyncResult.map(current, (teams) =>
+      teams.map((team) =>
+        team.id === update.id
+          ? new ClubTeam({
+              id: team.id,
+              organizationId: team.organizationId,
+              name: update.name ?? team.name,
+              coachMemberId:
+                update.coachMemberId === undefined
+                  ? team.coachMemberId
+                  : update.coachMemberId,
+              createdAt: team.createdAt,
+            })
+          : team,
+      ),
+    ),
+  fn: Atom.fn<TeamUpdate>()((input) =>
+    fromPromise(() => updateTeam({ data: input })),
+  ),
+});
+
 export const deleteTeam = createServerFn({ method: "POST" })
   .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
@@ -81,6 +126,14 @@ export const listRoster = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const rosterChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const rosterAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: rosterChanged,
+    load: () => fromPromise(() => listRoster({ data: { teamId } })),
+  }),
+);
 
 export const addRosterPlayer = createServerFn({ method: "POST" })
   .middleware([apiAuth])
@@ -142,6 +195,12 @@ export const listRecipients = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const recipientsChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const recipientsAtom = makeAsyncQuery({
+  refreshSignal: recipientsChanged,
+  load: () => fromPromise(() => listRecipients()),
+});
 
 export const listRecipientsForTeam = createServerFn({ method: "GET" })
   .middleware([apiAuth])

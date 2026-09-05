@@ -1,3 +1,5 @@
+import { RegistryContext } from "@effect/atom-react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -9,12 +11,11 @@ import {
 } from "@laxdb/ui/components/ui/card";
 import { Input } from "@laxdb/ui/components/ui/input";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { authClient } from "../../lib/auth-client";
-import { ME_QUERY_KEY, type MeCtx } from "../../lib/session";
+import { meAtom } from "../../lib/session";
 
 export const Route = createFileRoute("/_app/profile")({
   component: Profile,
@@ -22,33 +23,24 @@ export const Route = createFileRoute("/_app/profile")({
 
 function Profile() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const { me } = Route.useRouteContext();
   const [name, setName] = useState(me?.userName ?? "");
 
-  const updateName = useMutation({
-    mutationFn: async (nextName: string) => {
-      const result = await authClient.updateUser({ name: nextName });
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to update profile");
-      }
-      return nextName;
-    },
-    onSuccess: async (nextName) => {
-      queryClient.setQueryData<MeCtx>(ME_QUERY_KEY, (current) =>
-        current === undefined || current === null
-          ? current
-          : { ...current, userName: nextName },
-      );
-      await router.invalidate();
-    },
+  const updateName = useAsyncAction(async (nextName: string) => {
+    const result = await authClient.updateUser({ name: nextName });
+    if (result.error) {
+      throw new Error(result.error.message ?? "Failed to update profile");
+    }
+    registry.refresh(meAtom);
+    await router.invalidate();
   });
 
   const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = name.trim();
     if (trimmed === "" || updateName.isPending) return;
-    updateName.mutate(trimmed);
+    updateName.execute(trimmed);
   };
 
   if (!me) return null;

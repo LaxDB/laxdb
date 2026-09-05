@@ -1,7 +1,11 @@
+import { RegistryContext } from "@effect/atom-react";
 import {
   DisplayCurrencyFromCents,
   DisplayDateFromDate,
 } from "@laxdb/core/schema";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
@@ -21,15 +25,16 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 
 import {
+  finesChanged,
+  auditChanged,
+  finesAtom,
+  membersAtom,
   forgiveFine,
-  listFines,
-  listMembers,
   payFine,
   type FineView,
 } from "../../lib/fines";
@@ -55,32 +60,28 @@ const FILTERS = ["all", "unpaid", "paid", "forgiven"] as const;
 function Board() {
   const { me } = Route.useRouteContext();
   const isAdmin = me?.memberRole === "owner" || me?.memberRole === "admin";
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
 
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("unpaid");
 
-  const finesQuery = useQuery({
-    queryKey: ["fines"],
-    queryFn: () => listFines(),
-  });
-  const membersQuery = useQuery({
-    queryKey: ["fine-members"],
-    queryFn: () => listMembers(),
-  });
+  const finesQuery = useAsyncQuery(finesAtom);
+  const membersQuery = useAsyncQuery(membersAtom);
 
-  const invalidate = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["fines"] }),
-      queryClient.invalidateQueries({ queryKey: ["audit"] }),
-    ]);
+  const invalidate = () => {
+    registry.update(finesChanged, (value) => value + 1);
+    registry.update(auditChanged, (value) => value + 1);
+    return waitForQuery(registry, finesAtom);
+  };
 
-  const payMutation = useMutation({
-    mutationFn: (id: string) => payFine({ data: { id } }),
-    onSuccess: invalidate,
+  const payMutation = useAsyncAction(async (id: string) => {
+    const result = await payFine({ data: { id } });
+    await invalidate();
+    return result;
   });
-  const forgiveMutation = useMutation({
-    mutationFn: (id: string) => forgiveFine({ data: { id, note: null } }),
-    onSuccess: invalidate,
+  const forgiveMutation = useAsyncAction(async (id: string) => {
+    const result = await forgiveFine({ data: { id, note: null } });
+    await invalidate();
+    return result;
   });
 
   const err =
@@ -89,7 +90,7 @@ function Board() {
     payMutation.error ??
     forgiveMutation.error;
   const acting = payMutation.isPending || forgiveMutation.isPending;
-  const loadingFines = finesQuery.isPending || membersQuery.isPending;
+  const loadingFines = finesQuery.isLoading || membersQuery.isLoading;
 
   const fines = finesQuery.data;
   const members = membersQuery.data ?? [];
@@ -255,7 +256,7 @@ function Board() {
                               <Button
                                 disabled={acting}
                                 onClick={() => {
-                                  payMutation.mutate(r.id);
+                                  payMutation.execute(r.id);
                                 }}
                               >
                                 Pay
@@ -264,7 +265,7 @@ function Board() {
                                 variant="outline"
                                 disabled={acting}
                                 onClick={() => {
-                                  forgiveMutation.mutate(r.id);
+                                  forgiveMutation.execute(r.id);
                                 }}
                               >
                                 Forgive

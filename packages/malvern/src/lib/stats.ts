@@ -6,6 +6,7 @@ import type {
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
 import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
@@ -100,8 +101,28 @@ export const getTeamStandings = createServerFn({ method: "GET" })
     ),
   );
 
+export const statsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const teamStandingsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
-    load: () => Effect.tryPromise(() => getTeamStandings({ data: { teamId } })),
+    refreshSignal: statsChanged,
+    load: () => fromPromise(() => getTeamStandings({ data: { teamId } })),
+  }),
+);
+export const teamSummaryAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: statsChanged,
+    load: () => fromPromise(() => getTeamSummary({ data: { teamId } })),
+  }),
+);
+export const teamPlayerStatsAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: statsChanged,
+    load: () => fromPromise(() => getTeamPlayerStats({ data: { teamId } })),
+  }),
+);
+export const fixtureStatsAtom = Atom.family((fixtureId: string) =>
+  makeAsyncQuery({
+    refreshSignal: statsChanged,
+    load: () => fromPromise(() => getFixtureStats({ data: { fixtureId } })),
   }),
 );

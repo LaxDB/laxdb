@@ -1,6 +1,4 @@
-import { RegistryProvider } from "@effect/atom-react";
-import type { QueryClient } from "@tanstack/react-query";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { RegistryContext } from "@effect/atom-react";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -8,9 +6,11 @@ import {
   redirect,
   Scripts,
 } from "@tanstack/react-router";
+import { Effect } from "effect";
+import { AtomRegistry } from "effect/unstable/reactivity";
 
 import { NotFound } from "../components/not-found";
-import { getMe, ME_QUERY_KEY, ME_STALE_TIME_MS } from "../lib/session";
+import { meAtom } from "../lib/session";
 import appCss from "../styles.css?url";
 
 const PUBLIC_PATHS = ["/login", "/accept-invitation"];
@@ -18,7 +18,7 @@ const isPublic = (path: string) =>
   PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
 export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient;
+  registry: AtomRegistry.AtomRegistry;
 }>()({
   head: () => ({
     meta: [
@@ -30,11 +30,11 @@ export const Route = createRootRouteWithContext<{
   }),
   beforeLoad: async ({ context, location }) => {
     if (isPublic(location.pathname)) return { me: null };
-    const me = await context.queryClient.ensureQueryData({
-      queryKey: ME_QUERY_KEY,
-      queryFn: () => getMe(),
-      staleTime: ME_STALE_TIME_MS,
-    });
+    const me = await Effect.runPromise(
+      AtomRegistry.getResult(context.registry, meAtom, {
+        suspendOnWaiting: true,
+      }),
+    );
     if (!me) throw redirect({ to: "/login" });
     if (!me.activeOrganizationId && location.pathname !== "/onboarding") {
       throw redirect({ to: "/onboarding" });
@@ -46,18 +46,16 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { registry } = Route.useRouteContext();
   return (
     <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
-        <QueryClientProvider client={queryClient}>
-          <RegistryProvider>
-            <Outlet />
-          </RegistryProvider>
-        </QueryClientProvider>
+        <RegistryContext.Provider value={registry}>
+          <Outlet />
+        </RegistryContext.Provider>
         <Scripts />
       </body>
     </html>

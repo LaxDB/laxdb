@@ -1,3 +1,4 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import {
@@ -22,12 +23,15 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { listTeams } from "../../lib/club";
-import { listFixtures, listReports, type FixtureView } from "../../lib/matches";
+import { teamsAtom } from "../../lib/club";
+import {
+  selectedFixturesAtom,
+  selectedReportsAtom,
+  type FixtureView,
+} from "../../lib/matches";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -48,24 +52,12 @@ const fixtureDate = (fixture: FixtureView) =>
         year: "numeric",
       });
 
-const uniqueById = <T extends { readonly id: string }>(items: readonly T[]) => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-};
-
 function Reports() {
   const ctx = Route.useRouteContext();
   const [selectedFilter, setSelectedFilter] = useState(
     ctx.isAdmin ? ALL_TEAMS : MY_TEAMS,
   );
-  const teamsQuery = useQuery({
-    queryKey: ["teams"],
-    queryFn: () => listTeams(),
-  });
+  const teamsQuery = useAsyncQuery(teamsAtom);
   const teams = teamsQuery.data ?? [];
   const activeMemberId = ctx.me?.activeMemberId ?? null;
   const myTeams = useMemo(
@@ -83,38 +75,22 @@ function Reports() {
     return [effectiveFilter];
   }, [effectiveFilter, myTeams, teams]);
 
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", "reports-page", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS) return listFixtures({ data: {} });
-      return uniqueById(
-        (
-          await Promise.all(
-            selectedTeamIds.map((teamId) => listFixtures({ data: { teamId } })),
-          )
-        ).flat(),
-      );
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
-  const reportsQuery = useQuery({
-    queryKey: ["reports", "reports-page", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS) return listReports({ data: {} });
-      return uniqueById(
-        (
-          await Promise.all(
-            selectedTeamIds.map((teamId) => listReports({ data: { teamId } })),
-          )
-        ).flat(),
-      );
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
+  const fixturesQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedFixturesAtom(
+          effectiveFilter === ALL_TEAMS ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
+  const reportsQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedReportsAtom(
+          effectiveFilter === ALL_TEAMS ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
 
   const fixturesById = useMemo(
     () =>
@@ -138,7 +114,7 @@ function Reports() {
   );
   const error = teamsQuery.error ?? fixturesQuery.error ?? reportsQuery.error;
   const loading =
-    teamsQuery.isPending || fixturesQuery.isPending || reportsQuery.isPending;
+    teamsQuery.isLoading || fixturesQuery.isLoading || reportsQuery.isLoading;
 
   return (
     <div className="flex flex-col gap-8">

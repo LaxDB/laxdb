@@ -1,4 +1,5 @@
 import { DisplayCurrencyFromCents } from "@laxdb/core/schema";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
@@ -13,12 +14,11 @@ import {
   TableRow,
 } from "@laxdb/ui/components/ui/table";
 import { cn } from "@laxdb/ui/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
 import { useMemo, useState } from "react";
 
-import { listAudit, listMembers, type AuditEntry } from "../../lib/fines";
+import { auditAtom, membersAtom, type AuditEntry } from "../../lib/fines";
 
 const formatCents = Schema.decodeSync(DisplayCurrencyFromCents);
 
@@ -47,14 +47,8 @@ const kindBadgeClass = (kind: AuditEntry["event"]["kind"]) =>
 function Audit() {
   const [kind, setKind] = useState<(typeof KIND_ORDER)[number]>("all");
 
-  const auditQuery = useQuery({
-    queryKey: ["audit"],
-    queryFn: () => listAudit({ data: { limit: 200 } }),
-  });
-  const membersQuery = useQuery({
-    queryKey: ["fine-members"],
-    queryFn: () => listMembers(),
-  });
+  const auditQuery = useAsyncQuery(auditAtom);
+  const membersQuery = useAsyncQuery(membersAtom);
 
   const err = auditQuery.error ?? membersQuery.error;
   const entries = auditQuery.data;
@@ -107,7 +101,7 @@ function Audit() {
           </div>
         </CardHeader>
         <CardContent>
-          {auditQuery.isPending ? (
+          {auditQuery.isLoading ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <Spinner />
               Loading…
