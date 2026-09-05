@@ -22,7 +22,7 @@ import { Option } from "effect";
 import { AsyncResult } from "effect/unstable/reactivity";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
-import { teamStandingsAtom } from "../../../lib/team-standings-atom";
+import { teamStandingsAtom } from "../../../lib/stats";
 
 export const Route = createFileRoute("/_app/teams/$teamId_/standings")({
   beforeLoad: ({ context, params }) => {

@@ -1,13 +1,29 @@
 import { Duration, type Effect, Option } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
-export interface AsyncQueryOptions<A, E> {
+interface AsyncQueryBaseOptions<A, E> {
   readonly load: (previous: A | undefined) => Effect.Effect<A, E>;
-  readonly staleTime: Duration.Input;
   readonly idleTTL?: Duration.Input | undefined;
   readonly pollInterval?:
     | ((value: A | undefined) => Duration.Input)
     | undefined;
+  readonly revalidateOnFocus?: boolean | "always" | undefined;
+}
+
+export interface AsyncQueryOptions<A, E> extends AsyncQueryBaseOptions<A, E> {
+  readonly staleTime: Duration.Input;
+}
+
+export interface DefaultedAsyncQueryOptions<A, E> extends AsyncQueryBaseOptions<
+  A,
+  E
+> {
+  readonly staleTime?: Duration.Input | undefined;
+}
+
+export interface AsyncQueryDefaults {
+  readonly staleTime: Duration.Input;
+  readonly idleTTL?: Duration.Input | undefined;
   readonly revalidateOnFocus?: boolean | "always" | undefined;
 }
 
@@ -78,3 +94,17 @@ export const makeAsyncQuery = <A, E>(
     ? query
     : query.pipe(Atom.setIdleTTL(options.idleTTL));
 };
+
+export const makeAsyncQueryFactory = (defaults: AsyncQueryDefaults) =>
+  function makeDefaultedAsyncQuery<A, E>(
+    options: DefaultedAsyncQueryOptions<A, E>,
+  ): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
+    return makeAsyncQuery({
+      ...defaults,
+      ...options,
+      staleTime: options.staleTime ?? defaults.staleTime,
+      idleTTL: options.idleTTL ?? defaults.idleTTL,
+      revalidateOnFocus:
+        options.revalidateOnFocus ?? defaults.revalidateOnFocus,
+    });
+  };

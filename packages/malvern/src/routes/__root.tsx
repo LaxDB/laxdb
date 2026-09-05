@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 
 import { NotFound } from "../components/not-found";
+import { malvernAtomDefaultIdleTTL } from "../lib/atom-query";
 import { getMe, ME_QUERY_KEY, ME_STALE_TIME_MS } from "../lib/session";
 import appCss from "../styles.css?url";
 
@@ -54,7 +55,7 @@ function RootComponent() {
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <QueryClientProvider client={queryClient}>
-          <RegistryProvider>
+          <RegistryProvider defaultIdleTTL={malvernAtomDefaultIdleTTL}>
             <Outlet />
           </RegistryProvider>
         </QueryClientProvider>

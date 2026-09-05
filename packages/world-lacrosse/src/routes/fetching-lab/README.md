@@ -90,7 +90,9 @@ The two queries share acquisition, SWR, focus refresh, manual refresh, retained 
 
 Polling remains optional and schedule-specific. Parameterized caching stays outside the helper through `Atom.family`.
 
-This comparison replaces the `keepAlive` flag with `idleTTL`. World Lacrosse uses an infinite lifetime for application authority. Malvern standings uses a five-minute idle lifetime for route data.
+This comparison replaces the `keepAlive` flag with `idleTTL`. World Lacrosse sets an infinite lifetime for application authority. Malvern sets a five-minute default on its registry provider.
+
+Malvern also creates `makeMalvernQuery` with package defaults for a five-minute stale time and focus revalidation. Individual atoms only declare exceptions.
 
 ### 6. Production converts async state twice
 
@@ -121,7 +123,7 @@ The shared helper now owns only these policies:
 - An optional idle lifetime.
 - Optional polling for sources that require it.
 
-Callers own query keys with `Atom.family`, retries and timeouts in the loader Effect, domain mapping, and presentation.
+Callers own query keys with `Atom.family`, retries and timeouts in the loader Effect, domain mapping, and presentation. Package-level factories can supply common stale and focus policies. Registry providers can supply the default idle lifetime.
 
 ## Recommended production shape
 

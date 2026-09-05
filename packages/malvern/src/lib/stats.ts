@@ -6,9 +6,11 @@ import type {
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
+import { makeMalvernQuery } from "./atom-query";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
 export type TeamSeasonSummaryView = typeof TeamSeasonSummary.Type;
@@ -97,3 +99,30 @@ export const getTeamStandings = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export class TeamStandingsQueryError extends Schema.TaggedErrorClass<TeamStandingsQueryError>()(
+  "TeamStandingsQueryError",
+  {
+    teamId: Schema.String,
+    message: Schema.String,
+    cause: Schema.Unknown,
+  },
+) {}
+
+export const teamStandingsAtom = Atom.family((teamId: string) =>
+  makeMalvernQuery<TeamStandingsView, TeamStandingsQueryError>({
+    load: () =>
+      Effect.tryPromise({
+        try: () => getTeamStandings({ data: { teamId } }),
+        catch: (cause) =>
+          TeamStandingsQueryError.make({
+            teamId,
+            message:
+              cause instanceof Error
+                ? cause.message
+                : "Unable to load team standings",
+            cause,
+          }),
+      }),
+  }),
+);
