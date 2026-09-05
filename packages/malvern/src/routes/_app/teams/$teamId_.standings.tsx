@@ -1,4 +1,4 @@
-import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -18,8 +18,6 @@ import {
   TableRow,
 } from "@laxdb/ui/components/ui/table";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Option } from "effect";
-import { AsyncResult } from "effect/unstable/reactivity";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
 import { teamStandingsAtom } from "../../../lib/stats";
@@ -40,13 +38,12 @@ function TeamStandingsPage() {
   const { teamId } = Route.useParams();
   const ctx = Route.useRouteContext();
   const team = ctx.teams.find((entry) => entry.id === teamId);
-  const standingsResult = useAtomValue(teamStandingsAtom(teamId));
-  const refreshStandings = useAtomRefresh(teamStandingsAtom(teamId));
-  const standings = Option.getOrUndefined(AsyncResult.value(standingsResult));
-  const error = Option.getOrUndefined(AsyncResult.error(standingsResult));
-  const loading =
-    standings === undefined &&
-    (standingsResult.waiting || AsyncResult.isInitial(standingsResult));
+  const {
+    data: standings,
+    error,
+    isLoading,
+    refresh: refreshStandings,
+  } = useAsyncQuery(teamStandingsAtom(teamId));
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,7 +64,7 @@ function TeamStandingsPage() {
         </Alert>
       )}
 
-      {loading && (
+      {isLoading && (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Spinner /> Loading standings…
         </p>
