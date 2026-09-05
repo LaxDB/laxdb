@@ -104,7 +104,6 @@ const fetchLiveScheduleEffect = (previous: LiveSchedule | undefined) =>
 const liveScheduleEffectAtom = makeAsyncQuery({
   load: fetchLiveScheduleEffect,
   staleTime: "15 seconds",
-  revalidateOnFocus: true,
   idleTTL: "Infinity",
   pollInterval: (schedule) =>
     schedule?.schedule.some((game) => isActiveGameStatus(game.status))

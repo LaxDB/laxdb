@@ -1,31 +1,23 @@
 import { Duration, type Effect, Option } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
-interface AsyncQueryBaseOptions<A, E> {
+export interface AsyncQueryOptions<A, E> {
   readonly load: (previous: A | undefined) => Effect.Effect<A, E>;
+  readonly staleTime?: Duration.Input | undefined;
   readonly idleTTL?: Duration.Input | undefined;
   readonly pollInterval?:
     | ((value: A | undefined) => Duration.Input)
     | undefined;
+  readonly revalidateOnMount?: boolean | undefined;
   readonly revalidateOnFocus?: boolean | "always" | undefined;
 }
 
-export interface AsyncQueryOptions<A, E> extends AsyncQueryBaseOptions<A, E> {
-  readonly staleTime: Duration.Input;
-}
-
-export interface DefaultedAsyncQueryOptions<A, E> extends AsyncQueryBaseOptions<
-  A,
-  E
-> {
-  readonly staleTime?: Duration.Input | undefined;
-}
-
-export interface AsyncQueryDefaults {
-  readonly staleTime: Duration.Input;
-  readonly idleTTL?: Duration.Input | undefined;
-  readonly revalidateOnFocus?: boolean | "always" | undefined;
-}
+export const asyncQueryDefaults = {
+  staleTime: 0,
+  idleTTL: "5 minutes",
+  revalidateOnMount: true,
+  revalidateOnFocus: true,
+} as const satisfies Omit<AsyncQueryOptions<unknown, unknown>, "load">;
 
 const previousValue = <A>(
   result: Option.Option<AsyncResult.AsyncResult<A, unknown>>,
@@ -72,6 +64,12 @@ const withPolling = <A, E>(
 export const makeAsyncQuery = <A, E>(
   options: AsyncQueryOptions<A, E>,
 ): Atom.Atom<AsyncResult.AsyncResult<A, E>> => {
+  const staleTime = options.staleTime ?? asyncQueryDefaults.staleTime;
+  const idleTTL = options.idleTTL ?? asyncQueryDefaults.idleTTL;
+  const revalidateOnMount =
+    options.revalidateOnMount ?? asyncQueryDefaults.revalidateOnMount;
+  const revalidateOnFocus =
+    options.revalidateOnFocus ?? asyncQueryDefaults.revalidateOnFocus;
   const source = Atom.make((get: Atom.AtomContext) =>
     options.load(
       previousValue(get.self<AsyncResult.AsyncResult<A, unknown>>()),
@@ -79,9 +77,9 @@ export const makeAsyncQuery = <A, E>(
   );
   const cached = source.pipe(
     Atom.swr({
-      staleTime: options.staleTime,
-      revalidateOnMount: true,
-      revalidateOnFocus: options.revalidateOnFocus,
+      staleTime,
+      revalidateOnMount,
+      revalidateOnFocus,
       focusSignal:
         typeof document === "undefined" ? undefined : Atom.windowFocusSignal,
     }),
@@ -90,21 +88,5 @@ export const makeAsyncQuery = <A, E>(
     options.pollInterval === undefined
       ? cached
       : cached.pipe(withPolling(options.pollInterval));
-  return options.idleTTL === undefined
-    ? query
-    : query.pipe(Atom.setIdleTTL(options.idleTTL));
+  return query.pipe(Atom.setIdleTTL(idleTTL));
 };
-
-export const makeAsyncQueryFactory = (defaults: AsyncQueryDefaults) =>
-  function makeDefaultedAsyncQuery<A, E>(
-    options: DefaultedAsyncQueryOptions<A, E>,
-  ): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
-    return makeAsyncQuery({
-      ...defaults,
-      ...options,
-      staleTime: options.staleTime ?? defaults.staleTime,
-      idleTTL: options.idleTTL ?? defaults.idleTTL,
-      revalidateOnFocus:
-        options.revalidateOnFocus ?? defaults.revalidateOnFocus,
-    });
-  };

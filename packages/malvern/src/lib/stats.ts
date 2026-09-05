@@ -5,12 +5,12 @@ import type {
   TeamSeasonSummary,
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
-import { makeMalvernQuery } from "./atom-query";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
 export type TeamSeasonSummaryView = typeof TeamSeasonSummary.Type;
@@ -110,7 +110,7 @@ export class TeamStandingsQueryError extends Schema.TaggedErrorClass<TeamStandin
 ) {}
 
 export const teamStandingsAtom = Atom.family((teamId: string) =>
-  makeMalvernQuery<TeamStandingsView, TeamStandingsQueryError>({
+  makeAsyncQuery<TeamStandingsView, TeamStandingsQueryError>({
     load: () =>
       Effect.tryPromise({
         try: () => getTeamStandings({ data: { teamId } }),

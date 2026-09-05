@@ -92,7 +92,7 @@ Polling remains optional and schedule-specific. Parameterized caching stays outs
 
 This comparison replaces the `keepAlive` flag with `idleTTL`. World Lacrosse sets an infinite lifetime for application authority.
 
-Malvern creates `makeMalvernQuery` with package defaults for a five-minute stale time, five-minute idle lifetime, and focus revalidation. Individual atoms only declare exceptions.
+The shared helper uses React Query-like defaults for the policies that Effect Atom supports: data is stale immediately, unused queries remain for five minutes, and stale queries revalidate on mount and focus. Individual atoms only declare exceptions.
 
 ### 6. Production converts async state twice
 
@@ -123,7 +123,9 @@ The shared helper now owns only these policies:
 - An optional idle lifetime.
 - Optional polling for sources that require it.
 
-Callers own query keys with `Atom.family`, retries and timeouts in the loader Effect, domain mapping, and presentation. Package-level factories can supply common stale, focus, and idle-lifetime policies.
+Callers own query keys with `Atom.family`, retries and timeouts in the loader Effect, domain mapping, and presentation. The shared defaults can be overridden by each query.
+
+React Query also revalidates on network reconnect, retries failed client queries three times, and structurally shares JSON results. This helper does not copy those policies. Effect retry must stay in each loader so it can respect typed errors, and Effect Atom does not provide equivalent reconnect or structural-sharing options.
 
 ## Recommended production shape
 

@@ -10,6 +10,7 @@
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix --quiet",
     "format": "oxfmt --check",
+    "test": "bun --bun vitest run --reporter=dot",
     "format:fix": "oxfmt",
     "fix": "bun run lint:fix && bun run format:fix"
   },
