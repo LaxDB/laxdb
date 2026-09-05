@@ -1,4 +1,3 @@
-const EXCLUDED_TEST_PACKAGES = new Set(["@laxdb/pipeline"]);
 const TEST_ARGS = process.argv.slice(2);
 
 async function discoverIntegrationPackages() {
@@ -16,8 +15,6 @@ async function discoverIntegrationPackages() {
       typeof packageJson.name === "string"
         ? packageJson.name
         : packageJsonPath.split("/").at(-2);
-
-    if (EXCLUDED_TEST_PACKAGES.has(name)) continue;
 
     packages.push({
       name,

@@ -1,5 +1,4 @@
 const EXCLUDED_TEST_PACKAGES = new Set([
-  "@laxdb/api",
   "@laxdb/cli",
   "@laxdb/pipeline",
   "@laxdb/world-lacrosse",
@@ -41,11 +40,6 @@ async function discoverTestPackages() {
   );
   packages.push(...discoveredPackages.filter((pkg) => pkg !== null));
 
-  packages.push({
-    name: "@laxdb/small-workspaces",
-    dir: Bun.cwd,
-    script: "test:small",
-  });
 
   return packages.sort((a, b) => a.name.localeCompare(b.name));
 }

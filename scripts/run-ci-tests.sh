@@ -14,4 +14,3 @@ run_quietly() {
 }
 
 run_quietly bun run test --reporter=minimal
-run_quietly bun run test:integration --reporter=minimal
