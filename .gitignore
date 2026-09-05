@@ -45,6 +45,9 @@ tmp
 .env*.local
 .env
 
+# local design evaluations
+design-evals/
+
 # misc
 .DS_Store
 

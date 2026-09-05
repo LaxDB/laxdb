@@ -3,19 +3,20 @@ version: alpha
 name: LaxDB
 description: Lacrosse operating system for clubs, teams, practices, and player development.
 colors:
-  background: "#F6F3EA"
-  foreground: "#262626"
-  card: "#FFFFFF"
-  muted: "#E8E4DA"
-  muted-foreground: "#73716B"
-  border: "#D8D2C4"
-  primary: "#262626"
-  primary-foreground: "#FAFAFA"
-  accent: "#ED1D24"
-  accent-foreground: "#000000"
-  success: "#3A8F5C"
-  warning: "#B87912"
-  destructive: "#B8422E"
+  background: "oklch(0.96 0.007 70)"
+  foreground: "oklch(0.17 0 0)"
+  card: "oklch(1 0 0)"
+  muted: "oklch(0.97 0 0)"
+  muted-foreground: "oklch(0.51 0 0)"
+  primary: "oklch(0.205 0 0)"
+  primary-foreground: "oklch(0.985 0 0)"
+  accent: "oklch(0.91 0 0)"
+  accent-foreground: "oklch(0.17 0 0)"
+  brand-accent: "oklch(0.603432 0.234297 27.067937)"
+  brand-accent-foreground: "oklch(0 0 0)"
+  success: "oklch(0.55 0.15 145)"
+  warning: "oklch(0.75 0.18 70)"
+  destructive: "oklch(0.58 0.22 27)"
 typography:
   h1:
     fontFamily: Newsreader
@@ -33,7 +34,7 @@ typography:
     fontFamily: Helvetica Neue
     fontSize: 1rem
     fontWeight: 400
-    lineHeight: 1.55
+    lineHeight: 1.75
   label-caps:
     fontFamily: Helvetica Neue
     fontSize: 0.75rem
@@ -56,72 +57,131 @@ components:
     textColor: "{colors.primary-foreground}"
     rounded: "{rounded.md}"
     padding: 12px
-  button-accent:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.accent-foreground}"
+  button-brand:
+    backgroundColor: "{colors.brand-accent}"
+    textColor: "{colors.brand-accent-foreground}"
     rounded: "{rounded.md}"
     padding: 12px
   card:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.lg}"
+  secondary-panel:
+    backgroundColor: "{colors.muted}"
+    textColor: "{colors.muted-foreground}"
+    rounded: "{rounded.md}"
+  selection:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-foreground}"
+    rounded: "{rounded.sm}"
+  status-success:
+    textColor: "{colors.success}"
+  status-warning:
+    textColor: "{colors.warning}"
+  status-destructive:
+    textColor: "{colors.destructive}"
 ---
 
-## Overview
+## Scope
 
-LaxDB should feel like a serious coaching notebook crossed with a modern operating console: tactile, editorial, sharp, and field-ready. The product serves lacrosse teams and clubs, so the interface should balance sideline speed with administrative confidence.
+Use this file as the design judgment contract for LaxDB product and marketing work. Runtime tokens remain in `packages/ui/src/globals.css`. Shared components remain in `packages/ui/src/components`. Do not generate another runtime stylesheet from this file.
 
-Use this file as the design-system contract for coding agents. Runtime CSS tokens remain in `packages/ui/src/globals.css`; keep this document aligned with that file whenever changing visual language.
+LaxDB should feel like a serious coaching notebook crossed with a modern operating console. It must be tactile, editorial, sharp, and field-ready.
 
-## Colors
+## Reader and task
 
-The palette is warm, grounded, and field-adjacent without becoming literal turf green. Prefer parchment backgrounds, deep ink text, restrained borders, and a single confident club-red accent.
+Structure each page around the task that brought the reader there. Do not start from a dashboard template.
 
-- **Background (#F6F3EA):** Warm paper surface for app chrome and marketing sections.
-- **Foreground / Primary (#262626):** Deep charcoal for dense planning interfaces and editorial headlines.
-- **Accent (#ED1D24):** Malvern Lacrosse Club red for important actions, highlights, and active states.
-- **Muted (#E8E4DA):** Film-room beige for secondary panels, dividers, and inactive states.
-- **Destructive (#B8422E):** Clay red for irreversible or high-risk actions only.
+- Coaches need the next fixture, player, statistic, or report action quickly.
+- Club administrators need broad status, clear exceptions, and safe bulk actions.
+- Players and parents need direct answers without administrative detail.
+- Marketing readers need the claim first, evidence second, and detail on demand.
+
+For Malvern, treat the completed-fixture flow as a field workflow. A coach records statistics, selects the best players, writes the match report, and adds photos. Keep local statistics visibly separate from GameDay data.
+
+## Information hierarchy
+
+- Put the reader's next action or decision in the first useful section.
+- Keep the page title, current team, fixture, and state visible without repeating them in helper text.
+- Show summaries before detailed records, but do not hide operational data behind decorative cards.
+- Let tables, rosters, stat entry, and comparison evidence use the full available width.
+- Keep primary and destructive actions visually distinct. Use club red only when it adds meaning.
+- Preserve facts and caveats. Never improve appearance by removing required data.
+
+## Composition
+
+Use generous spacing on marketing pages. Use tighter, tool-like spacing in club and practice workflows.
+
+Prefer clear zones and useful asymmetry over centered card stacks. Preserve strong alignment for tables, rosters, drills, fixtures, and schedule data. On planning surfaces, keep the field or canvas visually dominant.
+
+Use borders, surface contrast, and slight shadows for depth. Do not use glassmorphism or heavy blur. Use modest corners. Reserve pills for tags, status, and compact metadata.
 
 ## Typography
 
-Use `Newsreader` for high-impact editorial headings and moments that need character. Use `Helvetica Neue` for dense UI, controls, tables, and practice-planning workflows.
+Use `Newsreader` for editorial headings and high-impact moments. Use `Helvetica Neue` for controls, forms, tables, and dense workflows.
 
-Headlines should feel compressed, confident, and slightly literary. Interface text should stay neutral and fast to scan.
+Headlines should be compressed and confident. Interface text should be neutral and quick to scan. Use tabular numbers for scores, times, and statistics.
 
-## Layout
+## Color
 
-Favor practical coaching workflows over decorative symmetry. Good LaxDB screens should feel like a well-marked practice plan: clear zones, visible hierarchy, and enough asymmetry to avoid generic dashboard sameness.
+The palette is warm and grounded. Use parchment backgrounds, deep ink text, restrained borders, and one club-red brand accent.
 
-- Use generous spacing on marketing pages.
-- Use tighter, tool-like spacing in practice-planner surfaces.
-- Preserve strong alignment for tables, rosters, drills, and schedule data.
-- Avoid centered card stacks unless the task is truly linear.
+`accent` is a neutral interaction surface. `brand-accent` is Malvern red. Do not use these names as synonyms.
 
-## Elevation & Depth
+Use semantic success, warning, and destructive colors only for their named state. Do not use them as decoration.
 
-Depth should be tactile but restrained. Prefer borders, subtle surface contrast, and slight shadows over glassmorphism or heavy blur. Planning surfaces can use layered panels, but the field/canvas should remain visually dominant.
+## Copy
 
-## Shapes
+- Use lacrosse terms such as fixture, roster, squad, report, and best on ground.
+- Start buttons with a direct verb: Save statistics, Submit report, Sync team.
+- State the result of an action. Do not use vague success messages.
+- Put caveats next to the data or action they qualify.
+- Do not add a subtitle that repeats its heading.
 
-Corners are modest and functional. Use small radii for controls, medium radii for cards, and avoid pill-shaped defaults unless representing tags, status, or compact metadata.
+## Responsive behavior
 
-## Components
+- Make the main task usable on a 390px-wide screen without page-level horizontal scrolling.
+- Let data tables scroll inside their own container when columns cannot collapse safely.
+- Stack form sections in task order on small screens.
+- Keep labels with their controls and actions near the data they change.
+- Do not remove data on mobile. Change its presentation.
 
-Buttons should be direct and utilitarian. Cards should read like coaching materials: structured, labeled, and easy to scan. Navigation should avoid anonymous SaaS chrome; use typography, active-state contrast, and domain language to make location obvious.
+## Available primitives
 
-## Do's and Don'ts
+Import global styles through `@laxdb/ui/globals.css`. Use shared Base UI components from `@laxdb/ui/components/ui/*`; do not copy them into an app.
 
-Do:
+Prefer these existing primitives:
 
-- Keep `DESIGN.md` and `packages/ui/src/globals.css` semantically aligned.
-- Prefer lacrosse-specific hierarchy and labels over generic dashboard patterns.
-- Use accent color sparingly so it retains coaching significance.
-- Validate this file with `bun run design:lint` after edits.
+- `Button` for actions. Use `default` for the main action and `destructive` for irreversible actions.
+- `Card` for one bounded work unit, not every piece of content.
+- `Table` for records and comparisons. Its container already supplies local horizontal scrolling.
+- `Field`, `Label`, `Input`, `Select`, and `Textarea` for forms.
+- `Alert`, `Badge`, `Spinner`, and `Skeleton` for state.
+- `DataTable` for large filterable records.
 
-Don't:
+Use semantic Tailwind utilities such as `bg-background`, `bg-card`, `bg-muted`, `text-foreground`, `text-muted-foreground`, `border-border`, and `bg-brand-accent`. Do not add raw colors in app code.
 
-- Duplicate CSS token definitions outside `packages/ui/src/globals.css`.
-- Introduce Radix assumptions; UI components use Base UI patterns.
-- Default to blue-gray SaaS palettes, Inter-only typography, or symmetric bento grids.
-- Treat generated exports as the source of truth without reviewing the existing OKLCH token system.
+## Named failures
+
+- **Card carpet:** Every fact sits in an equal card, so no task or result leads.
+- **Clubhouse dashboard:** A generic SaaS grid replaces the club's real workflow.
+- **Red confetti:** Club red marks decoration instead of a meaningful action or state.
+- **Context echo:** A subtitle repeats the page title, team, or section label.
+- **Table squeeze:** A record table stays at prose width although more width is available.
+- **Desktop shrink:** A desktop row only becomes smaller on mobile instead of changing structure.
+- **Mystery state:** Color or an icon carries status without a clear text label.
+
+## Review rules
+
+Every design correction must describe an observable result. Put judgment here, reusable mechanics in `@laxdb/ui`, and deterministic checks in code.
+
+Before accepting visual work, confirm that:
+
+- the reader's task is clear;
+- supplied facts remain present;
+- primary actions and system state are clear;
+- the page works at desktop and mobile widths;
+- shared tokens and components are used;
+- none of the named failures appear.
+
+Run `bun run design:lint` after edits to this file.
