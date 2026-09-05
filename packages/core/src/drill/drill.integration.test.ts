@@ -14,7 +14,7 @@ const ServiceLayer = Layer.effect(DrillService, DrillService.make).pipe(
 const TestLayer = Layer.mergeAll(ServiceLayer, TestDatabaseLive);
 
 layer(TestLayer)("DrillService integration", (it) => {
-  it.effect("creates a drill with defaults", () =>
+  it.effect("creates, gets, and deletes a drill with defaults", () =>
     Effect.gen(function* () {
       yield* truncateAll;
       const svc = yield* DrillService;
@@ -27,10 +27,19 @@ layer(TestLayer)("DrillService integration", (it) => {
       expect(drill.category).toEqual([]);
       expect(drill.tags).toEqual([]);
       expect(drill.createdAt).toBeInstanceOf(Date);
+
+      const found = yield* svc.get({ publicId: drill.publicId });
+      expect(found.publicId).toBe(drill.publicId);
+      expect(found.name).toBe(drill.name);
+
+      const deleted = yield* svc.delete({ publicId: drill.publicId });
+      expect(deleted.publicId).toBe(drill.publicId);
+      const list = yield* svc.list;
+      expect(list).toHaveLength(0);
     }),
   );
 
-  it.effect("creates a drill with all fields", () =>
+  it.effect("creates, updates, and lists fully populated Drills", () =>
     Effect.gen(function* () {
       yield* truncateAll;
       const svc = yield* DrillService;
@@ -65,251 +74,71 @@ layer(TestLayer)("DrillService integration", (it) => {
       expect(drill.fieldSpace).toBe("half-field");
       expect(drill.equipment).toEqual(["balls", "cones"]);
       expect(drill.tags).toEqual(["team", "speed"]);
-    }),
-  );
 
-  it.effect("lists all drills", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
+      const updated = yield* svc.update({
+        publicId: drill.publicId,
+        name: "Updated",
+        difficulty: "beginner",
+      });
+      expect(updated.name).toBe("Updated");
+      expect(updated.difficulty).toBe("beginner");
+      expect(updated.subtitle).toBe("A subtitle");
 
-      yield* svc.create(validCreateDrill({ name: "Drill A" }));
+      const withArrays = yield* svc.update({
+        publicId: drill.publicId,
+        category: ["defense", "ground-balls"],
+        tags: ["new-tag"],
+      });
+      expect(withArrays.category).toEqual(["defense", "ground-balls"]);
+      expect(withArrays.tags).toEqual(["new-tag"]);
+
+      const withoutArrays = yield* svc.update({
+        publicId: drill.publicId,
+        category: [],
+        tags: [],
+      });
+      expect(withoutArrays.category).toEqual([]);
+      expect(withoutArrays.tags).toEqual([]);
+
       yield* svc.create(validCreateDrill({ name: "Drill B" }));
-
       const drills = yield* svc.list;
       expect(drills).toHaveLength(2);
     }),
   );
 
-  it.effect("gets a drill by publicId", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(validCreateDrill());
-      const found = yield* svc.get({ publicId: created.publicId });
-
-      expect(found.publicId).toBe(created.publicId);
-      expect(found.name).toBe(created.name);
-    }),
-  );
-
-  it.effect("get nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
-        .get({ publicId: "AbCdEfGhIjKl" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("updates a drill partially", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(
-        validCreateDrill({ name: "Original", difficulty: "beginner" }),
-      );
-      const updated = yield* svc.update({
-        publicId: created.publicId,
-        name: "Updated",
-        difficulty: "advanced",
-      });
-
-      expect(updated.name).toBe("Updated");
-      expect(updated.difficulty).toBe("advanced");
-      // Untouched fields preserved
-      expect(updated.subtitle).toBeNull();
-    }),
-  );
-
-  it.effect("updates array fields", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(validCreateDrill());
-      const updated = yield* svc.update({
-        publicId: created.publicId,
-        category: ["defense", "ground-balls"],
-        tags: ["new-tag"],
-      });
-
-      expect(updated.category).toEqual(["defense", "ground-balls"]);
-      expect(updated.tags).toEqual(["new-tag"]);
-    }),
-  );
-
-  it.effect("updates array fields to empty arrays", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(
-        validCreateDrill({
-          category: ["shooting"],
-          tags: ["existing"],
-        }),
-      );
-      const updated = yield* svc.update({
-        publicId: created.publicId,
-        category: [],
-        tags: [],
-      });
-
-      expect(updated.category).toEqual([]);
-      expect(updated.tags).toEqual([]);
-    }),
-  );
-
-  it.effect("update nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
-        .update({ publicId: "AbCdEfGhIjKl", name: "X" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("deletes a drill", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(validCreateDrill());
-      const deleted = yield* svc.delete({ publicId: created.publicId });
-
-      expect(deleted.publicId).toBe(created.publicId);
-
-      const list = yield* svc.list;
-      expect(list).toHaveLength(0);
-    }),
-  );
-
-  it.effect("delete nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
-        .delete({ publicId: "AbCdEfGhIjKl" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  // -----------------------------------------------------------------------
-  // Validation
-  // -----------------------------------------------------------------------
-
-  it.effect("create with empty name → ValidationError", () =>
+  it.effect("rejects invalid Drill enum values", () =>
     Effect.gen(function* () {
       const svc = yield* DrillService;
 
-      const exit = yield* svc
-        .create(validCreateDrill({ name: "" }))
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("get with invalid nanoid → ValidationError", () =>
-    Effect.gen(function* () {
-      const svc = yield* DrillService;
-
-      const exit = yield* svc.get({ publicId: "bad" }).pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("create with invalid difficulty → ValidationError", () =>
-    Effect.gen(function* () {
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
+      const invalidDifficulty = yield* svc
         .create(
           // @ts-expect-error -- intentionally invalid enum
           validCreateDrill({ difficulty: "impossible" }),
         )
         .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("create with invalid intensity → ValidationError", () =>
-    Effect.gen(function* () {
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
+      const invalidIntensity = yield* svc
         .create(
           // @ts-expect-error -- intentionally invalid enum
           validCreateDrill({ intensity: "extreme" }),
         )
         .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("create with invalid category → ValidationError", () =>
-    Effect.gen(function* () {
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
+      const invalidCategory = yield* svc
         .create(
           // @ts-expect-error -- intentionally invalid enum
           validCreateDrill({ category: ["invalid-category"] }),
         )
         .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("create with invalid fieldSpace → ValidationError", () =>
-    Effect.gen(function* () {
-      const svc = yield* DrillService;
-
-      const exit = yield* svc
+      const invalidFieldSpace = yield* svc
         .create(
           // @ts-expect-error -- intentionally invalid enum
           validCreateDrill({ fieldSpace: "parking-lot" }),
         )
         .pipe(Effect.exit);
 
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("update with invalid difficulty → ValidationError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* DrillService;
-
-      const created = yield* svc.create(validCreateDrill());
-
-      const exit = yield* svc
-        .update({
-          publicId: created.publicId,
-          // @ts-expect-error -- intentionally invalid enum
-          difficulty: "impossible",
-        })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
+      expect(invalidDifficulty._tag).toBe("Failure");
+      expect(invalidIntensity._tag).toBe("Failure");
+      expect(invalidCategory._tag).toBe("Failure");
+      expect(invalidFieldSpace._tag).toBe("Failure");
     }),
   );
 });

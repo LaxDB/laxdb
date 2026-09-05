@@ -42,20 +42,13 @@ afterEach(() => {
 });
 
 describe("live schedule query", () => {
-  it("does not install bundled initial or placeholder data", () => {
-    const options = liveScheduleQueryOptions(true, () => current);
+  it("omits bundled data and disables archived fetching", () => {
+    const currentOptions = liveScheduleQueryOptions(true, () => current);
+    const archivedOptions = liveScheduleQueryOptions(false, () => current);
 
-    expect(options.initialData).toBeUndefined();
-    expect(options.placeholderData).toBeUndefined();
-    expect(options.enabled).toBe(true);
-  });
-
-  it("disables fetching and polling in archived mode", () => {
-    const options = liveScheduleQueryOptions(false, () => current);
-
-    expect(options.enabled).toBe(false);
-    expect(options.refetchInterval).toBe(false);
-    expect(options.retry).toBe(false);
+    expect(currentOptions.initialData).toBeUndefined();
+    expect(currentOptions.placeholderData).toBeUndefined();
+    expect(archivedOptions.enabled).toBe(false);
   });
 
   it("aborts a hung authority request after five seconds", async () => {

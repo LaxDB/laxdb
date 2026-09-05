@@ -14,7 +14,7 @@ const ServiceLayer = Layer.effect(PlayService, PlayService.make).pipe(
 const TestLayer = Layer.mergeAll(ServiceLayer, TestDatabaseLive);
 
 layer(TestLayer)("PlayService integration", (it) => {
-  it.effect("creates a play with defaults", () =>
+  it.effect("manages a default Play lifecycle and rejects empty names", () =>
     Effect.gen(function* () {
       yield* truncateAll;
       const svc = yield* PlayService;
@@ -31,17 +31,36 @@ layer(TestLayer)("PlayService integration", (it) => {
       expect(play.diagramUrl).toBeNull();
       expect(play.videoUrl).toBeNull();
       expect(play.createdAt).toBeInstanceOf(Date);
+
+      const found = yield* svc.get({ publicId: play.publicId });
+      expect(found.publicId).toBe(play.publicId);
+      expect(found.name).toBe(play.name);
+
+      const deleted = yield* svc.delete({ publicId: play.publicId });
+      const afterDelete = yield* svc
+        .get({ publicId: play.publicId })
+        .pipe(Effect.exit);
+      expect(deleted.publicId).toBe(play.publicId);
+      expect(afterDelete._tag).toBe("Failure");
+      if (afterDelete._tag === "Failure") {
+        expect(afterDelete.cause.toString()).toContain("NotFoundError");
+      }
+
+      const invalidName = yield* svc
+        .create(validCreatePlay({ name: "" }))
+        .pipe(Effect.exit);
+      expect(invalidName._tag).toBe("Failure");
     }),
   );
 
-  it.effect("creates a play with all fields", () =>
+  it.effect("creates, updates, and lists fully populated plays", () =>
     Effect.gen(function* () {
       yield* truncateAll;
       const svc = yield* PlayService;
 
       const play = yield* svc.create(
         validCreatePlay({
-          name: "Invert 2-3-1",
+          name: "Play A",
           category: "emo",
           formation: "2-3-1",
           description: "Dodge from X and skip through the backside.",
@@ -52,7 +71,7 @@ layer(TestLayer)("PlayService integration", (it) => {
         }),
       );
 
-      expect(play.name).toBe("Invert 2-3-1");
+      expect(play.name).toBe("Play A");
       expect(play.category).toBe("emo");
       expect(play.formation).toBe("2-3-1");
       expect(play.description).toContain("Dodge from X");
@@ -60,132 +79,22 @@ layer(TestLayer)("PlayService integration", (it) => {
       expect(play.tags).toEqual(["extra-man", "late-clock"]);
       expect(play.diagramUrl).toBe("https://example.com/diagram.png");
       expect(play.videoUrl).toBe("https://example.com/video.mp4");
-    }),
-  );
 
-  it.effect("lists all plays", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      yield* svc.create(validCreatePlay({ name: "Play A" }));
-      yield* svc.create(validCreatePlay({ name: "Play B", category: "ride" }));
-
-      const plays = yield* svc.list;
-
-      expect(plays).toHaveLength(2);
-      expect(plays.map((play) => play.name)).toEqual(["Play A", "Play B"]);
-    }),
-  );
-
-  it.effect("gets a play by publicId", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const created = yield* svc.create(validCreatePlay());
-      const found = yield* svc.get({ publicId: created.publicId });
-
-      expect(found.publicId).toBe(created.publicId);
-      expect(found.name).toBe(created.name);
-    }),
-  );
-
-  it.effect("get nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const exit = yield* svc
-        .get({ publicId: "AbCdEfGhIjKl" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-      if (exit._tag === "Failure") {
-        expect(exit.cause.toString()).toContain("NotFoundError");
-      }
-    }),
-  );
-
-  it.effect("updates a play partially", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const created = yield* svc.create(
-        validCreatePlay({
-          name: "Original",
-          category: "clear",
-          formation: "1-4-1",
-          tags: ["settled"],
-        }),
-      );
       const updated = yield* svc.update({
-        publicId: created.publicId,
+        publicId: play.publicId,
         name: "Updated",
         category: "transition",
         tags: ["fast-break"],
       });
-
       expect(updated.name).toBe("Updated");
       expect(updated.category).toBe("transition");
-      expect(updated.formation).toBe("1-4-1");
+      expect(updated.formation).toBe("2-3-1");
       expect(updated.tags).toEqual(["fast-break"]);
-    }),
-  );
 
-  it.effect("update nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const exit = yield* svc
-        .update({ publicId: "AbCdEfGhIjKl", name: "Missing" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("deletes a play", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const created = yield* svc.create(validCreatePlay());
-      const deleted = yield* svc.delete({ publicId: created.publicId });
-      const afterDelete = yield* svc
-        .get({ publicId: created.publicId })
-        .pipe(Effect.exit);
-
-      expect(deleted.publicId).toBe(created.publicId);
-      expect(afterDelete._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("delete nonexistent → NotFoundError", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const exit = yield* svc
-        .delete({ publicId: "AbCdEfGhIjKl" })
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
-    }),
-  );
-
-  it.effect("rejects an empty name at the service interface", () =>
-    Effect.gen(function* () {
-      yield* truncateAll;
-      const svc = yield* PlayService;
-
-      const exit = yield* svc
-        .create(validCreatePlay({ name: "" }))
-        .pipe(Effect.exit);
-
-      expect(exit._tag).toBe("Failure");
+      yield* svc.create(validCreatePlay({ name: "Play B", category: "ride" }));
+      const plays = yield* svc.list;
+      expect(plays).toHaveLength(2);
+      expect(plays.map((listed) => listed.name)).toEqual(["Updated", "Play B"]);
     }),
   );
 });

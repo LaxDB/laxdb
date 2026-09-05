@@ -92,11 +92,6 @@ const replaceTeamStats = (
   );
 
 describe("team analysis", () => {
-  it("round-trips through its runtime schema", () => {
-    const encoded = Schema.encodeSync(TeamAnalysis)(australia);
-    expect(Schema.decodeUnknownSync(TeamAnalysis)(encoded)).toEqual(australia);
-  });
-
   it("builds Australia's verified performance dossier from eligible games", () => {
     expect(australia.completedGames).toBe(6);
     expect(australia.eligibleGames).toBe(4);

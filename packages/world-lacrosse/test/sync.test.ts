@@ -30,7 +30,7 @@ const upcomingScheduleFixture = (): ScheduledGame => {
 };
 
 describe("World Lacrosse incremental sync", () => {
-  it("periodically rechecks official games for source corrections", () => {
+  it("refreshes official and upcoming games by their source policies", () => {
     const scheduled = tournament.schedule.find(
       (game) => game.status === "OFFICIAL",
     );
@@ -61,6 +61,30 @@ describe("World Lacrosse incremental sync", () => {
         now + OFFICIAL_GAME_RECHECK_MS,
       ),
     ).toBe(true);
+
+    const next = upcomingScheduleFixture();
+    const nextGame = championship.games.find((game) => game.id === next.id);
+    expect(nextGame).toBeDefined();
+    if (!nextGame) return;
+
+    expect(
+      shouldRefreshGame(
+        next,
+        nextGame,
+        new Date().toISOString(),
+        scheduleFingerprint(next),
+        Date.now(),
+      ),
+    ).toBe(false);
+    expect(
+      shouldRefreshGame(
+        next,
+        nextGame,
+        new Date().toISOString(),
+        "outdated schedule fingerprint",
+        Date.now(),
+      ),
+    ).toBe(true);
   });
 
   it("does not let an explicit false force flag suppress incremental refreshes", () => {
@@ -86,31 +110,5 @@ describe("World Lacrosse incremental sync", () => {
     expect(shouldSkipPlayerRefresh(true, false, true)).toBe(true);
     expect(shouldSkipPlayerRefresh(true, true, true)).toBe(false);
     expect(shouldSkipPlayerRefresh(true, false, false)).toBe(false);
-  });
-
-  it("refreshes upcoming games only when their schedule record changes", () => {
-    const scheduled = upcomingScheduleFixture();
-    const current = championship.games.find((game) => game.id === scheduled.id);
-    expect(current).toBeDefined();
-    if (!current) return;
-
-    expect(
-      shouldRefreshGame(
-        scheduled,
-        current,
-        new Date().toISOString(),
-        scheduleFingerprint(scheduled),
-        Date.now(),
-      ),
-    ).toBe(false);
-    expect(
-      shouldRefreshGame(
-        scheduled,
-        current,
-        new Date().toISOString(),
-        "outdated schedule fingerprint",
-        Date.now(),
-      ),
-    ).toBe(true);
   });
 });

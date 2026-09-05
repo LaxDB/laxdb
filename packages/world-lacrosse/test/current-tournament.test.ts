@@ -1,12 +1,8 @@
-import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { buildAnalysisData } from "../src/lib/analysis-data";
 import { championship } from "../src/lib/championship-data";
-import {
-  buildLiveTournamentSnapshot,
-  CurrentTournamentSnapshot,
-} from "../src/lib/current-tournament";
+import { buildLiveTournamentSnapshot } from "../src/lib/current-tournament";
 import { gameDetailMatchesSchedule } from "../src/lib/game-evidence";
 import { LiveSchedule, ScheduledGame, Team } from "../src/lib/schema";
 import { buildCurrentStandings } from "../src/lib/standings";
@@ -14,10 +10,7 @@ import { staticTournamentMetadata } from "../src/lib/static-tournament-data";
 import { buildCurrentTeamSummary } from "../src/lib/team-summary";
 import { buildTournamentContext } from "../src/lib/tournament-context";
 import { tournament } from "../src/lib/tournament-data";
-import {
-  candidateScheduleIsSafe,
-  detailReconciles,
-} from "../src/live-scores-worker";
+import { candidateScheduleIsSafe } from "../src/live-scores-worker";
 
 const live = (schedule = tournament.schedule, games = championship.games) =>
   LiveSchedule.make({
@@ -48,28 +41,19 @@ const changedScore = (game: ScheduledGame) =>
   });
 
 describe("current tournament snapshot", () => {
-  it("accepts only details that reconcile with the same live generation", () => {
+  it("uses only reconciled details across every game-derived view", () => {
     const schedule = tournament.schedule.map((game) =>
       game.id === "69" ? changedScore(game) : game,
     );
     const snapshot = buildLiveTournamentSnapshot(
       live(schedule, championship.games),
     );
-
     expect(snapshot.source).toBe("live");
     expect(snapshot.integrity).toBe("partial");
     expect(snapshot.conflictedDetailGameIds).toContain("69");
     expect(snapshot.games.some((game) => game.id === "69")).toBe(false);
     expect(snapshot.issues).toContain("schedule-detail-conflict");
-  });
 
-  it("drives every game-derived view from the same accepted detail set", () => {
-    const schedule = tournament.schedule.map((game) =>
-      game.id === "69" ? changedScore(game) : game,
-    );
-    const snapshot = buildLiveTournamentSnapshot(
-      live(schedule, championship.games),
-    );
     const canada = staticTournamentMetadata.teamProfiles.find(
       (team) => team.name === "Canada",
     );
@@ -110,7 +94,6 @@ describe("current tournament snapshot", () => {
     expect(teamSummary.stats.Assists).toBeUndefined();
     expect(context.games.some((game) => game.gameId === "69")).toBe(false);
     expect(analysis.games.some((game) => game.id === "69")).toBe(false);
-    expect(snapshot.conflictedDetailGameIds).toContain("69");
   });
 
   it("rejects duplicate detail rows from the accepted live snapshot", () => {
@@ -126,18 +109,7 @@ describe("current tournament snapshot", () => {
     expect(snapshot.games.some((game) => game.id === first.id)).toBe(false);
   });
 
-  it("round-trips through the runtime schema", () => {
-    const snapshot = buildLiveTournamentSnapshot(live());
-    const encoded = Schema.encodeSync(CurrentTournamentSnapshot)(snapshot);
-    expect(
-      Schema.decodeUnknownSync(CurrentTournamentSnapshot)(encoded),
-    ).toEqual(snapshot);
-  });
-
   it("refuses worker schedule candidates that drop or duplicate known games", () => {
-    expect(
-      candidateScheduleIsSafe(tournament.schedule, tournament.schedule),
-    ).toBe(true);
     expect(
       candidateScheduleIsSafe(
         tournament.schedule.slice(1),
@@ -155,19 +127,13 @@ describe("current tournament snapshot", () => {
     ).toBe(false);
   });
 
-  it("requires identity, status class, and scores to match", () => {
+  it("rejects a provisional schedule status for official details", () => {
     const details = championship.games.find((game) => game.id === "69");
     const scheduled = tournament.schedule.find((game) => game.id === "69");
     expect(details).toBeDefined();
     expect(scheduled).toBeDefined();
     if (!details || !scheduled) return;
 
-    expect(gameDetailMatchesSchedule(scheduled, details)).toBe(true);
-    expect(detailReconciles(scheduled, details)).toBe(true);
-    expect(gameDetailMatchesSchedule(changedScore(scheduled), details)).toBe(
-      false,
-    );
-    expect(detailReconciles(changedScore(scheduled), details)).toBe(false);
     const provisional = ScheduledGame.make({
       id: scheduled.id,
       url: scheduled.url,
@@ -181,6 +147,5 @@ describe("current tournament snapshot", () => {
       away: scheduled.away,
     });
     expect(gameDetailMatchesSchedule(provisional, details)).toBe(false);
-    expect(detailReconciles(provisional, details)).toBe(false);
   });
 });

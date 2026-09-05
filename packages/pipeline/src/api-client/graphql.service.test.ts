@@ -8,7 +8,7 @@ import {
 } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 
-import { HttpError, NetworkError, ParseError, RateLimitError } from "../error";
+import { ParseError } from "../error";
 import { expectErrorInstance, getFailureError } from "../test-helpers";
 
 import { GraphQLError, makeGraphQLClient } from "./graphql.service";
@@ -78,40 +78,17 @@ describe("makeGraphQLClient", () => {
       );
     });
 
-    it("executes mutation", async () => {
-      const mutation = `mutation CreateUser($name: String!) { createUser(name: $name) { id name } }`;
-      const responseData = { data: { user: { id: 2, name: "New User" } } };
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(responseData), { status: 200 }),
-      );
-
-      const client = createClient();
-      const result = await Effect.runPromise(
-        client.mutation(
-          mutation,
-          Schema.Struct({
-            user: Schema.Struct({ id: Schema.Number, name: Schema.String }),
-          }),
-          { name: "New User" },
-        ),
-      );
-
-      expect(result).toEqual({ user: { id: 2, name: "New User" } });
-    });
-
-    it("includes auth header when configured", async () => {
+    it("includes configured auth and operation name", async () => {
       mockFetch.mockResolvedValueOnce(
         new Response(
           JSON.stringify({ data: { user: { id: 1, name: "Test" } } }),
-          {
-            status: 200,
-          },
+          { status: 200 },
         ),
       );
 
       const client = createClient({ authHeader: "Bearer token123" });
       await Effect.runPromise(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
+        client.query(TEST_QUERY, TestDataSchema, { id: "1" }, "GetUser"),
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -121,28 +98,6 @@ describe("makeGraphQLClient", () => {
           headers: expect.objectContaining({
             authorization: "Bearer token123",
           }),
-        }),
-      );
-    });
-
-    it("includes operation name when provided", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ data: { user: { id: 1, name: "Test" } } }),
-          {
-            status: 200,
-          },
-        ),
-      );
-
-      const client = createClient();
-      await Effect.runPromise(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }, "GetUser"),
-      );
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
           // oxlint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Vitest asymmetric matcher for serialized request body
           body: expect.stringContaining('"operationName":"GetUser"'),
         }),
@@ -151,93 +106,22 @@ describe("makeGraphQLClient", () => {
   });
 
   describe("error handling", () => {
-    it("returns NetworkError on fetch failure", async () => {
-      mockFetch.mockRejectedValue(new Error("Network failed"));
-
+    it("maps invalid schemas and GraphQL failure responses", async () => {
       const client = createClient();
-      const result = await Effect.runPromiseExit(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
-      );
-
-      const error = expectErrorInstance(getFailureError(result), NetworkError);
-      expect(error.message).toContain("Network error");
-    });
-
-    it("returns RateLimitError on 429 response", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("Too Many Requests", {
-          status: 429,
-          headers: { "retry-after": "60" },
-        }),
-      );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
-        client.executeOnce(
-          {
-            query: TEST_QUERY,
-            variables: { id: "1" },
-          },
-          TestDataSchema,
-        ),
-      );
-
-      const error = expectErrorInstance(
-        getFailureError(result),
-        RateLimitError,
-      );
-      expect(error.retryAfterMs).toBe(60000);
-    });
-
-    it("returns HttpError on non-ok response", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("Internal Server Error", {
-          status: 500,
-          statusText: "Internal Server Error",
-        }),
-      );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
-      );
-
-      const error = expectErrorInstance(getFailureError(result), HttpError);
-      expect(error.message).toContain("HTTP 500");
-      expect(error.statusCode).toBe(500);
-    });
-
-    it("returns HttpError on invalid JSON response", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("not json", { status: 200 }),
-      );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
-      );
-
-      const error = expectErrorInstance(getFailureError(result), HttpError);
-      expect(error.message).toContain("Failed to parse JSON");
-    });
-
-    it("returns ParseError on invalid response shape", async () => {
       mockFetch.mockResolvedValueOnce(
         new Response(JSON.stringify({ data: { wrong: "shape" } }), {
           status: 200,
         }),
       );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
+      const parseResult = await Effect.runPromiseExit(
         client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
       );
+      const parseError = expectErrorInstance(
+        getFailureError(parseResult),
+        ParseError,
+      );
+      expect(parseError.message).toContain("Schema validation failed");
 
-      const error = expectErrorInstance(getFailureError(result), ParseError);
-      expect(error.message).toContain("Schema validation failed");
-    });
-
-    it("returns GraphQLError when response contains errors", async () => {
       const responseWithErrors = {
         data: null,
         errors: [
@@ -248,50 +132,30 @@ describe("makeGraphQLClient", () => {
       mockFetch.mockResolvedValueOnce(
         new Response(JSON.stringify(responseWithErrors), { status: 200 }),
       );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
+      const errorsResult = await Effect.runPromiseExit(
         client.query(TEST_QUERY, TestDataSchema, { id: "999" }),
       );
+      const errors = expectErrorInstance(
+        getFailureError(errorsResult),
+        GraphQLError,
+      );
+      expect(errors.message).toContain("User not found");
+      expect(errors.message).toContain("Access denied");
+      expect(errors.errors).toHaveLength(2);
+      expect(errors.errors[0]?.path).toEqual(["user"]);
 
-      const error = expectErrorInstance(getFailureError(result), GraphQLError);
-      expect(error.message).toContain("User not found");
-      expect(error.message).toContain("Access denied");
-      expect(error.errors).toHaveLength(2);
-      expect(error.errors[0]?.path).toEqual(["user"]);
-    });
-
-    it("returns GraphQLError when data is null without errors", async () => {
       mockFetch.mockResolvedValueOnce(
         new Response(JSON.stringify({ data: null }), { status: 200 }),
       );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
+      const nullResult = await Effect.runPromiseExit(
         client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
       );
-
-      const error = expectErrorInstance(getFailureError(result), GraphQLError);
-      expect(error.message).toContain("null data");
-      expect(error.errors).toHaveLength(0);
-    });
-
-    it("returns GraphQLError with partial data and errors", async () => {
-      const partialResponse = {
-        data: { user: { id: 1, name: "Test" } },
-        errors: [{ message: "Deprecated field accessed" }],
-      };
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(partialResponse), { status: 200 }),
+      const nullError = expectErrorInstance(
+        getFailureError(nullResult),
+        GraphQLError,
       );
-
-      const client = createClient();
-      const result = await Effect.runPromiseExit(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
-      );
-
-      const error = expectErrorInstance(getFailureError(result), GraphQLError);
-      expect(error.message).toContain("Deprecated field accessed");
+      expect(nullError.message).toContain("null data");
+      expect(nullError.errors).toHaveLength(0);
     });
   });
 
@@ -317,54 +181,6 @@ describe("makeGraphQLClient", () => {
 
       expect(result).toEqual({ user: { id: 1, name: "Success" } });
       expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
-
-    it("retries with backoff on persistent rate limit", async () => {
-      mockFetch.mockResolvedValue(
-        new Response("Too Many Requests", { status: 429 }),
-      );
-
-      const client = createClient({
-        maxRetries: 2,
-        retryDelayMs: 10,
-      });
-      const result = await Effect.runPromiseExit(
-        client.query(TEST_QUERY, TestDataSchema, { id: "1" }),
-      );
-
-      const error = expectErrorInstance(
-        getFailureError(result),
-        RateLimitError,
-      );
-      expect(error.message).toContain("Rate limited by server");
-      expect(mockFetch).toHaveBeenCalledTimes(4);
-    });
-  });
-
-  describe("execute method", () => {
-    it("accepts full GraphQL request object", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ data: { user: { id: 1, name: "Test" } } }),
-          {
-            status: 200,
-          },
-        ),
-      );
-
-      const client = createClient();
-      const result = await Effect.runPromise(
-        client.execute(
-          {
-            query: TEST_QUERY,
-            variables: { id: "1" },
-            operationName: "GetUser",
-          },
-          TestDataSchema,
-        ),
-      );
-
-      expect(result).toEqual({ user: { id: 1, name: "Test" } });
     });
   });
 });

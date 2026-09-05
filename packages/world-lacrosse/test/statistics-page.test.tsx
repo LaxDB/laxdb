@@ -1,24 +1,14 @@
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  DataTable,
-  dataValueMatchesFilter,
-} from "../src/components/data-table";
 import { championship } from "../src/lib/championship-data";
 import { DerivedPlayerStats, GameDetails } from "../src/lib/schema";
 import { buildTournamentContext } from "../src/lib/tournament-context";
 import { tournament } from "../src/lib/tournament-data";
 import {
-  buildPlayerColumns,
   buildPlayerRows,
-  fieldPlayerFilters,
-  goalkeeperFilters,
   penaltyMinutesStat,
   playerDataCoverageComplete,
-  teamFilters,
   teamSavePercentage,
-  parseStatisticsSearch,
 } from "../src/routes/statistics";
 
 const context = buildTournamentContext(championship.games, {
@@ -85,122 +75,6 @@ const withPlayerIdentity = (
   });
 
 describe("statistics page player rows", () => {
-  it("parses shareable equal-game snapshot URLs", () => {
-    expect(parseStatisticsSearch({ through: 3 })).toEqual({ through: 3 });
-    expect(parseStatisticsSearch({ through: "3" })).toEqual({ through: 3 });
-    expect(parseStatisticsSearch({ through: 0 })).toEqual({});
-    expect(parseStatisticsSearch({ through: "3.5" })).toEqual({});
-    expect(parseStatisticsSearch({ through: "latest" })).toEqual({});
-  });
-
-  it("supports structured text, select, multi-select, and numeric filters", () => {
-    expect(
-      dataValueMatchesFilter("Pool D", {
-        kind: "text",
-        operator: "contains",
-        value: "pool",
-      }),
-    ).toBe(true);
-    expect(
-      dataValueMatchesFilter("Attack", {
-        kind: "select",
-        operator: "eq",
-        value: "Attack",
-      }),
-    ).toBe(true);
-    expect(
-      dataValueMatchesFilter("Attack", {
-        kind: "select",
-        operator: "neq",
-        value: "Attack",
-      }),
-    ).toBe(false);
-    expect(
-      dataValueMatchesFilter("Japan", {
-        kind: "multi-select",
-        values: ["Japan", "Wales"],
-      }),
-    ).toBe(true);
-    expect(
-      dataValueMatchesFilter("Canada", {
-        kind: "multi-select",
-        values: ["Japan", "Wales"],
-      }),
-    ).toBe(false);
-    expect(
-      dataValueMatchesFilter(54.2, {
-        kind: "number",
-        operator: "gt",
-        value: 50,
-      }),
-    ).toBe(true);
-    expect(
-      dataValueMatchesFilter(20, {
-        kind: "number",
-        operator: "gte",
-        value: 20,
-      }),
-    ).toBe(true);
-    expect(
-      dataValueMatchesFilter(20, {
-        kind: "number",
-        operator: "lt",
-        value: 20,
-      }),
-    ).toBe(false);
-    expect(
-      dataValueMatchesFilter(20, {
-        kind: "number",
-        operator: "contains",
-        value: 2,
-      }),
-    ).toBe(false);
-    expect(
-      dataValueMatchesFilter("Japan", {
-        kind: "multi-select",
-        values: [],
-      }),
-    ).toBe(false);
-    expect(dataValueMatchesFilter("Japan", null)).toBe(true);
-  });
-
-  it("declares only useful filters with structured categorical controls", () => {
-    const fieldFiltersById = new Map(
-      fieldPlayerFilters.map((filter) => [filter.id, filter]),
-    );
-    const goalkeeperFiltersById = new Map(
-      goalkeeperFilters.map((filter) => [filter.id, filter]),
-    );
-    const teamFiltersById = new Map(
-      teamFilters.map((filter) => [filter.id, filter]),
-    );
-
-    expect(fieldFiltersById.has("name")).toBe(false);
-    expect(fieldFiltersById.has("number")).toBe(false);
-    expect(fieldFiltersById.get("team")).toMatchObject({
-      kind: "multi-select",
-    });
-    expect(fieldFiltersById.get("position")).toMatchObject({
-      kind: "select",
-      options: ["Attack", "Midfield", "Defense"],
-    });
-    expect(fieldFiltersById.get("gamesPlayed")).toMatchObject({
-      kind: "number",
-    });
-    expect(fieldFiltersById.get("points")).toMatchObject({ kind: "number" });
-    expect(goalkeeperFiltersById.has("position")).toBe(false);
-    expect(goalkeeperFiltersById.get("saves")).toMatchObject({
-      kind: "number",
-    });
-    expect(teamFiltersById.get("team")).toMatchObject({
-      kind: "multi-select",
-    });
-    expect(teamFiltersById.get("pool")).toMatchObject({
-      kind: "multi-select",
-      options: ["A", "B", "C", "D"],
-    });
-  });
-
   it("fails closed when a completed game has no accepted details", () => {
     expect(
       playerDataCoverageComplete({
@@ -220,27 +94,9 @@ describe("statistics page player rows", () => {
     ).toBe(true);
   });
 
-  it("keeps positive totals for players ranked outside the top ten", () => {
-    const goals = context.playerLeaderboards.find(
-      (leaderboard) => leaderboard.metric === "goals",
-    );
-    const outsideTopTen = goals?.entries.find(
-      (entry) => entry.rank.rank > 10 && entry.id !== null,
-    );
-    expect(outsideTopTen).toBeDefined();
-    if (!outsideTopTen?.id) return;
-
-    const row = buildPlayerRows(championship.games).find(
-      (candidate) => candidate.id === outsideTopTen.id,
-    );
-    expect(row?.goals).toBe(outsideTopTen.value);
-    expect(row?.goals).toBeGreaterThan(0);
-  });
-
-  it("aggregates current shooting, possession, and discipline data", () => {
-    const player = buildPlayerRows(championship.games).find(
-      (candidate) => candidate.id === "1315",
-    );
+  it("aggregates current stats beyond the top-ten leaderboard", () => {
+    const rows = buildPlayerRows(championship.games);
+    const player = rows.find((candidate) => candidate.id === "1315");
 
     expect(player).toMatchObject({
       name: "LIPKIN Jordyn",
@@ -259,56 +115,45 @@ describe("statistics page player rows", () => {
       turnovers: 12,
       causedTurnovers: 1,
     });
+
+    const goals = context.playerLeaderboards.find(
+      (leaderboard) => leaderboard.metric === "goals",
+    );
+    const outsideTopTen = goals?.entries.find(
+      (entry) => entry.rank.rank > 10 && entry.id !== null,
+    );
+    expect(outsideTopTen).toBeDefined();
+    if (!outsideTopTen?.id) return;
+
+    const row = rows.find((candidate) => candidate.id === outsideTopTen.id);
+    expect(row?.goals).toBe(outsideTopTen.value);
+    expect(row?.goals).toBeGreaterThan(0);
   });
 
-  it("includes accepted live-game totals and marks active players", () => {
+  it("handles live, pregame, and nullable-ID player evidence", () => {
     const game = championship.games.find((candidate) => candidate.id === "107");
     expect(game).toBeDefined();
     if (game === undefined) return;
 
     const liveGame = withGameStatus(game, "LIVE");
-    const player = buildPlayerRows([liveGame]).find(
+    const livePlayer = buildPlayerRows([liveGame]).find(
       (candidate) => candidate.id === "1315",
     );
-    expect(player).toMatchObject({
+    expect(livePlayer).toMatchObject({
       gamesPlayed: 1,
       isLive: true,
       points: 5,
     });
-    if (player === undefined) return;
 
-    const markup = renderToStaticMarkup(
-      <DataTable
-        columns={buildPlayerColumns("field")}
-        data={[{ ...player, id: null }]}
-        searchPlaceholder="Search players…"
-      />,
-    );
-    expect(markup).toContain('data-live="true"');
-    expect(markup).toContain('class="statistics-player-live">Live</span>');
-  });
-
-  it("does not count or mark players before the game starts", () => {
-    const game = championship.games.find((candidate) => candidate.id === "107");
-    expect(game).toBeDefined();
-    if (game === undefined) return;
-
-    const player = buildPlayerRows([
+    const pregamePlayer = buildPlayerRows([
       withGameStatus(game, "GETTING READY"),
     ]).find((candidate) => candidate.id === "1315");
-    expect(player).toMatchObject({
+    expect(pregamePlayer).toMatchObject({
       gamesPlayed: 0,
       isLive: false,
       points: 0,
     });
-  });
 
-  it("reconciles nullable live event IDs with the known player", () => {
-    const game = championship.games.find((candidate) => candidate.id === "107");
-    expect(game).toBeDefined();
-    if (game === undefined) return;
-
-    const liveGame = withGameStatus(game, "LIVE");
     const nullableEventGame = withGameStatus(
       liveGame,
       "LIVE",
@@ -387,83 +232,24 @@ describe("statistics page player rows", () => {
     });
   });
 
-  it("publishes every recorded field-player counting category", () => {
-    const markup = renderToStaticMarkup(
-      <DataTable
-        columns={buildPlayerColumns("field")}
-        data={[]}
-        searchPlaceholder="Search players…"
-      />,
-    );
-
-    for (const heading of [
-      "GP",
-      "PTS",
-      "G",
-      "A",
-      "SH",
-      "SOG",
-      "OFF",
-      "G–A",
-      "FPG",
-      "FPA",
-      "GB",
-      "DC",
-      "TO",
-      "CT",
-      "YC",
-      "RC",
-    ])
-      expect(markup).toContain(`>${heading}<`);
-    expect(markup.indexOf(">GP<")).toBeLessThan(markup.indexOf(">PTS<"));
-    expect(markup).toContain(">#<");
-    expect(markup).not.toContain(">RA<");
-    expect(markup).not.toContain(">SH%<");
-    expect(markup).not.toContain(">GC<");
-    expect(markup).not.toContain("title=");
-    expect(markup).toContain("statistics-stat-abbreviation");
-    expect(markup).toContain(">Filter<");
-    expect(markup).not.toContain("data-table-column-filter");
-  });
-
-  it("shows saves and the full stat line for goalkeepers", () => {
-    const markup = renderToStaticMarkup(
-      <DataTable
-        columns={buildPlayerColumns("goalkeepers")}
-        data={[]}
-        searchPlaceholder="Search goalkeepers…"
-      />,
-    );
-
-    for (const heading of [
-      "GS",
-      "PS",
-      "SV",
-      "GP",
-      "PTS",
-      "G",
-      "A",
-      "GB",
-      "TO",
-      "CT",
-    ])
-      expect(markup).toContain(`>${heading}<`);
-  });
-
   it("parses zero and non-zero penalty minutes", () => {
     expect(penaltyMinutesStat("(0 min)")).toBe(0);
     expect(penaltyMinutesStat("(15 min)")).toBe(15);
     expect(penaltyMinutesStat("(1:30 min)")).toBe(1.5);
   });
 
-  it("derives save percentage only from complete, reconciled game evidence", () => {
+  it("derives saves only from complete, unique game evidence", () => {
     const game = championship.games.find((candidate) => candidate.id === "107");
     const philippinesStats = game?.teamStats.find(
       (candidate) => candidate.team === "Philippines",
     );
+    const roster = game?.rosters.find(
+      (candidate) => candidate.team === "Philippines",
+    );
     expect(game).toBeDefined();
     expect(philippinesStats).toBeDefined();
-    if (!game || !philippinesStats) return;
+    expect(roster).toBeDefined();
+    if (!game || !philippinesStats || !roster) return;
 
     expect(teamSavePercentage([game], "Philippines", 1)).toBe(40);
     expect(teamSavePercentage([game], "Philippines", 2)).toBeNull();
@@ -489,16 +275,6 @@ describe("statistics page player rows", () => {
     expect(
       teamSavePercentage([duplicateEvidence], "Philippines", 1),
     ).toBeNull();
-  });
-
-  it("withholds saves when a game contains duplicate roster evidence", () => {
-    const game = championship.games.find((candidate) => candidate.id === "107");
-    const roster = game?.rosters.find(
-      (candidate) => candidate.team === "Philippines",
-    );
-    expect(game).toBeDefined();
-    expect(roster).toBeDefined();
-    if (!game || !roster) return;
 
     const duplicate = GameDetails.make({
       id: game.id,

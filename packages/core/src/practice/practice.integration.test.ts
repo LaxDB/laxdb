@@ -25,7 +25,7 @@ describe("PracticeService integration", () => {
   // Practice CRUD
   // -----------------------------------------------------------------------
 
-  it("creates a practice with defaults", () =>
+  it("creates, gets, updates, and deletes a practice", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
@@ -37,10 +37,25 @@ describe("PracticeService integration", () => {
         expect(practice.name).toBe("Test Practice");
         expect(practice.status).toBe("draft");
         expect(practice.createdAt).toBeInstanceOf(Date);
+
+        const found = yield* svc.get({ publicId: practice.publicId });
+        expect(found.publicId).toBe(practice.publicId);
+
+        const updated = yield* svc.update({
+          publicId: practice.publicId,
+          name: "Updated",
+          status: "completed",
+        });
+        expect(updated.name).toBe("Updated");
+        expect(updated.status).toBe("completed");
+
+        yield* svc.delete({ publicId: practice.publicId });
+        const list = yield* svc.list;
+        expect(list).toHaveLength(0);
       }),
     ));
 
-  it("creates a practice with all fields", () =>
+  it("creates a practice with all fields and lists practices", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
@@ -62,115 +77,14 @@ describe("PracticeService integration", () => {
         expect(practice.durationMinutes).toBe(90);
         expect(practice.location).toBe("Field A");
         expect(practice.status).toBe("scheduled");
-      }),
-    ));
 
-  it("lists all practices", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        yield* svc.create(validCreatePractice({ name: "P1" }));
-        yield* svc.create(validCreatePractice({ name: "P2" }));
-
+        yield* svc.create(validCreatePractice({ name: "Other Practice" }));
         const practices = yield* svc.list;
         expect(practices).toHaveLength(2);
       }),
     ));
 
-  it("gets a practice by publicId", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const created = yield* svc.create(validCreatePractice());
-        const found = yield* svc.get({ publicId: created.publicId });
-
-        expect(found.publicId).toBe(created.publicId);
-      }),
-    ));
-
-  it("get nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .get({ publicId: "AbCdEfGhIjKl" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("updates a practice", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const created = yield* svc.create(validCreatePractice());
-        const updated = yield* svc.update({
-          publicId: created.publicId,
-          name: "Updated",
-          status: "completed",
-        });
-
-        expect(updated.name).toBe("Updated");
-        expect(updated.status).toBe("completed");
-      }),
-    ));
-
-  it("update nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .update({ publicId: "AbCdEfGhIjKl", name: "X" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("deletes a practice", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const created = yield* svc.create(validCreatePractice());
-        yield* svc.delete({ publicId: created.publicId });
-
-        const list = yield* svc.list;
-        expect(list).toHaveLength(0);
-      }),
-    ));
-
-  it("delete nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .delete({ publicId: "AbCdEfGhIjKl" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  // -----------------------------------------------------------------------
-  // Practice items
-  // -----------------------------------------------------------------------
-
-  it("adds an item to a practice", () =>
+  it("manages an item lifecycle and persists its canvas state", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
@@ -192,29 +106,69 @@ describe("PracticeService integration", () => {
         expect(item.durationMinutes).toBe(5);
         expect(item.priority).toBe("required");
         expect(item.groups).toEqual(["all"]);
+
+        const updated = yield* svc.updateItem({
+          publicId: item.publicId,
+          label: "Updated",
+          priority: "optional",
+        });
+        expect(updated.label).toBe("Updated");
+        expect(updated.priority).toBe("optional");
+        expect(updated.type).toBe(item.type);
+
+        yield* svc.removeItem({ publicId: item.publicId });
+        const items = yield* svc.listItems({
+          practicePublicId: practice.publicId,
+        });
+        expect(items).toHaveLength(0);
+
+        const positioned = yield* svc.addItem(
+          validAddItem(practice.publicId, {
+            type: "activity",
+            variant: "split",
+            positionX: 120,
+            positionY: 240,
+          }),
+        );
+        expect(positioned.variant).toBe("split");
+        expect(positioned.positionX).toBe(120);
+        expect(positioned.positionY).toBe(240);
+
+        yield* svc.updateItem({
+          publicId: positioned.publicId,
+          variant: "default",
+          positionX: 360,
+          positionY: 480,
+        });
+        const persisted = yield* svc.listItems({
+          practicePublicId: practice.publicId,
+        });
+        expect(persisted[0]?.variant).toBe("default");
+        expect(persisted[0]?.positionX).toBe(360);
+        expect(persisted[0]?.positionY).toBe(480);
       }),
     ));
 
-  it("lists items ordered by orderIndex", () =>
+  it("persists item ordering and practice edges", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
         const svc = yield* PracticeService;
 
         const practice = yield* svc.create(validCreatePractice());
-        yield* svc.addItem(
+        const cooldown = yield* svc.addItem(
           validAddItem(practice.publicId, {
             type: "cooldown",
             orderIndex: 2,
           }),
         );
-        yield* svc.addItem(
+        const warmup = yield* svc.addItem(
           validAddItem(practice.publicId, {
             type: "warmup",
             orderIndex: 0,
           }),
         );
-        yield* svc.addItem(
+        const drill = yield* svc.addItem(
           validAddItem(practice.publicId, {
             type: "drill",
             orderIndex: 1,
@@ -229,188 +183,22 @@ describe("PracticeService integration", () => {
         expect(items[0]?.type).toBe("warmup");
         expect(items[1]?.type).toBe("drill");
         expect(items[2]?.type).toBe("cooldown");
-      }),
-    ));
 
-  it("listItems returns empty for practice with no items", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const items = yield* svc.listItems({
-          practicePublicId: practice.publicId,
-        });
-
-        expect(items).toHaveLength(0);
-      }),
-    ));
-
-  it("updates an item", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const item = yield* svc.addItem(
-          validAddItem(practice.publicId, { label: "Original" }),
-        );
-        const updated = yield* svc.updateItem({
-          publicId: item.publicId,
-          label: "Updated",
-          priority: "optional",
-        });
-
-        expect(updated.label).toBe("Updated");
-        expect(updated.priority).toBe("optional");
-        expect(updated.type).toBe(item.type); // unchanged
-      }),
-    ));
-
-  it("updateItem nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .updateItem({ publicId: "AbCdEfGhIjKl", label: "X" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("removes an item", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const item = yield* svc.addItem(validAddItem(practice.publicId));
-        yield* svc.removeItem({ publicId: item.publicId });
-
-        const items = yield* svc.listItems({
-          practicePublicId: practice.publicId,
-        });
-        expect(items).toHaveLength(0);
-      }),
-    ));
-
-  it("removeItem nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .removeItem({ publicId: "AbCdEfGhIjKl" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("reorders items", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const item1 = yield* svc.addItem(
-          validAddItem(practice.publicId, {
-            type: "warmup",
-            orderIndex: 0,
-          }),
-        );
-        const item2 = yield* svc.addItem(
-          validAddItem(practice.publicId, {
-            type: "drill",
-            orderIndex: 1,
-          }),
-        );
-        const item3 = yield* svc.addItem(
-          validAddItem(practice.publicId, {
-            type: "cooldown",
-            orderIndex: 2,
-          }),
-        );
-
-        // Reverse the order
         const reordered = yield* svc.reorderItems({
           practicePublicId: practice.publicId,
-          orderedIds: [item3.publicId, item2.publicId, item1.publicId],
+          orderedIds: [cooldown.publicId, drill.publicId, warmup.publicId],
         });
+        expect(reordered[0]?.publicId).toBe(cooldown.publicId);
+        expect(reordered[1]?.publicId).toBe(drill.publicId);
+        expect(reordered[2]?.publicId).toBe(warmup.publicId);
 
-        expect(reordered[0]?.publicId).toBe(item3.publicId);
-        expect(reordered[1]?.publicId).toBe(item2.publicId);
-        expect(reordered[2]?.publicId).toBe(item1.publicId);
-      }),
-    ));
-
-  it("persists item variant and canvas position", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const item = yield* svc.addItem(
-          validAddItem(practice.publicId, {
-            type: "activity",
-            variant: "split",
-            positionX: 120,
-            positionY: 240,
-          }),
-        );
-
-        expect(item.variant).toBe("split");
-        expect(item.positionX).toBe(120);
-        expect(item.positionY).toBe(240);
-
-        yield* svc.updateItem({
-          publicId: item.publicId,
-          variant: "default",
-          positionX: 360,
-          positionY: 480,
-        });
-
-        const items = yield* svc.listItems({
-          practicePublicId: practice.publicId,
-        });
-        const persisted = items[0];
-
-        expect(persisted?.variant).toBe("default");
-        expect(persisted?.positionX).toBe(360);
-        expect(persisted?.positionY).toBe(480);
-      }),
-    ));
-
-  it("replaces persisted practice edges", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const warmup = yield* svc.addItem(
-          validAddItem(practice.publicId, { type: "warmup", orderIndex: 0 }),
-        );
         const split = yield* svc.addItem(
           validAddItem(practice.publicId, {
             type: "activity",
             variant: "split",
-            orderIndex: 1,
+            orderIndex: 3,
           }),
         );
-        const drill = yield* svc.addItem(
-          validAddItem(practice.publicId, { type: "drill", orderIndex: 2 }),
-        );
-
         const replaced = yield* svc.replaceEdges({
           practicePublicId: practice.publicId,
           edges: [
@@ -426,13 +214,11 @@ describe("PracticeService integration", () => {
             },
           ],
         });
-
         expect(replaced).toHaveLength(2);
 
         const edges = yield* svc.listEdges({
           practicePublicId: practice.publicId,
         });
-
         expect(
           edges.map((edge) => ({
             sourcePublicId: edge.sourcePublicId,
@@ -454,32 +240,11 @@ describe("PracticeService integration", () => {
       }),
     ));
 
-  // NOTE: No FK cascade — deleting a practice does NOT auto-remove its items.
-  // Items are orphaned. Consider adding ON DELETE CASCADE to the FK constraint
-  // or implementing application-level cleanup in PracticeService.delete.
-  it("deleting a practice orphans its items (no cascade)", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        yield* svc.addItem(validAddItem(practice.publicId));
-        yield* svc.addItem(validAddItem(practice.publicId));
-        yield* svc.delete({ publicId: practice.publicId });
-
-        const items = yield* svc.listItems({
-          practicePublicId: practice.publicId,
-        });
-        expect(items).toHaveLength(2);
-      }),
-    ));
-
   // -----------------------------------------------------------------------
   // Practice review
   // -----------------------------------------------------------------------
 
-  it("creates a review for a practice", () =>
+  it("manages a review lifecycle and nullable fields", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
@@ -499,126 +264,32 @@ describe("PracticeService integration", () => {
         expect(review.wentWell).toBe("Passing was sharp");
         expect(review.needsImprovement).toBe("Ground balls");
         expect(review.notes).toBe("Good energy");
-      }),
-    ));
 
-  it("creates a review with all null fields", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        const review = yield* svc.createReview(
-          validCreateReview(practice.publicId),
-        );
-
-        expect(review.wentWell).toBeNull();
-        expect(review.needsImprovement).toBeNull();
-        expect(review.notes).toBeNull();
-      }),
-    ));
-
-  it("gets a review by practicePublicId", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        yield* svc.createReview(validCreateReview(practice.publicId));
         const found = yield* svc.getReview({
           practicePublicId: practice.publicId,
         });
-
         expect(found.practicePublicId).toBe(practice.publicId);
-      }),
-    ));
 
-  it("get nonexistent review → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .getReview({ practicePublicId: "AbCdEfGhIjKl" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("updates a review", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        yield* svc.createReview(validCreateReview(practice.publicId));
         const updated = yield* svc.updateReview({
           practicePublicId: practice.publicId,
           wentWell: "Everything",
         });
-
         expect(updated.wentWell).toBe("Everything");
-      }),
-    ));
 
-  it("updateReview nonexistent → NotFoundError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .updateReview({
-            practicePublicId: "AbCdEfGhIjKl",
-            wentWell: "X",
-          })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("duplicate review for same practice → ConstraintViolationError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        yield* svc.createReview(validCreateReview(practice.publicId));
-
-        const exit = yield* svc
+        const duplicateExit = yield* svc
           .createReview(validCreateReview(practice.publicId))
           .pipe(Effect.exit);
+        expect(duplicateExit._tag).toBe("Failure");
 
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  // NOTE: No FK cascade — deleting a practice does NOT auto-remove its review.
-  // The review is orphaned. Consider adding ON DELETE CASCADE or app-level cleanup.
-  it("deleting a practice orphans its review (no cascade)", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-        yield* svc.createReview(
-          validCreateReview(practice.publicId, { wentWell: "Great" }),
+        const emptyPractice = yield* svc.create(
+          validCreatePractice({ name: "Empty Review Practice" }),
         );
-        yield* svc.delete({ publicId: practice.publicId });
-
-        // Review is still accessible — it was not cascaded
-        const review = yield* svc.getReview({
-          practicePublicId: practice.publicId,
-        });
-        expect(review.practicePublicId).toBe(practice.publicId);
+        const emptyReview = yield* svc.createReview(
+          validCreateReview(emptyPractice.publicId),
+        );
+        expect(emptyReview.wentWell).toBeNull();
+        expect(emptyReview.needsImprovement).toBeNull();
+        expect(emptyReview.notes).toBeNull();
       }),
     ));
 
@@ -626,94 +297,37 @@ describe("PracticeService integration", () => {
   // Validation
   // -----------------------------------------------------------------------
 
-  it("get with invalid nanoid → ValidationError", () =>
+  it("rejects invalid practice and item enum values", () =>
     run(
       Effect.gen(function* () {
+        yield* truncateAll;
         const svc = yield* PracticeService;
 
-        const exit = yield* svc.get({ publicId: "bad" }).pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("create with invalid status → ValidationError", () =>
-    run(
-      Effect.gen(function* () {
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
+        const invalidStatus = yield* svc
           .create(
             // @ts-expect-error -- intentionally invalid enum
             validCreatePractice({ status: "invalid-status" }),
           )
           .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("addItem with invalid type → ValidationError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
+        expect(invalidStatus._tag).toBe("Failure");
 
         const practice = yield* svc.create(validCreatePractice());
 
-        const exit = yield* svc
+        const invalidType = yield* svc
           .addItem(
             // @ts-expect-error -- intentionally invalid enum
             validAddItem(practice.publicId, { type: "invalid-type" }),
           )
           .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("addItem with invalid priority → ValidationError", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* PracticeService;
-
-        const practice = yield* svc.create(validCreatePractice());
-
-        const exit = yield* svc
+        const invalidPriority = yield* svc
           .addItem(
             // @ts-expect-error -- intentionally invalid enum
             validAddItem(practice.publicId, { priority: "invalid" }),
           )
           .pipe(Effect.exit);
 
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("updateItem with invalid nanoid → ValidationError", () =>
-    run(
-      Effect.gen(function* () {
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .updateItem({ publicId: "bad", label: "X" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
-      }),
-    ));
-
-  it("removeItem with invalid nanoid → ValidationError", () =>
-    run(
-      Effect.gen(function* () {
-        const svc = yield* PracticeService;
-
-        const exit = yield* svc
-          .removeItem({ publicId: "bad" })
-          .pipe(Effect.exit);
-
-        expect(exit._tag).toBe("Failure");
+        expect(invalidType._tag).toBe("Failure");
+        expect(invalidPriority._tag).toBe("Failure");
       }),
     ));
 });
