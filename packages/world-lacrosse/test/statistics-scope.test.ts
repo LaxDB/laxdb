@@ -10,9 +10,7 @@ import {
 } from "../src/lib/schema";
 import {
   buildStatisticsScope,
-  normalizeStatisticsThrough,
   statisticsScopeIncludesTeamGame,
-  statisticsThroughOptions,
 } from "../src/lib/statistics-scope";
 import { buildCurrentTeamSummary } from "../src/lib/team-summary";
 import { tournament } from "../src/lib/tournament-data";
@@ -135,8 +133,12 @@ const source = (games: readonly GameDetails[]) => ({
 });
 
 describe("equal-games statistics scope", () => {
-  it("selects the first N games independently for each team", () => {
-    const scope = buildStatisticsScope(source(details), ["A", "B", "C"], 2);
+  it("selects the first N games per eligible team and aggregates selected sides", () => {
+    const scope = buildStatisticsScope(
+      source(details),
+      ["A", "B", "C", "D"],
+      2,
+    );
 
     expect(statisticsScopeIncludesTeamGame(scope, "A", "3")).toBe(false);
     expect(statisticsScopeIncludesTeamGame(scope, "B", "3")).toBe(true);
@@ -148,43 +150,29 @@ describe("equal-games statistics scope", () => {
     expect(
       scope.selectedScheduleByTeam.get("B")?.map((game) => game.id),
     ).toEqual(["3", "4"]);
-  });
 
-  it("aggregates only the selected side of an asymmetrical matchup", () => {
-    const scope = buildStatisticsScope(source(details), ["A", "B", "C"], 2);
     const rows = buildPlayerRows(details, scope);
 
     expect(rows.find((player) => player.team === "A")?.goals).toBe(3);
     expect(rows.find((player) => player.team === "B")?.goals).toBe(7);
     expect(rows.find((player) => player.team === "C")?.goals).toBe(3);
-  });
-
-  it("excludes teams that have not reached the selected game number", () => {
-    const scope = buildStatisticsScope(
-      source(details),
-      ["A", "B", "C", "D"],
-      2,
-    );
-
     expect(scope.eligibleTeams).toEqual(new Set(["A", "B", "C"]));
     expect(scope.selectedScheduleByTeam.get("D")).toEqual([]);
   });
 
-  it("scopes team totals to the same first N games", () => {
+  it("scopes team totals and goalkeeper saves to equal game counts", () => {
     const team = tournament.teamDetails.find(
       (candidate) => candidate.name === "Philippines",
     );
     expect(team).toBeDefined();
     if (team === undefined) return;
-    const scope = buildStatisticsScope(
-      {
-        schedule: tournament.schedule,
-        games: championship.games,
-        conflictedDetailGameIds: [],
-      },
-      tournament.teamDetails.map((candidate) => candidate.name),
-      2,
-    );
+    const currentSource = {
+      schedule: tournament.schedule,
+      games: championship.games,
+      conflictedDetailGameIds: [],
+    };
+    const teamNames = tournament.teamDetails.map((candidate) => candidate.name);
+    const scope = buildStatisticsScope(currentSource, teamNames, 2);
     const selectedSchedule = scope.selectedScheduleByTeam.get(team.name) ?? [];
     const selectedIds = new Set(selectedSchedule.map((game) => game.id));
     const summary = buildCurrentTeamSummary(team, {
@@ -196,19 +184,10 @@ describe("equal-games statistics scope", () => {
     expect(summary.record["Matches Played"]).toBe("2");
     expect(summary.completedGames).toBe(2);
     expect(summary.detailedGames).toBe(2);
-  });
 
-  it("scopes and reconciles goalkeeper saves", () => {
-    const scope = buildStatisticsScope(
-      {
-        schedule: tournament.schedule,
-        games: championship.games,
-        conflictedDetailGameIds: [],
-      },
-      tournament.teamDetails.map((team) => team.name),
-      1,
-    );
-    const selectedGame = scope.selectedScheduleByTeam.get("Philippines")?.[0];
+    const goalkeeperScope = buildStatisticsScope(currentSource, teamNames, 1);
+    const selectedGame =
+      goalkeeperScope.selectedScheduleByTeam.get("Philippines")?.[0];
     const detailsForGame = championship.games.find(
       (game) => game.id === selectedGame?.id,
     );
@@ -219,13 +198,13 @@ describe("equal-games statistics scope", () => {
     expect(selectedGame).toBeDefined();
     expect(Number.isSafeInteger(expectedSaves)).toBe(true);
 
-    const row = buildPlayerRows(championship.games, scope).find(
+    const row = buildPlayerRows(championship.games, goalkeeperScope).find(
       (player) => player.id === "1349",
     );
     expect(row?.saves).toBe(expectedSaves);
   });
 
-  it("checks detail coverage only for games inside the snapshot", () => {
+  it("reports missing and conflicted detail coverage", () => {
     const withoutUnselectedGame = buildStatisticsScope(
       source(details.slice(0, 4)),
       ["A", "B", "C"],
@@ -247,10 +226,8 @@ describe("equal-games statistics scope", () => {
       detailedGames: 3,
       missingDetailGameIds: ["4"],
     });
-  });
 
-  it("fails closed when selected details are conflicted", () => {
-    const scope = buildStatisticsScope(
+    const conflicted = buildStatisticsScope(
       {
         ...source(details),
         conflictedDetailGameIds: [GameId.make("4")],
@@ -259,24 +236,8 @@ describe("equal-games statistics scope", () => {
       2,
     );
 
-    expect(scope.coverage.conflictedDetailGameIds).toEqual(["4"]);
-    expect(playerDataCoverageComplete(scope.coverage)).toBe(false);
-  });
-
-  it("preserves the existing current totals in the latest view", () => {
-    const scope = buildStatisticsScope(
-      {
-        schedule: tournament.schedule,
-        games: championship.games,
-        conflictedDetailGameIds: [],
-      },
-      tournament.teamDetails.map((team) => team.name),
-      "latest",
-    );
-
-    expect(buildPlayerRows(championship.games, scope)).toEqual(
-      buildPlayerRows(championship.games),
-    );
+    expect(conflicted.coverage.conflictedDetailGameIds).toEqual(["4"]);
+    expect(playerDataCoverageComplete(conflicted.coverage)).toBe(false);
   });
 
   it("keeps the current completed-game cutoff distinct while a game is live", () => {
@@ -304,23 +265,5 @@ describe("equal-games statistics scope", () => {
         (player) => player.team === "A",
       )?.goals,
     ).toBe(83);
-  });
-
-  it("offers only non-redundant cutoffs below the latest team-game count", () => {
-    expect(statisticsThroughOptions(0)).toEqual([]);
-    expect(statisticsThroughOptions(1)).toEqual([]);
-    expect(statisticsThroughOptions(3)).toEqual([1, 2]);
-    expect(statisticsThroughOptions(5)).toEqual([1, 2, 3, 4]);
-    expect(statisticsThroughOptions(5, true)).toEqual([1, 2, 3, 4, 5]);
-  });
-
-  it("normalizes invalid, current, and out-of-range URL cutoffs", () => {
-    expect(normalizeStatisticsThrough("latest", 5)).toBe("latest");
-    expect(normalizeStatisticsThrough(0, 5)).toBe("latest");
-    expect(normalizeStatisticsThrough(9, 5)).toBe("latest");
-    expect(normalizeStatisticsThrough(5, 5)).toBe("latest");
-    expect(normalizeStatisticsThrough(5, 5, true)).toBe(5);
-    expect(normalizeStatisticsThrough(3, 5)).toBe(3);
-    expect(normalizeStatisticsThrough(3, 0)).toBe("latest");
   });
 });

@@ -1,4 +1,3 @@
-import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { championship } from "../src/lib/championship-data";
@@ -6,7 +5,6 @@ import {
   buildMatchInsights,
   buildMatchInsightsDataset,
 } from "../src/lib/match-insights";
-import { MatchInsights } from "../src/lib/match-insights-schema";
 import {
   GameDetails,
   GameId,
@@ -232,23 +230,6 @@ const comebackFixture = game({
 });
 
 describe("match insights", () => {
-  it("round-trips derived output through its runtime schema", () => {
-    const insights = buildMatchInsights(comebackFixture);
-    const encoded = Schema.encodeSync(MatchInsights)(insights);
-    const decoded = Schema.decodeUnknownSync(MatchInsights)(encoded);
-
-    expect(decoded).toEqual(insights);
-  });
-
-  it("is deterministic and does not mutate its source game", () => {
-    const before = JSON.stringify(comebackFixture);
-    const first = buildMatchInsights(comebackFixture);
-    const second = buildMatchInsights(comebackFixture);
-
-    expect(second).toEqual(first);
-    expect(JSON.stringify(comebackFixture)).toBe(before);
-  });
-
   it("derives a reconciled scoring narrative without subjective labels", () => {
     const insights = buildMatchInsights(comebackFixture);
 

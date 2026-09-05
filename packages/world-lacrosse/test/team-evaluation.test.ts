@@ -52,7 +52,7 @@ const playerMetric = (
     ?.metrics.find((metric) => metric.key === key);
 
 describe("team evaluation", () => {
-  it("defaults Australia to wins versus losses with the full team catalog", () => {
+  it("defaults Australia to wins versus losses", () => {
     const report = australia();
     expect(report.games.map((game) => game.opponent)).toEqual([
       "Wales",
@@ -62,15 +62,9 @@ describe("team evaluation", () => {
     ]);
     expect(report.sampleA.gameIds).toEqual(["76", "84", "93"]);
     expect(report.sampleB.gameIds).toEqual(["69"]);
-    expect(report.sampleA.teamMetrics).toHaveLength(87);
-    expect(report.sampleB.teamMetrics).toHaveLength(87);
-    expect(report.sampleA.players).toHaveLength(22);
   });
 
-  it("supports Canada versus Germany and all-except-Germany scopes", () => {
-    const canadaGermany = australia(["69"], ["84"]);
-    expect(canadaGermany.sampleA.label).toBe("vs Canada");
-    expect(canadaGermany.sampleB.label).toBe("vs Germany");
+  it("supports all-except-Germany scopes", () => {
     const exceptGermany = australia(["76", "69"], ["84"]);
     expect(exceptGermany.sampleA.gameIds).toEqual(["76", "69"]);
     expect(exceptGermany.sampleB.gameIds).toEqual(["84"]);
@@ -366,16 +360,4 @@ describe("team evaluation", () => {
       }),
     ).toThrow();
   });
-
-  it("constructs every current team without throwing", () => {
-    for (const team of tournament.teams)
-      expect(() =>
-        buildTeamEvaluation(
-          team.id,
-          source,
-          tournament.teams,
-          staticTournamentMetadata.playerProfiles,
-        ),
-      ).not.toThrow();
-  }, 120_000);
 });

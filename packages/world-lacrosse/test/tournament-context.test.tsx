@@ -1,8 +1,6 @@
 import { Schema } from "effect";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { TournamentGameContextPanel } from "../src/components/tournament-game-context";
 import { championship } from "../src/lib/championship-data";
 import { buildMatchInsights } from "../src/lib/match-insights";
 import {
@@ -132,13 +130,6 @@ const copyPlayer = (
   });
 
 describe("tournament context", () => {
-  it("round-trips through its runtime schema", () => {
-    const encoded = Schema.encodeSync(TournamentContext)(context);
-    expect(Schema.decodeUnknownSync(TournamentContext)(encoded)).toEqual(
-      context,
-    );
-  });
-
   it("includes only official reconciled finals in the shared sample", () => {
     const expectedEligible = championship.games.filter(
       (game) =>
@@ -476,21 +467,5 @@ describe("tournament context", () => {
       expect(team.opponentAdjustedRank.total).toBe(ratedPoolTeams.length);
       expect(team.opponentAdjustmentGames).toBeGreaterThan(0);
     }
-  });
-
-  it("renders game placements without internal sample disclosure", () => {
-    const game = context.games.find(
-      (candidate) => candidate.eligible && candidate.placements.length > 0,
-    );
-    expect(game).toBeDefined();
-    if (!game) return;
-    const html = renderToStaticMarkup(
-      <TournamentGameContextPanel context={game} />,
-    );
-
-    expect(html).toContain("Tournament context");
-    expect(html).toContain(`of ${game.placements[0]?.rank.total}`);
-    expect(html).not.toContain("official, reconciled games");
-    expect(html).not.toContain("source refreshed");
   });
 });

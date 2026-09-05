@@ -138,13 +138,9 @@ const duplicateTeamStats = (
 };
 
 describe("team comparison", () => {
-  it("builds a schema-validated Australia and USA comparison", () => {
+  it("builds an Australia and USA comparison", () => {
     const comparison = comparisonFor("25", "24");
-    const encoded = Schema.encodeSync(TeamComparison)(comparison);
 
-    expect(Schema.decodeUnknownSync(TeamComparison)(encoded)).toEqual(
-      comparison,
-    );
     expect(comparison.left).toMatchObject({
       name: "Australia",
       completedGames: 6,

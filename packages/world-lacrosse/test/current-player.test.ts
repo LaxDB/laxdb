@@ -104,7 +104,7 @@ const currentGame = GameDetails.make({
 });
 
 describe("current player summary", () => {
-  it("rebuilds totals and game logs from current games, ignoring stale profile totals", () => {
+  it("rebuilds totals from completed games and excludes live games", () => {
     const summary = buildCurrentPlayerSummary(profile, [currentGame]);
 
     expect(summary).toMatchObject({
@@ -136,9 +136,7 @@ describe("current player summary", () => {
       recordedGoals: 2,
       recordedShots: 4,
     });
-  });
 
-  it("does not count live games in current tournament totals", () => {
     const liveGame = GameDetails.make({
       id: currentGame.id,
       url: currentGame.url,

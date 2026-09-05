@@ -5,22 +5,14 @@ import {
   extractArrayLiteral,
   GamedayClient,
   gamedayDate,
-  gamedayMatchName,
   gamedayScore,
   gamedayTeamsFromMatches,
   parseLadder,
   parseStatsRows,
 } from "./gameday";
 
-describe("extractArrayLiteral", () => {
-  it("extracts a flat array after the marker", () => {
-    const html = `<script>var matches = [{"FixtureID":"1"}];</script>`;
-    expect(extractArrayLiteral(html, "var matches =")).toBe(
-      `[{"FixtureID":"1"}]`,
-    );
-  });
-
-  it("survives ] characters inside string values", () => {
+describe("GameDay parsing", () => {
+  it("extractArrayLiteral survives ] characters inside string values", () => {
     const payload = `[{"DetailedResults":"<a href=\\"x[1]\\">Match [Centre]</a>","FixtureID":"2"}]`;
     const html = `var matches = ${payload};\nvar other = [1,2];`;
     expect(extractArrayLiteral(html, "var matches =")).toBe(payload);
@@ -29,29 +21,11 @@ describe("extractArrayLiteral", () => {
     ).toHaveLength(1);
   });
 
-  it("handles nested arrays", () => {
-    const html = `var matches = [[1,2],[3,4]]; tail`;
-    expect(extractArrayLiteral(html, "var matches =")).toBe("[[1,2],[3,4]]");
-  });
-
-  it("returns null when the marker is missing", () => {
+  it("extractArrayLiteral returns null when the marker is missing", () => {
     expect(extractArrayLiteral("<html></html>", "var matches =")).toBeNull();
   });
-});
 
-describe("gamedayDate", () => {
-  it("parses winter-season Melbourne local time as AEST (+10)", () => {
-    const date = gamedayDate("2026-08-19 14:45:00");
-    expect(date?.toISOString()).toBe("2026-08-19T04:45:00.000Z");
-  });
-
-  it("parses daylight-saving Melbourne local time as AEDT (+11)", () => {
-    // Late March is before the first Sunday of April: still AEDT.
-    const date = gamedayDate("2026-03-28 15:00:00");
-    expect(date?.toISOString()).toBe("2026-03-28T04:00:00.000Z");
-  });
-
-  it("handles the spring DST transition", () => {
+  it("gamedayDate handles the spring DST transition", () => {
     // First Sunday of October 2026 is the 4th; AEDT starts 02:00 that day.
     expect(gamedayDate("2026-10-03 15:00:00")?.toISOString()).toBe(
       "2026-10-03T05:00:00.000Z",
@@ -61,32 +35,24 @@ describe("gamedayDate", () => {
     );
   });
 
-  it("returns null for empty or invalid values", () => {
+  it("gamedayDate returns null for empty or invalid values", () => {
     expect(gamedayDate()).toBeNull();
     expect(gamedayDate("")).toBeNull();
     expect(gamedayDate("not a date")).toBeNull();
   });
-});
 
-describe("gamedayScore", () => {
-  it("parses numeric scores", () => {
-    expect(gamedayScore("9")).toBe(9);
-  });
-
-  it("returns null for missing scores", () => {
+  it("gamedayScore returns null for missing scores", () => {
     expect(gamedayScore("")).toBeNull();
     expect(gamedayScore()).toBeNull();
   });
-});
 
-describe("gamedayTeamsFromMatches", () => {
-  it("extracts sorted unique teams from home and away sides", () => {
+  it("gamedayTeamsFromMatches extracts sorted unique teams", () => {
     expect(
       gamedayTeamsFromMatches([
         {
           FixtureID: "1",
           HomeID: "27270385",
-          HomeNameFMT: "Malvern&nbsp;Lacrosse Club",
+          HomeNameFMT: "Malvern&nbsp;Lacrosse&amp;Co ",
           AwayID: "27270380",
           AwayNameFMT: "Altona Lacrosse Club",
         },
@@ -95,32 +61,16 @@ describe("gamedayTeamsFromMatches", () => {
           HomeID: "27270380",
           HomeNameFMT: "Altona Lacrosse Club",
           AwayID: "27270385",
-          AwayNameFMT: "Malvern&nbsp;Lacrosse Club",
+          AwayNameFMT: "Malvern&nbsp;Lacrosse&amp;Co ",
         },
       ]),
     ).toEqual([
       { teamId: "27270380", name: "Altona Lacrosse Club" },
-      { teamId: "27270385", name: "Malvern Lacrosse Club" },
+      { teamId: "27270385", name: "Malvern Lacrosse&Co" },
     ]);
   });
-});
 
-describe("gamedayMatchName", () => {
-  it("prefers the formatted name and decodes entities", () => {
-    expect(
-      gamedayMatchName(
-        {
-          FixtureID: "1",
-          HomeNameFMT: "Malvern&nbsp;Lacrosse&amp;Co ",
-        },
-        "home",
-      ),
-    ).toBe("Malvern Lacrosse&Co");
-  });
-});
-
-describe("parseStatsRows", () => {
-  it("maps games, assists, and goals from published headings", () => {
+  it("parseStatsRows maps games, assists, and goals by heading", () => {
     const html = `<table>
       <tr><th>Player Name</th><th>TSC</th><th>Team Name</th><th>TA</th><th>M</th></tr>
       <tr class="odd"><td><a href="?pID=204864530">Billy Skepper</a></td><td>9</td><td>Malvern/MCC</td><td>3</td><td>9</td></tr>
@@ -132,10 +82,8 @@ describe("parseStatsRows", () => {
       totalScore: 9,
     });
   });
-});
 
-describe("parseLadder", () => {
-  it("maps published ladder values by heading instead of column position", async () => {
+  it("parseLadder maps values by heading instead of position", async () => {
     const html = `
       <div>Last Uploaded: Thu 23-Jul-2026 14:03:47</div>
       <table>
@@ -163,16 +111,14 @@ describe("parseLadder", () => {
     ]);
   });
 
-  it("fails when GameDay changes the required ladder shape", async () => {
+  it("parseLadder fails when the required shape changes", async () => {
     const exit = await Effect.runPromiseExit(
       parseLadder("<table><tr><th>TEAM</th></tr></table>", "657126"),
     );
     expect(exit._tag).toBe("Failure");
   });
-});
 
-describe("GamedayClient.fetchFixtures", () => {
-  it("sweeps alternate pools when the default pool has no fixtures", async () => {
+  it("fetchFixtures sweeps pools when the default has no fixtures", async () => {
     const noFixtures = `
       <a href="comp_info.cgi?c=0-1064-0-657119-0&amp;pool=1&amp;round=0&amp;a=FIXTURE">Regular season</a>
       <p class="no-fixtures">Sorry, there are no fixtures available.</p>

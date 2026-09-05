@@ -16,50 +16,18 @@ const TestLayer = Layer.mergeAll(ServiceLayer, TestDatabaseLive);
 const run = makeTestRunner(TestLayer);
 
 describe("DefaultsService integration", () => {
-  it("returns an empty object when a namespace has not been set", () =>
+  it("starts empty and merges partial namespace updates", () =>
     run(
       Effect.gen(function* () {
         yield* truncateAll;
         const svc = yield* DefaultsService;
 
-        const values = yield* svc.getNamespace({
+        const initial = yield* svc.getNamespace({
           scopeType: "global",
           scopeId: "global",
           namespace: "practice",
         });
-
-        expect(values).toEqual({});
-      }),
-    ));
-
-  it("creates a namespace with json values", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* DefaultsService;
-
-        const values = yield* svc.patchNamespace({
-          scopeType: "global",
-          scopeId: "global",
-          namespace: "practice",
-          values: {
-            durationMinutes: 120,
-            location: "Main Field",
-          },
-        });
-
-        expect(values).toEqual({
-          durationMinutes: 120,
-          location: "Main Field",
-        });
-      }),
-    ));
-
-  it("merges partial updates into an existing namespace", () =>
-    run(
-      Effect.gen(function* () {
-        yield* truncateAll;
-        const svc = yield* DefaultsService;
+        expect(initial).toEqual({});
 
         yield* svc.patchNamespace({
           scopeType: "global",

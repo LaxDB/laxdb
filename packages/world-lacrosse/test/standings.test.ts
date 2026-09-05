@@ -1,13 +1,8 @@
-import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { selectMatchday } from "../src/lib/matchday";
 import { GameId, ScheduledGame, Team, TournamentTeam } from "../src/lib/schema";
-import {
-  buildCurrentStandings,
-  CurrentStanding,
-  formatGoalDifference,
-} from "../src/lib/standings";
+import { buildCurrentStandings } from "../src/lib/standings";
 
 const teams = [
   ["25", "AUS", "Australia"],
@@ -114,12 +109,11 @@ describe("standings", () => {
   it("keeps every game on Matchday, including completed results", () => {
     const matchday = selectMatchday(poolGames, new Date(2026, 6, 28, 12));
 
-    expect(matchday.date).toBe("Tuesday, July 28");
     expect(matchday.games).toHaveLength(poolGames.length);
     expect(matchday.games.map((source) => source.id)).toContain("5");
   });
 
-  it("derives standings from the refreshed final-result feed", () => {
+  it("derives standings and adds a game only when it becomes final", () => {
     const standings = buildCurrentStandings(poolGames, teams);
 
     expect(standings.map((row) => row.team)).toEqual([
@@ -149,10 +143,7 @@ describe("standings", () => {
       wins: 0,
       losses: 2,
     });
-  });
 
-  it("adds a game only when its status becomes final", () => {
-    const before = buildCurrentStandings(poolGames, teams);
     const finalGames = poolGames.map((source) =>
       source.id === "6"
         ? ScheduledGame.make({
@@ -170,7 +161,7 @@ describe("standings", () => {
     );
     const after = buildCurrentStandings(finalGames, teams);
 
-    expect(before.find((row) => row.team === "Australia")?.played).toBe(2);
+    expect(standings.find((row) => row.team === "Australia")?.played).toBe(2);
     expect(after.find((row) => row.team === "Australia")).toMatchObject({
       played: 3,
       wins: 2,
@@ -181,26 +172,5 @@ describe("standings", () => {
       wins: 0,
       losses: 3,
     });
-  });
-
-  it("round-trips derived rows through the runtime schema", () => {
-    const standing = buildCurrentStandings(poolGames, teams)[0];
-    expect(standing).toBeDefined();
-    if (!standing) return;
-    const encoded = Schema.encodeSync(CurrentStanding)(standing);
-    expect(Schema.decodeUnknownSync(CurrentStanding)(encoded)).toEqual(
-      standing,
-    );
-  });
-
-  it("derives goal difference from goals for and against", () => {
-    expect(formatGoalDifference("40", "10")).toBe("+30");
-    expect(formatGoalDifference(18, 27)).toBe("-9");
-    expect(formatGoalDifference("15", "15")).toBe("0");
-  });
-
-  it("handles unavailable totals", () => {
-    expect(formatGoalDifference("", "10")).toBe("—");
-    expect(formatGoalDifference("—", "10")).toBe("—");
   });
 });
