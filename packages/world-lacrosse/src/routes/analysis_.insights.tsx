@@ -69,10 +69,10 @@ function AnalysisInsightsContent() {
     ...snapshot.conflictedDetailGameIds,
   ]).size;
   const snapshotStatus =
-    state.mode === "archived"
+    snapshot.source === "archive"
       ? "archive"
       : state.freshness === "stale" ||
-          state.refresh === "failed" ||
+          state.refreshFailed ||
           snapshot.integrity === "partial"
         ? "degraded"
         : "fresh";

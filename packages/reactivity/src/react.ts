@@ -8,10 +8,7 @@ export interface AsyncQueryState<A, E> {
   readonly data: A | undefined;
   readonly error: E | undefined;
   readonly isLoading: boolean;
-  readonly isRefreshing: boolean;
-  readonly isFailure: boolean;
   readonly refresh: () => void;
-  readonly result: AsyncResult.AsyncResult<A, E>;
 }
 
 export const useAsyncQuery = <A, E>(
@@ -26,9 +23,6 @@ export const useAsyncQuery = <A, E>(
     error: Option.getOrUndefined(AsyncResult.error(result)),
     isLoading:
       data === undefined && (result.waiting || AsyncResult.isInitial(result)),
-    isRefreshing: data !== undefined && result.waiting,
-    isFailure: AsyncResult.isFailure(result),
     refresh,
-    result,
   };
 };

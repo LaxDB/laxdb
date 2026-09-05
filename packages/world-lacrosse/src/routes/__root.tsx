@@ -1,10 +1,8 @@
 /// <reference types="vite/client" />
 
 import { RegistryProvider } from "@effect/atom-react";
-import type { QueryClient } from "@tanstack/react-query";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
-  createRootRouteWithContext,
+  createRootRoute,
   HeadContent,
   Outlet,
   Scripts,
@@ -19,9 +17,7 @@ const siteTitle = "2026 Women's Lacrosse Championship | LaxDB";
 const siteDescription =
   "Scores, schedules, standings, statistics, and match analysis for the 2026 World Lacrosse Women's Championship.";
 
-export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient;
-}>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -43,20 +39,16 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootDocument() {
-  const { queryClient } = Route.useRouteContext();
-
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <QueryClientProvider client={queryClient}>
-          <RegistryProvider>
-            <Outlet />
-            <HomeFooter />
-          </RegistryProvider>
-        </QueryClientProvider>
+        <RegistryProvider>
+          <Outlet />
+          <HomeFooter />
+        </RegistryProvider>
         {import.meta.env.DEV ? (
           <Agentation endpoint="http://localhost:4747" />
         ) : null}

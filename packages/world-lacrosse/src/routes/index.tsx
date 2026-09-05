@@ -1,18 +1,14 @@
-import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { PageMetadata } from "../components/page-metadata";
 import { StandingsTables } from "../components/standings-tables";
 import {
-  TournamentData,
+  TournamentDataBoundary,
   TournamentDataStatus,
 } from "../components/tournament-data-state";
 import { TournamentHeader } from "../components/tournament-header";
-import {
-  type CurrentTournamentReadyController,
-  currentTournamentAtom,
-} from "../lib/current-tournament";
+import { useCurrentTournamentSnapshot } from "../lib/current-tournament";
 import { gameAccessibleLabel } from "../lib/game-accessible-label";
 import {
   finalGameStatusLabel,
@@ -25,23 +21,15 @@ import { selectMatchday } from "../lib/matchday";
 export const Route = createFileRoute("/")({ component: HomeRoutePage });
 
 function HomeRoutePage() {
-  const tournament = {
-    state: useAtomValue(currentTournamentAtom),
-    retry: useAtomRefresh(currentTournamentAtom),
-  };
   return (
-    <TournamentData tournament={tournament}>
-      {(ready) => <HomeContent tournament={ready} />}
-    </TournamentData>
+    <TournamentDataBoundary>
+      <HomeContent />
+    </TournamentDataBoundary>
   );
 }
 
-function HomeContent({
-  tournament,
-}: {
-  readonly tournament: CurrentTournamentReadyController;
-}) {
-  const snapshot = tournament.state.snapshot;
+function HomeContent() {
+  const snapshot = useCurrentTournamentSnapshot();
   const schedule = snapshot.schedule;
   const detailsByGameId = useMemo(
     () => new Map(snapshot.games.map((game) => [game.id, game])),
@@ -53,7 +41,7 @@ function HomeContent({
     <main>
       <PageMetadata description="Schedules, results, standings, player statistics, and game analysis for the 2026 World Lacrosse Women's Championship." />
       <TournamentHeader />
-      <TournamentDataStatus tournament={tournament} />
+      <TournamentDataStatus />
       <article id="main-content" className="tournament-page home-page">
         <header className="home-intro">
           <h1 className="sr-only">2026 Women&apos;s Lacrosse Championship</h1>

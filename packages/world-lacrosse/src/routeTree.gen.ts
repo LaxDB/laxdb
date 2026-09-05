@@ -17,7 +17,6 @@ import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
-import { Route as FetchingLabIndexRouteImport } from './routes/fetching-lab/index'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams/$teamId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
 import { Route as GamesGameIdRouteImport } from './routes/games/$gameId'
@@ -65,11 +64,6 @@ const TeamsIndexRoute = TeamsIndexRouteImport.update({
   path: '/teams/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FetchingLabIndexRoute = FetchingLabIndexRouteImport.update({
-  id: '/fetching-lab/',
-  path: '/fetching-lab/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TeamsTeamIdRoute = TeamsTeamIdRouteImport.update({
   id: '/teams/$teamId',
   path: '/teams/$teamId',
@@ -115,7 +109,6 @@ export interface FileRoutesByFullPath {
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
-  '/fetching-lab/': typeof FetchingLabIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/compare/$leftTeamId/$rightTeamId': typeof CompareLeftTeamIdRightTeamIdRoute
 }
@@ -132,7 +125,6 @@ export interface FileRoutesByTo {
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
-  '/fetching-lab': typeof FetchingLabIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/compare/$leftTeamId/$rightTeamId': typeof CompareLeftTeamIdRightTeamIdRoute
 }
@@ -150,7 +142,6 @@ export interface FileRoutesById {
   '/games/$gameId': typeof GamesGameIdRoute
   '/players/$playerId': typeof PlayersPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRoute
-  '/fetching-lab/': typeof FetchingLabIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/compare/$leftTeamId/$rightTeamId': typeof CompareLeftTeamIdRightTeamIdRoute
 }
@@ -169,7 +160,6 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
-    | '/fetching-lab/'
     | '/teams/'
     | '/compare/$leftTeamId/$rightTeamId'
   fileRoutesByTo: FileRoutesByTo
@@ -186,7 +176,6 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
-    | '/fetching-lab'
     | '/teams'
     | '/compare/$leftTeamId/$rightTeamId'
   id:
@@ -203,7 +192,6 @@ export interface FileRouteTypes {
     | '/games/$gameId'
     | '/players/$playerId'
     | '/teams/$teamId'
-    | '/fetching-lab/'
     | '/teams/'
     | '/compare/$leftTeamId/$rightTeamId'
   fileRoutesById: FileRoutesById
@@ -221,7 +209,6 @@ export interface RootRouteChildren {
   GamesGameIdRoute: typeof GamesGameIdRoute
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRoute
-  FetchingLabIndexRoute: typeof FetchingLabIndexRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
   CompareLeftTeamIdRightTeamIdRoute: typeof CompareLeftTeamIdRightTeamIdRoute
 }
@@ -284,13 +271,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/fetching-lab/': {
-      id: '/fetching-lab/'
-      path: '/fetching-lab'
-      fullPath: '/fetching-lab/'
-      preLoaderRoute: typeof FetchingLabIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/teams/$teamId': {
       id: '/teams/$teamId'
       path: '/teams/$teamId'
@@ -349,7 +329,6 @@ const rootRouteChildren: RootRouteChildren = {
   GamesGameIdRoute: GamesGameIdRoute,
   PlayersPlayerIdRoute: PlayersPlayerIdRoute,
   TeamsTeamIdRoute: TeamsTeamIdRoute,
-  FetchingLabIndexRoute: FetchingLabIndexRoute,
   TeamsIndexRoute: TeamsIndexRoute,
   CompareLeftTeamIdRightTeamIdRoute: CompareLeftTeamIdRightTeamIdRoute,
 }

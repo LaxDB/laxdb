@@ -12,7 +12,7 @@ export interface AsyncQueryOptions<A, E> {
   readonly revalidateOnFocus?: boolean | "always" | undefined;
 }
 
-export const asyncQueryDefaults = {
+const asyncQueryDefaults = {
   staleTime: 0,
   idleTTL: "5 minutes",
   revalidateOnMount: true,

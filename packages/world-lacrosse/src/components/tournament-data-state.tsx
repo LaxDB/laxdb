@@ -1,11 +1,12 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import type { ReactNode } from "react";
 
 import {
-  type CurrentTournamentController,
-  type CurrentTournamentReadyController,
+  classifyLiveSnapshotFreshness,
+  currentTournamentAtom,
   CurrentTournamentProvider,
-  useCurrentTournament,
-  useOptionalCurrentTournament,
+  useCurrentTournamentReadyState,
+  useLiveFreshnessClock,
 } from "../lib/current-tournament";
 
 import { PageMetadata } from "./page-metadata";
@@ -87,19 +88,11 @@ export const TournamentDataUnavailable = ({
   </main>
 );
 
-export const TournamentDataStatus = ({
-  tournament: providedTournament,
-}: {
-  readonly tournament?: CurrentTournamentReadyController | undefined;
-} = {}) => {
-  const contextTournament = useOptionalCurrentTournament();
-  const tournament = providedTournament ?? contextTournament;
-  if (tournament === null)
-    throw new Error("TournamentDataStatus requires tournament state");
-  const state = tournament.state;
-  if (state.mode === "archived") return null;
+export const TournamentDataStatus = () => {
+  const state = useCurrentTournamentReadyState();
+  if (state.snapshot.source === "archive") return null;
   const delayed = state.freshness === "stale";
-  const refreshFailed = state.refresh === "failed";
+  const refreshFailed = state.refreshFailed;
   const partial = state.snapshot.integrity === "partial";
   if (!delayed && !refreshFailed && !partial) return null;
   const title = delayed
@@ -129,7 +122,7 @@ export const TournamentDataStatus = ({
         <button
           type="button"
           className="button-secondary"
-          onClick={tournament.retry}
+          onClick={state.retry}
         >
           Retry update
         </button>
@@ -138,34 +131,45 @@ export const TournamentDataStatus = ({
   );
 };
 
-export const TournamentData = ({
-  children,
-  tournament,
-}: {
-  readonly children: (
-    tournament: CurrentTournamentReadyController,
-  ) => ReactNode;
-  readonly tournament: CurrentTournamentController;
-}) => {
-  if (tournament.state.status === "loading") return <TournamentDataLoading />;
-  if (tournament.state.status === "unavailable")
-    return <TournamentDataUnavailable retry={tournament.retry} />;
-  return children({ state: tournament.state, retry: tournament.retry });
-};
-
 export const TournamentDataBoundary = ({
   children,
 }: {
   readonly children: ReactNode;
 }) => {
-  const tournament = useCurrentTournament();
+  const {
+    data: snapshot,
+    error,
+    isLoading,
+    refresh,
+  } = useAsyncQuery(currentTournamentAtom);
+  const timestamps =
+    snapshot?.source === "live" && snapshot.nextRefreshAt !== null
+      ? {
+          updatedAt: snapshot.updatedAt,
+          nextRefreshAt: snapshot.nextRefreshAt,
+        }
+      : null;
+  const freshnessNow = useLiveFreshnessClock(timestamps);
+
+  if (isLoading) return <TournamentDataLoading />;
+  if (snapshot === undefined)
+    return <TournamentDataUnavailable retry={refresh} />;
+  if (snapshot.source === "live" && timestamps === null)
+    throw new Error("Live tournament snapshot is missing nextRefreshAt");
+
   return (
-    <TournamentData tournament={tournament}>
-      {(ready) => (
-        <CurrentTournamentProvider tournament={ready}>
-          {children}
-        </CurrentTournamentProvider>
-      )}
-    </TournamentData>
+    <CurrentTournamentProvider
+      state={{
+        snapshot,
+        freshness:
+          timestamps === null
+            ? "archived"
+            : classifyLiveSnapshotFreshness(timestamps, freshnessNow),
+        refreshFailed: error !== undefined,
+        retry: refresh,
+      }}
+    >
+      {children}
+    </CurrentTournamentProvider>
   );
 };

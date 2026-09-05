@@ -1,20 +1,6 @@
-import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  fetchLiveSchedule,
-  liveScheduleQueryKey,
-  liveScheduleQueryOptions,
-} from "../src/lib/live-schedule";
-import { LiveSchedule } from "../src/lib/schema";
-import { tournament } from "../src/lib/tournament-data";
-
-const current = LiveSchedule.make({
-  updatedAt: "2026-07-29T06:10:00.000Z",
-  nextRefreshAt: "2026-07-29T06:12:00.000Z",
-  schedule: tournament.schedule,
-  games: [],
-});
+import { fetchLiveSchedule } from "../src/lib/live-schedule";
 
 /* oxlint-disable typescript/prefer-readonly-parameter-types -- RequestInit contains mutable browser API types. */
 const pendingFetchUntilAbort = (
@@ -42,15 +28,6 @@ afterEach(() => {
 });
 
 describe("live schedule query", () => {
-  it("omits bundled data and disables archived fetching", () => {
-    const currentOptions = liveScheduleQueryOptions(true, () => current);
-    const archivedOptions = liveScheduleQueryOptions(false, () => current);
-
-    expect(currentOptions.initialData).toBeUndefined();
-    expect(currentOptions.placeholderData).toBeUndefined();
-    expect(archivedOptions.enabled).toBe(false);
-  });
-
   it("aborts a hung authority request after five seconds", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn(pendingFetchUntilAbort));
@@ -60,45 +37,5 @@ describe("live schedule query", () => {
     await vi.advanceTimersByTimeAsync(5_000);
 
     await aborted;
-  });
-
-  it("retains the last accepted live generation after a refresh failure", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve(
-          new Response(JSON.stringify(current), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          }),
-        ),
-      ),
-    );
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    const accepted = await queryClient.fetchQuery({
-      queryKey: liveScheduleQueryKey,
-      queryFn: () => fetchLiveSchedule(),
-      staleTime: 0,
-    });
-    expect(accepted.updatedAt).toBe(current.updatedAt);
-
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(new Response(null, { status: 503 }))),
-    );
-    await expect(
-      queryClient.fetchQuery({
-        queryKey: liveScheduleQueryKey,
-        queryFn: () => fetchLiveSchedule(accepted),
-        staleTime: 0,
-      }),
-    ).rejects.toThrow("HTTP 503");
-
-    expect(queryClient.getQueryData<LiveSchedule>(liveScheduleQueryKey)).toBe(
-      accepted,
-    );
-    queryClient.clear();
   });
 });

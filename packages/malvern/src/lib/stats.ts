@@ -7,7 +7,7 @@ import type {
 } from "@laxdb/core/stats/stats.schema";
 import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
@@ -100,29 +100,8 @@ export const getTeamStandings = createServerFn({ method: "GET" })
     ),
   );
 
-export class TeamStandingsQueryError extends Schema.TaggedErrorClass<TeamStandingsQueryError>()(
-  "TeamStandingsQueryError",
-  {
-    teamId: Schema.String,
-    message: Schema.String,
-    cause: Schema.Unknown,
-  },
-) {}
-
 export const teamStandingsAtom = Atom.family((teamId: string) =>
-  makeAsyncQuery<TeamStandingsView, TeamStandingsQueryError>({
-    load: () =>
-      Effect.tryPromise({
-        try: () => getTeamStandings({ data: { teamId } }),
-        catch: (cause) =>
-          TeamStandingsQueryError.make({
-            teamId,
-            message:
-              cause instanceof Error
-                ? cause.message
-                : "Unable to load team standings",
-            cause,
-          }),
-      }),
+  makeAsyncQuery({
+    load: () => Effect.tryPromise(() => getTeamStandings({ data: { teamId } })),
   }),
 );

@@ -1,27 +1,23 @@
-import { Option, Schema } from "effect";
+import { Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import {
   createContext,
   createElement,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
 
 import type { ArchivedTournamentData } from "./archived-tournament-data";
+import type { FetchError } from "./error";
 import { gameDetailMatchesSchedule } from "./game-evidence";
 import {
   isCompletedGame,
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "./game-status";
-import {
-  currentLiveScheduleEffectAtom,
-  useLiveSchedule,
-} from "./live-schedule";
+import { liveScheduleAtom } from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
@@ -245,7 +241,7 @@ export const classifyLiveSnapshotFreshness = (
 ): LiveSnapshotFreshness =>
   now >= nextLiveFreshnessCheckAt(schedule) ? "stale" : "fresh";
 
-const useLiveFreshnessClock = (
+export const useLiveFreshnessClock = (
   schedule: LiveSnapshotTimestamps | null,
 ): number => {
   const [now, setNow] = useState(Date.now);
@@ -271,202 +267,56 @@ const useLiveFreshnessClock = (
   return now;
 };
 
-export interface TournamentLoadingState {
-  readonly mode: "live";
-  readonly status: "loading";
-}
-
-export interface TournamentUnavailableState {
-  readonly mode: "live";
-  readonly status: "unavailable";
-}
-
-export interface LiveTournamentReadyState {
-  readonly mode: "live";
-  readonly status: "ready";
-  readonly snapshot: CurrentTournamentSnapshot;
-  readonly freshness: LiveSnapshotFreshness;
-  readonly refresh: "idle" | "refreshing" | "failed";
-}
-
-export interface ArchivedTournamentReadyState {
-  readonly mode: "archived";
-  readonly status: "ready";
-  readonly snapshot: CurrentTournamentSnapshot;
-  readonly freshness: "archived";
-  readonly refresh: "disabled";
-}
-
-export type CurrentTournamentState =
-  | TournamentLoadingState
-  | TournamentUnavailableState
-  | LiveTournamentReadyState
-  | ArchivedTournamentReadyState;
-
-interface LiveScheduleObservation {
-  readonly snapshot: CurrentTournamentSnapshot | null;
-  readonly waiting: boolean;
-  readonly failed: boolean;
-}
-
-const currentTournamentStateFromLiveSchedule = (
-  live: LiveScheduleObservation,
-  freshnessNow: number,
-): CurrentTournamentState => {
+const makeCurrentTournamentAtom = (): Atom.Atom<
+  AsyncResult.AsyncResult<CurrentTournamentSnapshot, FetchError>
+> => {
   if (tournamentMode === "archived") {
     if (archivedTournamentSnapshot === null)
       throw new Error("Archived mode requires bundled tournament data");
-    return {
-      mode: "archived",
-      status: "ready",
-      snapshot: archivedTournamentSnapshot,
-      freshness: "archived",
-      refresh: "disabled",
-    };
+    return Atom.make(
+      AsyncResult.success<CurrentTournamentSnapshot, FetchError>(
+        archivedTournamentSnapshot,
+      ),
+    );
   }
-  if (live.snapshot === null) {
-    return live.waiting
-      ? { mode: "live", status: "loading" }
-      : { mode: "live", status: "unavailable" };
-  }
-  if (live.snapshot.nextRefreshAt === null)
-    throw new Error("Live tournament snapshot is missing nextRefreshAt");
-  return {
-    mode: "live",
-    status: "ready",
-    snapshot: live.snapshot,
-    freshness: classifyLiveSnapshotFreshness(
-      {
-        updatedAt: live.snapshot.updatedAt,
-        nextRefreshAt: live.snapshot.nextRefreshAt,
-      },
-      freshnessNow,
-    ),
-    refresh: live.failed ? "failed" : live.waiting ? "refreshing" : "idle",
-  };
+  return liveScheduleAtom.pipe(
+    Atom.mapResult(buildLiveTournamentSnapshot),
+    Atom.withServerValueInitial,
+  );
 };
 
-export interface CurrentTournamentController {
-  readonly state: CurrentTournamentState;
-  readonly retry: () => void;
-}
+export const currentTournamentAtom = makeCurrentTournamentAtom();
 
-export const useCurrentTournament = (): CurrentTournamentController => {
-  const query = useLiveSchedule(tournamentMode === "live");
-  const snapshot = useMemo(
-    () =>
-      query.data === undefined ? null : buildLiveTournamentSnapshot(query.data),
-    [query.data],
-  );
-  const timestamps =
-    snapshot === null || snapshot.nextRefreshAt === null
-      ? null
-      : {
-          updatedAt: snapshot.updatedAt,
-          nextRefreshAt: snapshot.nextRefreshAt,
-        };
-  const freshnessNow = useLiveFreshnessClock(timestamps);
-  const retry = useCallback(() => {
-    void query.refetch();
-  }, [query.refetch]);
-  return {
-    state: currentTournamentStateFromLiveSchedule(
-      {
-        snapshot,
-        waiting: query.isPending || query.isFetching,
-        failed: query.isError,
-      },
-      freshnessNow,
-    ),
-    retry,
-  };
-};
-
-export const currentTournamentAtom: Atom.Atom<CurrentTournamentState> =
-  currentLiveScheduleEffectAtom.pipe(
-    Atom.transform((get, scheduleAtom) => {
-      const result = get(scheduleAtom);
-      const schedule = Option.getOrUndefined(AsyncResult.value(result));
-      const snapshot =
-        schedule === undefined ? null : buildLiveTournamentSnapshot(schedule);
-      const state = currentTournamentStateFromLiveSchedule(
-        {
-          snapshot,
-          waiting: result.waiting,
-          failed: AsyncResult.isFailure(result),
-        },
-        Date.now(),
-      );
-
-      if (
-        state.mode === "live" &&
-        state.status === "ready" &&
-        typeof document !== "undefined"
-      ) {
-        const refreshFreshness = (): void => {
-          get.refreshSelf();
-        };
-        const nextRefreshAt = state.snapshot.nextRefreshAt;
-        let timer: number | undefined;
-        if (state.freshness === "fresh" && nextRefreshAt !== null) {
-          timer = window.setTimeout(
-            refreshFreshness,
-            Math.max(
-              0,
-              nextLiveFreshnessCheckAt({
-                updatedAt: state.snapshot.updatedAt,
-                nextRefreshAt,
-              }) - Date.now(),
-            ),
-          );
-        }
-        document.addEventListener("visibilitychange", refreshFreshness);
-        get.addFinalizer(() => {
-          if (timer !== undefined) window.clearTimeout(timer);
-          document.removeEventListener("visibilitychange", refreshFreshness);
-        });
-      }
-
-      return state;
-    }),
-  );
-
-export type CurrentTournamentReadyState =
-  | LiveTournamentReadyState
-  | ArchivedTournamentReadyState;
-
-export interface CurrentTournamentReadyController {
-  readonly state: CurrentTournamentReadyState;
+export interface CurrentTournamentReadyState {
+  readonly snapshot: CurrentTournamentSnapshot;
+  readonly freshness: LiveSnapshotFreshness | "archived";
+  readonly refreshFailed: boolean;
   readonly retry: () => void;
 }
 
 const CurrentTournamentContext =
-  createContext<CurrentTournamentReadyController | null>(null);
+  createContext<CurrentTournamentReadyState | null>(null);
 
 export const CurrentTournamentProvider = ({
-  tournament,
+  state,
   children,
 }: {
-  readonly tournament: CurrentTournamentReadyController;
+  readonly state: CurrentTournamentReadyState;
   readonly children: ReactNode;
 }) =>
   createElement(CurrentTournamentContext.Provider, {
-    value: tournament,
+    value: state,
     children,
   });
 
-export const useOptionalCurrentTournament =
-  (): CurrentTournamentReadyController | null =>
-    useContext(CurrentTournamentContext);
-
 export const useCurrentTournamentReadyState =
   (): CurrentTournamentReadyState => {
-    const tournament = useOptionalCurrentTournament();
-    if (tournament === null)
+    const state = useContext(CurrentTournamentContext);
+    if (state === null)
       throw new Error(
         "Current tournament data must be used inside CurrentTournamentProvider",
       );
-    return tournament.state;
+    return state;
   };
 
 export const useCurrentTournamentSnapshot = (): CurrentTournamentSnapshot =>

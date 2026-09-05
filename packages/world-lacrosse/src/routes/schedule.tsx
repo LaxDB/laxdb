@@ -1,13 +1,9 @@
-import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
-import { TournamentData } from "../components/tournament-data-state";
+import { TournamentDataBoundary } from "../components/tournament-data-state";
 import { TournamentPage } from "../components/tournament-page";
-import {
-  type CurrentTournamentReadyController,
-  currentTournamentAtom,
-} from "../lib/current-tournament";
+import { useCurrentTournamentSnapshot } from "../lib/current-tournament";
 import { useFollowedTeams } from "../lib/followed-teams";
 import { gameAccessibleLabel } from "../lib/game-accessible-label";
 import {
@@ -26,14 +22,10 @@ export const Route = createFileRoute("/schedule")({
 });
 
 function ScheduleRoutePage() {
-  const tournament = {
-    state: useAtomValue(currentTournamentAtom),
-    retry: useAtomRefresh(currentTournamentAtom),
-  };
   return (
-    <TournamentData tournament={tournament}>
-      {(ready) => <ScheduleContent tournament={ready} />}
-    </TournamentData>
+    <TournamentDataBoundary>
+      <ScheduleContent />
+    </TournamentDataBoundary>
   );
 }
 
@@ -44,12 +36,8 @@ const gameHasFollowedTeam = (
   followedTeamNames.has(game.home.name) ||
   followedTeamNames.has(game.away.name);
 
-function ScheduleContent({
-  tournament,
-}: {
-  readonly tournament: CurrentTournamentReadyController;
-}) {
-  const snapshot = tournament.state.snapshot;
+function ScheduleContent() {
+  const snapshot = useCurrentTournamentSnapshot();
   const { followedTeamIds } = useFollowedTeams();
   const followedTeamNames = useMemo(
     () =>
@@ -147,12 +135,7 @@ function ScheduleContent({
   );
 
   return (
-    <TournamentPage
-      title="Schedule"
-      source="schedule"
-      tournament={tournament}
-      showTournamentStatus
-    >
+    <TournamentPage title="Schedule" source="schedule" showTournamentStatus>
       <div className="schedule-list">
         {currentAndUpcomingDates.map(renderDate)}
         {earlierDates.length > 0 && (
