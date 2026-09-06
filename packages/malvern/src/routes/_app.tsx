@@ -4,14 +4,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@laxdb/ui/components/ui/sidebar";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   createFileRoute,
   Outlet,
   redirect,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Effect } from "effect";
+import { AtomRegistry } from "effect/unstable/reactivity";
+import { useState } from "react";
 
 import {
   AppBreadcrumbs,
@@ -19,18 +20,16 @@ import {
 } from "../components/app-breadcrumbs";
 import { AppSidebar } from "../components/app-sidebar";
 import { authClient } from "../lib/auth-client";
-import { listTeams } from "../lib/club";
-import { ME_QUERY_KEY } from "../lib/session";
+import { teamsAtom } from "../lib/club";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
     const me = context.me;
     if (!me) return { teams: [], isAdmin: false, isCoach: false };
 
-    const teams = await context.queryClient.ensureQueryData({
-      queryKey: ["teams"],
-      queryFn: () => listTeams(),
-    });
+    const teams = await Effect.runPromise(
+      AtomRegistry.getResult(context.registry, teamsAtom),
+    );
     const isAdmin = me.memberRole === "owner" || me.memberRole === "admin";
     const isCoach =
       me.activeMemberId !== null &&
@@ -53,16 +52,10 @@ export const Route = createFileRoute("/_app")({
 function AppShell() {
   const ctx = Route.useRouteContext();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const me = ctx.me;
   const canUseTeamApp = ctx.isAdmin || ctx.isCoach;
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-
-  useEffect(() => {
-    queryClient.setQueryData(ME_QUERY_KEY, me);
-    queryClient.setQueryData(["teams"], ctx.teams);
-  }, [ctx.teams, me, queryClient]);
 
   const signOut = async () => {
     setIsSigningOut(true);
@@ -76,9 +69,8 @@ function AppShell() {
         return;
       }
 
-      queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-      await router.navigate({ to: "/login" });
-      await router.invalidate();
+      // A new document drops all user-scoped cached data.
+      await router.navigate({ to: "/login", reloadDocument: true });
     } catch (cause) {
       setSignOutError(
         cause instanceof Error ? cause.message : "Unable to sign out.",

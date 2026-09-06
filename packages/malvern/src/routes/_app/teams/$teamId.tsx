@@ -1,3 +1,7 @@
+import { RegistryContext } from "@effect/atom-react";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -8,19 +12,22 @@ import {
   CardTitle,
 } from "@laxdb/ui/components/ui/card";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useContext } from "react";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
-import { listRoster } from "../../../lib/club";
+import { rosterChanged, rosterAtom } from "../../../lib/club";
 import {
-  listFixtures,
-  listMatchImages,
-  listReports,
+  fixturesChanged,
+  reportsChanged,
+  fixturesAtom,
+  reportsAtom,
+  teamImagesAtom,
   syncFixtures,
   syncGamedayRoster,
   type FixtureView,
 } from "../../../lib/matches";
+import { statsChanged } from "../../../lib/stats";
 
 export const Route = createFileRoute("/_app/teams/$teamId")({
   beforeLoad: ({ context, params }) => {
@@ -59,41 +66,28 @@ const resultOf = (fixture: FixtureView) => {
 function TeamOverviewPage() {
   const { teamId } = Route.useParams();
   const ctx = Route.useRouteContext();
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const team = ctx.teams.find((entry) => entry.id === teamId);
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", teamId],
-    queryFn: () => listFixtures({ data: { teamId } }),
-  });
-  const reportsQuery = useQuery({
-    queryKey: ["reports", teamId],
-    queryFn: () => listReports({ data: { teamId } }),
-  });
-  const imagesQuery = useQuery({
-    queryKey: ["match-images", "team", teamId],
-    queryFn: () => listMatchImages({ data: { teamId } }),
-  });
-  const rosterQuery = useQuery({
-    queryKey: ["roster", teamId],
-    queryFn: () => listRoster({ data: { teamId } }),
-  });
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      const fixturesResult = await syncFixtures({ data: { teamId } });
-      const rosterResult = await syncGamedayRoster({ data: { teamId } });
-      return { fixturesResult, rosterResult };
-    },
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["fixtures"] }),
-        queryClient.invalidateQueries({ queryKey: ["reports"] }),
-        queryClient.invalidateQueries({ queryKey: ["team-standings", teamId] }),
-        queryClient.invalidateQueries({ queryKey: ["team-summary", teamId] }),
-        queryClient.invalidateQueries({
-          queryKey: ["team-player-stats", teamId],
-        }),
-        queryClient.invalidateQueries({ queryKey: ["roster", teamId] }),
-      ]),
+  const fixturesQuery = useAsyncQuery(fixturesAtom(teamId));
+  const reportsQuery = useAsyncQuery(reportsAtom(teamId));
+  const imagesQuery = useAsyncQuery(teamImagesAtom(teamId));
+  const rosterQuery = useAsyncQuery(rosterAtom(teamId));
+  const syncMutation = useAsyncAction(async () => {
+    const fixturesResult = await syncFixtures({ data: { teamId } });
+    const rosterResult = await syncGamedayRoster({ data: { teamId } });
+    const actionResult = { fixturesResult, rosterResult };
+
+    registry.update(fixturesChanged, (value) => value + 1);
+    registry.update(reportsChanged, (value) => value + 1);
+    registry.update(statsChanged, (value) => value + 1);
+    registry.update(rosterChanged, (value) => value + 1);
+    await Promise.all([
+      waitForQuery(registry, fixturesAtom(teamId)),
+      waitForQuery(registry, rosterAtom(teamId)),
+      waitForQuery(registry, reportsAtom(teamId)),
+    ]);
+
+    return actionResult;
   });
 
   if (team === undefined) {
@@ -138,10 +132,10 @@ function TeamOverviewPage() {
     rosterQuery.error ??
     syncMutation.error;
   const loading =
-    fixturesQuery.isPending ||
-    reportsQuery.isPending ||
-    imagesQuery.isPending ||
-    rosterQuery.isPending;
+    fixturesQuery.isLoading ||
+    reportsQuery.isLoading ||
+    imagesQuery.isLoading ||
+    rosterQuery.isLoading;
 
   return (
     <div className="flex flex-col gap-8">
@@ -155,7 +149,7 @@ function TeamOverviewPage() {
               variant="outline"
               disabled={syncMutation.isPending}
               onClick={() => {
-                syncMutation.mutate();
+                syncMutation.execute();
               }}
             >
               {syncMutation.isPending ? "Syncing GameDay…" : "Sync team"}

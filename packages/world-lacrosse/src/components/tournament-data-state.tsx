@@ -1,9 +1,12 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import type { ReactNode } from "react";
 
 import {
+  classifyLiveSnapshotFreshness,
+  currentTournamentAtom,
   CurrentTournamentProvider,
   useCurrentTournamentReadyState,
-  useCurrentTournamentState,
+  useLiveFreshnessClock,
 } from "../lib/current-tournament";
 
 import { PageMetadata } from "./page-metadata";
@@ -87,9 +90,9 @@ export const TournamentDataUnavailable = ({
 
 export const TournamentDataStatus = () => {
   const state = useCurrentTournamentReadyState();
-  if (state.mode === "archived") return null;
+  if (state.snapshot.source === "archive") return null;
   const delayed = state.freshness === "stale";
-  const refreshFailed = state.refresh === "failed";
+  const refreshFailed = state.refreshFailed;
   const partial = state.snapshot.integrity === "partial";
   if (!delayed && !refreshFailed && !partial) return null;
   const title = delayed
@@ -133,12 +136,39 @@ export const TournamentDataBoundary = ({
 }: {
   readonly children: ReactNode;
 }) => {
-  const state = useCurrentTournamentState();
-  if (state.status === "loading") return <TournamentDataLoading />;
-  if (state.status === "unavailable")
-    return <TournamentDataUnavailable retry={state.retry} />;
+  const {
+    data: snapshot,
+    error,
+    isLoading,
+    refresh,
+  } = useAsyncQuery(currentTournamentAtom);
+  const timestamps =
+    snapshot?.source === "live" && snapshot.nextRefreshAt !== null
+      ? {
+          updatedAt: snapshot.updatedAt,
+          nextRefreshAt: snapshot.nextRefreshAt,
+        }
+      : null;
+  const freshnessNow = useLiveFreshnessClock(timestamps);
+
+  if (isLoading) return <TournamentDataLoading />;
+  if (snapshot === undefined)
+    return <TournamentDataUnavailable retry={refresh} />;
+  if (snapshot.source === "live" && timestamps === null)
+    throw new Error("Live tournament snapshot is missing nextRefreshAt");
+
   return (
-    <CurrentTournamentProvider state={state}>
+    <CurrentTournamentProvider
+      state={{
+        snapshot,
+        freshness:
+          timestamps === null
+            ? "archived"
+            : classifyLiveSnapshotFreshness(timestamps, freshnessNow),
+        refreshFailed: error !== undefined,
+        retry: refresh,
+      }}
+    >
       {children}
     </CurrentTournamentProvider>
   );

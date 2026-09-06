@@ -1,3 +1,5 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -10,11 +12,10 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@laxdb/ui/components/ui/field";
 import { Input } from "@laxdb/ui/components/ui/input";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { authClient } from "../lib/auth-client";
+import { authClient, organizationsAtom } from "../lib/auth-client";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
@@ -28,41 +29,28 @@ function Onboarding() {
   // A session can land here without an active organization (e.g. sessions
   // created before the activate-on-login hook). If the user already belongs
   // to one, re-activate it instead of offering to create a duplicate.
-  const memberships = useQuery({
-    queryKey: ["my-organizations"],
-    queryFn: async () => {
-      const result = await authClient.organization.list();
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to load teams");
-      }
-      return result.data ?? [];
-    },
-  });
+  const memberships = useAsyncQuery(organizationsAtom);
 
-  const rejoin = useMutation({
-    mutationFn: async (organizationId: string) => {
-      const result = await authClient.organization.setActive({
-        organizationId,
-      });
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to rejoin team");
-      }
-    },
-    onSuccess: async () => {
-      await router.invalidate();
-      await router.navigate({ to: "/fines" });
-    },
+  const rejoin = useAsyncAction(async (organizationId: string) => {
+    const result = await authClient.organization.setActive({
+      organizationId,
+    });
+    if (result.error) {
+      throw new Error(result.error.message ?? "Failed to rejoin team");
+    }
+
+    await router.navigate({ to: "/fines", reloadDocument: true });
   });
 
   const existingOrg = memberships.data?.[0];
   const existingOrgId = existingOrg?.id;
-  const { mutate: rejoinMutate } = rejoin;
+  const { execute: rejoinMutate } = rejoin;
   useEffect(() => {
     if (existingOrgId !== undefined) rejoinMutate(existingOrgId);
   }, [existingOrgId, rejoinMutate]);
 
-  const createTeam = useMutation({
-    mutationFn: async (input: { name: string; slug: string }) => {
+  const createTeam = useAsyncAction(
+    async (input: { name: string; slug: string }) => {
       const org = await authClient.organization.create({
         name: input.name,
         slug: input.slug || slugify(input.name),
@@ -74,21 +62,19 @@ function Onboarding() {
       if (organizationId !== null) {
         await authClient.organization.setActive({ organizationId });
       }
+
+      await router.navigate({ to: "/fines", reloadDocument: true });
     },
-    onSuccess: async () => {
-      await router.invalidate();
-      await router.navigate({ to: "/fines" });
-    },
-  });
+  );
 
   const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName || createTeam.isPending) return;
-    createTeam.mutate({ name: trimmedName, slug: slug.trim() });
+    createTeam.execute({ name: trimmedName, slug: slug.trim() });
   };
 
-  if (memberships.isPending || existingOrg !== undefined) {
+  if (memberships.isLoading || existingOrg !== undefined) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -99,7 +85,7 @@ function Onboarding() {
                 ? "Checking memberships…"
                 : `Rejoining ${existingOrg.name}…`}
             </p>
-            {rejoin.isError && (
+            {rejoin.error !== undefined && (
               <Alert variant="destructive">
                 <AlertDescription>{rejoin.error.message}</AlertDescription>
               </Alert>
@@ -150,7 +136,7 @@ function Onboarding() {
               {createTeam.isPending && <Spinner />}
               {createTeam.isPending ? "Creating…" : "Create team"}
             </Button>
-            {createTeam.isError && (
+            {createTeam.error !== undefined && (
               <Alert variant="destructive">
                 <AlertDescription>{createTeam.error.message}</AlertDescription>
               </Alert>

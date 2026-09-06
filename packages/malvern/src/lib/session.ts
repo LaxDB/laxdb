@@ -1,14 +1,26 @@
 import { ApiClient } from "@laxdb/api/client";
-import type { Me } from "@laxdb/core/auth/auth.schema";
+import { Me } from "@laxdb/core/auth/auth.schema";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { AsyncResult } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
 
 export type MeCtx = Me | null;
 
-export const ME_QUERY_KEY = ["me"] as const;
-export const ME_STALE_TIME_MS = 1000 * 60 * 5;
+export const meAtom = makeAsyncQuery({
+  load: () => fromPromise(() => getMe()),
+  staleTime: "5 minutes",
+  serialization: {
+    key: "malvern/me",
+    schema: AsyncResult.Schema({
+      success: Schema.NullOr(Me),
+      error: Schema.Error(),
+    }),
+  },
+});
 
 export const getMe = createServerFn({ method: "GET" })
   .middleware([apiAuth])

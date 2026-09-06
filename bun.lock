@@ -103,11 +103,12 @@
     "packages/malvern": {
       "name": "@laxdb/malvern",
       "dependencies": {
+        "@effect/atom-react": "4.0.0-beta.103",
         "@laxdb/api": "workspace:*",
         "@laxdb/core": "workspace:*",
+        "@laxdb/reactivity": "workspace:*",
         "@laxdb/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
-        "@tanstack/react-query": "^5.95.2",
         "@tanstack/react-router": "^1.143.11",
         "@tanstack/react-start": "^1.143.12",
         "better-auth": "^1.6.5",
@@ -115,6 +116,7 @@
         "lucide-react": "^0.475.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "scheduler": "^0.27.0",
       },
       "devDependencies": {
         "@types/react": "^19.2.0",
@@ -198,6 +200,18 @@
         "vite": "^8.2.0",
       },
     },
+    "packages/reactivity": {
+      "name": "@laxdb/reactivity",
+      "dependencies": {
+        "@effect/atom-react": "4.0.0-beta.103",
+        "effect": "4.0.0-beta.103",
+        "react": "^19.2.0",
+        "scheduler": "^0.27.0",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.0",
+      },
+    },
     "packages/rules-wiki": {
       "name": "@laxdb/rules-wiki",
       "dependencies": {
@@ -255,12 +269,13 @@
       "name": "@laxdb/world-lacrosse",
       "dependencies": {
         "@cloudflare/vite-plugin": "^1.50.0",
+        "@effect/atom-react": "4.0.0-beta.103",
         "@effect/platform-bun": "4.0.0-beta.103",
+        "@laxdb/reactivity": "workspace:*",
         "@laxdb/ui": "workspace:*",
         "@tanstack/charts": "0.5.1",
         "@tanstack/charts-scales": "0.5.1",
         "@tanstack/react-charts": "0.5.1",
-        "@tanstack/react-query": "^5.101.4",
         "@tanstack/react-router": "^1.143.11",
         "@tanstack/react-start": "^1.143.12",
         "@tanstack/react-table": "^8.21.3",
@@ -270,6 +285,7 @@
         "effect": "4.0.0-beta.103",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "scheduler": "^0.27.0",
         "vite": "^8.2.0",
       },
       "devDependencies": {
@@ -534,6 +550,8 @@
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.6", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g=="],
 
+    "@effect/atom-react": ["@effect/atom-react@4.0.0-beta.103", "", { "peerDependencies": { "effect": "^4.0.0-beta.103", "react": "^19.2.4", "scheduler": "*" } }, "sha512-1HJ+Cyq4ssLnH2UZ8OVnhtMGAySabtzZo7imKC+vEfxOW3lvJYpGZeicxQX5Ii/7AdvlR+19p/6K2a5IPKYAow=="],
+
     "@effect/build-utils": ["@effect/build-utils@0.8.9", "", { "dependencies": { "micromatch": "^4.0.8", "pkg-entry-points": "^1.1.1" }, "bin": { "build-utils": "main.js" } }, "sha512-wzunjr8pyNjghLueo5ePQD7vaM3qeO2H/jF57hNYbQM/rxfipBWYKukoqWyp04qGZ+V86FyOHb8zD5+PMZvH2A=="],
 
     "@effect/platform-bun": ["@effect/platform-bun@4.0.0-beta.103", "", { "dependencies": { "@effect/platform-node-shared": "^4.0.0-beta.103" }, "peerDependencies": { "effect": "^4.0.0-beta.103" } }, "sha512-/ay1/lhE9FUKEiDRQs56463eJ9u9ivtUtOCi2eeqI8Aooau7PupKNtV5zKjoRBCLInZMAX7JezT46NW5AdACBQ=="],
@@ -767,6 +785,8 @@
     "@laxdb/pipeline": ["@laxdb/pipeline@workspace:packages/pipeline"],
 
     "@laxdb/practice-planner": ["@laxdb/practice-planner@workspace:packages/practice-planner"],
+
+    "@laxdb/reactivity": ["@laxdb/reactivity@workspace:packages/reactivity"],
 
     "@laxdb/rules-wiki": ["@laxdb/rules-wiki@workspace:packages/rules-wiki"],
 

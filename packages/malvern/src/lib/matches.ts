@@ -10,13 +10,16 @@ import type {
   SyncGamedayAssociationSeasonResult,
   SyncGamedayRosterResult,
 } from "@laxdb/core/match/gameday.schema";
-import type {
+import {
   Fixture,
-  MatchImage,
-  MatchReport,
+  type MatchImage,
+  type MatchReport,
 } from "@laxdb/core/match/match.schema";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
 
@@ -44,6 +47,49 @@ export const listFixtures = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const fixturesChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const fixturesAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: fixturesChanged,
+    load: () => fromPromise(() => listFixtures({ data: { teamId } })),
+  }),
+);
+export const fixtureAtom = Atom.family((id: string) =>
+  makeAsyncQuery({
+    refreshSignal: fixturesChanged,
+    load: () => fromPromise(() => getFixture({ data: { id } })),
+    staleTime: "1 minute",
+    serialization: {
+      key: `malvern/fixture/${id}`,
+      schema: AsyncResult.Schema({ success: Fixture, error: Schema.Error() }),
+    },
+  }),
+);
+
+const loadForTeams = async <A extends { readonly id: string }>(
+  teamIds: readonly string[] | null,
+  load: (teamId?: string) => Promise<readonly A[]>,
+): Promise<readonly A[]> => {
+  const rows =
+    teamIds === null
+      ? await load()
+      : (await Promise.all(teamIds.map(load))).flat();
+  return [...new Map(rows.map((row) => [row.id, row])).values()];
+};
+
+export const selectedFixturesAtom = Atom.family(
+  (teamIds: readonly string[] | null) =>
+    makeAsyncQuery({
+      refreshSignal: fixturesChanged,
+      load: () =>
+        fromPromise(() =>
+          loadForTeams(teamIds, (teamId) =>
+            listFixtures({ data: teamId === undefined ? {} : { teamId } }),
+          ),
+        ),
+    }),
+);
 
 export const getFixture = createServerFn({ method: "GET" })
   .middleware([apiAuth])
@@ -157,6 +203,32 @@ export const listGamedaySeasons = createServerFn({ method: "GET" })
     ),
   );
 
+export const seasonsAtom = makeAsyncQuery({
+  load: () => fromPromise(() => listGamedaySeasons()),
+  staleTime: "30 minutes",
+});
+export const clubsAtom = Atom.family((seasonId: string) =>
+  makeAsyncQuery({
+    load: () => fromPromise(() => listGamedayClubs({ data: { seasonId } })),
+    staleTime: "30 minutes",
+  }),
+);
+export const competitionsAtom = Atom.family(
+  (input: {
+    readonly seasonId: string;
+    readonly clubNames: readonly string[];
+  }) =>
+    makeAsyncQuery({
+      load: () =>
+        fromPromise(() =>
+          listCompetitionsForClubs({
+            data: { seasonId: input.seasonId, clubNames: [...input.clubNames] },
+          }),
+        ),
+      staleTime: "10 minutes",
+    }),
+);
+
 export const listGamedayClubs = createServerFn({ method: "GET" })
   .middleware([apiAuth])
   .inputValidator((input: { seasonId?: string }) => input)
@@ -198,6 +270,26 @@ export const listReports = createServerFn({ method: "GET" })
     ),
   );
 
+export const reportsChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const reportsAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: reportsChanged,
+    load: () => fromPromise(() => listReports({ data: { teamId } })),
+  }),
+);
+export const selectedReportsAtom = Atom.family(
+  (teamIds: readonly string[] | null) =>
+    makeAsyncQuery({
+      refreshSignal: reportsChanged,
+      load: () =>
+        fromPromise(() =>
+          loadForTeams(teamIds, (teamId) =>
+            listReports({ data: teamId === undefined ? {} : { teamId } }),
+          ),
+        ),
+    }),
+);
+
 export const submitReport = createServerFn({ method: "POST" })
   .middleware([apiAuth])
   .inputValidator(
@@ -231,6 +323,32 @@ export const listMatchImages = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const imagesChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const fixtureImagesAtom = Atom.family((fixtureId: string) =>
+  makeAsyncQuery({
+    refreshSignal: imagesChanged,
+    load: () => fromPromise(() => listMatchImages({ data: { fixtureId } })),
+  }),
+);
+export const teamImagesAtom = Atom.family((teamId: string) =>
+  makeAsyncQuery({
+    refreshSignal: imagesChanged,
+    load: () => fromPromise(() => listMatchImages({ data: { teamId } })),
+  }),
+);
+export const selectedImagesAtom = Atom.family(
+  (teamIds: readonly string[] | null) =>
+    makeAsyncQuery({
+      refreshSignal: imagesChanged,
+      load: () =>
+        fromPromise(() =>
+          loadForTeams(teamIds, (teamId) =>
+            listMatchImages({ data: teamId === undefined ? {} : { teamId } }),
+          ),
+        ),
+    }),
+);
 
 export const uploadMatchImage = createServerFn({ method: "POST" })
   .middleware([apiAuth])

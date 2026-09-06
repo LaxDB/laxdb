@@ -1,3 +1,7 @@
+import { RegistryContext } from "@effect/atom-react";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
@@ -12,18 +16,19 @@ import {
   TableRow,
 } from "@laxdb/ui/components/ui/table";
 import { cn } from "@laxdb/ui/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
 import {
+  rosterChanged,
+  rosterAtom,
   addRosterPlayer,
-  listRoster,
   updateRosterPlayer,
   type RosterPlayerView,
 } from "../../../lib/club";
 import { syncGamedayRoster } from "../../../lib/matches";
+import { statsChanged } from "../../../lib/stats";
 
 export const Route = createFileRoute("/_app/teams/$teamId_/roster")({
   beforeLoad: ({ context, params }) => {
@@ -45,18 +50,20 @@ function RosterRow(props: {
   const [jersey, setJersey] = useState(
     props.player.jerseyNumber === null ? "" : String(props.player.jerseyNumber),
   );
-  const mutation = useMutation({
-    mutationFn: (input: { readonly active?: boolean }) =>
-      updateRosterPlayer({
+  const mutation = useAsyncAction(
+    async (input: { readonly active?: boolean }) => {
+      const result = await updateRosterPlayer({
         data: {
           id: props.player.id,
           name: name.trim(),
           jerseyNumber: jersey === "" ? null : Number(jersey),
           ...(input.active === undefined ? {} : { active: input.active }),
         },
-      }),
-    onSuccess: props.onSaved,
-  });
+      });
+      await props.onSaved();
+      return result;
+    },
+  );
 
   return (
     <TableRow>
@@ -89,7 +96,7 @@ function RosterRow(props: {
             variant="outline"
             disabled={mutation.isPending || name.trim() === ""}
             onClick={() => {
-              mutation.mutate({});
+              mutation.execute({});
             }}
           >
             Save
@@ -98,7 +105,7 @@ function RosterRow(props: {
             variant="outline"
             disabled={mutation.isPending}
             onClick={() => {
-              mutation.mutate({ active: !props.player.active });
+              mutation.execute({ active: !props.player.active });
             }}
           >
             {props.player.active ? "Deactivate" : "Reactivate"}
@@ -113,40 +120,38 @@ function TeamRosterPage() {
   const { teamId } = Route.useParams();
   const context = Route.useRouteContext();
   const team = context.teams.find((entry) => entry.id === teamId);
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const [name, setName] = useState("");
   const [jersey, setJersey] = useState("");
 
-  const rosterQuery = useQuery({
-    queryKey: ["roster", teamId],
-    queryFn: () => listRoster({ data: { teamId } }),
-  });
-  const invalidateRoster = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["roster", teamId] }),
-      queryClient.invalidateQueries({
-        queryKey: ["team-player-stats", teamId],
-      }),
-    ]);
-  const addPlayer = useMutation({
-    mutationFn: (input: { name: string; jerseyNumber: number | null }) =>
-      addRosterPlayer({ data: { teamId, ...input } }),
-    onSuccess: () => {
+  const rosterQuery = useAsyncQuery(rosterAtom(teamId));
+  const invalidateRoster = () => {
+    registry.update(rosterChanged, (value) => value + 1);
+    registry.update(statsChanged, (value) => value + 1);
+    return waitForQuery(registry, rosterAtom(teamId));
+  };
+  const addPlayer = useAsyncAction(
+    async (input: { name: string; jerseyNumber: number | null }) => {
+      const result = await addRosterPlayer({ data: { teamId, ...input } });
+
       setName("");
       setJersey("");
-      return invalidateRoster();
+      await invalidateRoster();
+
+      return result;
     },
-  });
-  const syncRoster = useMutation({
-    mutationFn: () => syncGamedayRoster({ data: { teamId } }),
-    onSuccess: invalidateRoster,
+  );
+  const syncRoster = useAsyncAction(async () => {
+    const result = await syncGamedayRoster({ data: { teamId } });
+    await invalidateRoster();
+    return result;
   });
   const error = rosterQuery.error ?? addPlayer.error ?? syncRoster.error;
 
   const add = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (name.trim() === "") return;
-    addPlayer.mutate({
+    addPlayer.execute({
       name: name.trim(),
       jerseyNumber: jersey === "" ? null : Number(jersey),
     });
@@ -165,7 +170,7 @@ function TeamRosterPage() {
               variant="outline"
               disabled={syncRoster.isPending}
               onClick={() => {
-                syncRoster.mutate();
+                syncRoster.execute();
               }}
             >
               {syncRoster.isPending ? "Syncing…" : "Sync GameDay roster"}
@@ -213,7 +218,7 @@ function TeamRosterPage() {
             </Button>
           </form>
 
-          {rosterQuery.isPending ? (
+          {rosterQuery.isLoading ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <Spinner /> Loading roster…
             </p>

@@ -5,8 +5,11 @@ import type {
   FineMember,
   FineTemplate,
 } from "@laxdb/core/fine/fine.schema";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
+import { Atom } from "effect/unstable/reactivity";
 
 import { apiAuth, runApi } from "./api-client";
 
@@ -26,6 +29,12 @@ export const listMembers = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const membersChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const membersAtom = makeAsyncQuery({
+  refreshSignal: membersChanged,
+  load: () => fromPromise(() => listMembers()),
+});
 
 export const listTemplates = createServerFn({ method: "GET" })
   .middleware([apiAuth])
@@ -76,6 +85,12 @@ export const listFines = createServerFn({ method: "GET" })
       }),
     ),
   );
+
+export const finesChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const finesAtom = makeAsyncQuery({
+  refreshSignal: finesChanged,
+  load: () => fromPromise(() => listFines()),
+});
 
 export const listMemberFines = createServerFn({ method: "GET" })
   .middleware([apiAuth])
@@ -150,6 +165,12 @@ export const adjustFine = createServerFn({ method: "POST" })
       }),
     ),
   );
+
+export const auditChanged = Atom.make(0).pipe(Atom.keepAlive);
+export const auditAtom = makeAsyncQuery({
+  refreshSignal: auditChanged,
+  load: () => fromPromise(() => listAudit({ data: { limit: 200 } })),
+});
 
 export const listAudit = createServerFn({ method: "GET" })
   .middleware([apiAuth])

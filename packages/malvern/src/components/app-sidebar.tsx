@@ -1,4 +1,5 @@
 import type { Me } from "@laxdb/core/auth/auth.schema";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Avatar, AvatarFallback } from "@laxdb/ui/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,7 +24,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@laxdb/ui/components/ui/sidebar";
-import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
   CalendarDays,
@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 import type { TeamView } from "../lib/club";
-import { getFixture } from "../lib/matches";
+import { fixtureAtom } from "../lib/matches";
 
 const allTeamsNavigation = [
   { to: "/teams", label: "Teams", icon: Shield },
@@ -428,14 +428,9 @@ export function AppSidebar({
   const displayName = displayNameFor(me);
   const routeTeamId = teamIdFromPath(pathname);
   const fixtureId = fixtureIdFromPath(pathname);
-  const fixtureQuery = useQuery({
-    queryKey: ["fixture", fixtureId],
-    queryFn: () =>
-      fixtureId === null
-        ? Promise.reject(new Error("Fixture ID is required"))
-        : getFixture({ data: { id: fixtureId } }),
-    enabled: fixtureId !== null,
-  });
+  const fixtureQuery = useAsyncQuery(
+    fixtureId === null ? undefined : fixtureAtom(fixtureId ?? ""),
+  );
   const fixtureTeamId = fixtureQuery.data?.teamId ?? null;
   const activeTeamId = routeTeamId ?? fixtureTeamId;
   const availableTeams = isAdmin

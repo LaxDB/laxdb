@@ -1,23 +1,23 @@
 import { Schema } from "effect";
+import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import {
   createContext,
   createElement,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
 
 import type { ArchivedTournamentData } from "./archived-tournament-data";
+import type { FetchError } from "./error";
 import { gameDetailMatchesSchedule } from "./game-evidence";
 import {
   isCompletedGame,
   isFinalGameStatus,
   isUpcomingGameStatus,
 } from "./game-status";
-import { useLiveSchedule } from "./live-schedule";
+import { liveScheduleAtom } from "./live-schedule";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { modeTournamentData } from "./mode-tournament-data";
 import { GameDetails, GameId, PlayerDetails, ScheduledGame } from "./schema";
@@ -241,7 +241,7 @@ export const classifyLiveSnapshotFreshness = (
 ): LiveSnapshotFreshness =>
   now >= nextLiveFreshnessCheckAt(schedule) ? "stale" : "fresh";
 
-const useLiveFreshnessClock = (
+export const useLiveFreshnessClock = (
   schedule: LiveSnapshotTimestamps | null,
 ): number => {
   const [now, setNow] = useState(Date.now);
@@ -267,105 +267,32 @@ const useLiveFreshnessClock = (
   return now;
 };
 
-export interface TournamentLoadingState {
-  readonly mode: "live";
-  readonly status: "loading";
-}
-
-export interface TournamentUnavailableState {
-  readonly mode: "live";
-  readonly status: "unavailable";
-  readonly retry: () => void;
-}
-
-export interface LiveTournamentReadyState {
-  readonly mode: "live";
-  readonly status: "ready";
-  readonly snapshot: CurrentTournamentSnapshot;
-  readonly freshness: LiveSnapshotFreshness;
-  readonly refresh: "idle" | "refreshing" | "failed";
-  readonly retry: () => void;
-}
-
-export interface ArchivedTournamentReadyState {
-  readonly mode: "archived";
-  readonly status: "ready";
-  readonly snapshot: CurrentTournamentSnapshot;
-  readonly freshness: "archived";
-  readonly refresh: "disabled";
-}
-
-export type CurrentTournamentState =
-  | TournamentLoadingState
-  | TournamentUnavailableState
-  | LiveTournamentReadyState
-  | ArchivedTournamentReadyState;
-
-export const useCurrentTournamentState = (): CurrentTournamentState => {
-  const liveEnabled = tournamentMode === "live";
-  const archiveEnabled = tournamentMode === "archived";
-  const liveQuery = useLiveSchedule(liveEnabled);
-  const liveRefetch = liveQuery.refetch;
-  const retryLive = useCallback(() => {
-    void liveRefetch();
-  }, [liveRefetch]);
-  const liveSnapshot = useMemo(
-    () =>
-      liveQuery.data === undefined
-        ? null
-        : buildLiveTournamentSnapshot(liveQuery.data),
-    [liveQuery.data],
-  );
-  const liveTimestamps =
-    liveSnapshot === null || liveSnapshot.nextRefreshAt === null
-      ? null
-      : {
-          updatedAt: liveSnapshot.updatedAt,
-          nextRefreshAt: liveSnapshot.nextRefreshAt,
-        };
-  const freshnessNow = useLiveFreshnessClock(liveTimestamps);
-
-  if (archiveEnabled) {
+const makeCurrentTournamentAtom = (): Atom.Atom<
+  AsyncResult.AsyncResult<CurrentTournamentSnapshot, FetchError>
+> => {
+  if (tournamentMode === "archived") {
     if (archivedTournamentSnapshot === null)
       throw new Error("Archived mode requires bundled tournament data");
-    return {
-      mode: "archived",
-      status: "ready",
-      snapshot: archivedTournamentSnapshot,
-      freshness: "archived",
-      refresh: "disabled",
-    };
+    return Atom.make(
+      AsyncResult.success<CurrentTournamentSnapshot, FetchError>(
+        archivedTournamentSnapshot,
+      ),
+    );
   }
-  if (liveSnapshot === null) {
-    return liveQuery.isPending || liveQuery.isFetching
-      ? { mode: "live", status: "loading" }
-      : { mode: "live", status: "unavailable", retry: retryLive };
-  }
-  if (liveSnapshot.nextRefreshAt === null)
-    throw new Error("Live tournament snapshot is missing nextRefreshAt");
-  return {
-    mode: "live",
-    status: "ready",
-    snapshot: liveSnapshot,
-    freshness: classifyLiveSnapshotFreshness(
-      {
-        updatedAt: liveSnapshot.updatedAt,
-        nextRefreshAt: liveSnapshot.nextRefreshAt,
-      },
-      freshnessNow,
-    ),
-    refresh: liveQuery.isError
-      ? "failed"
-      : liveQuery.isFetching
-        ? "refreshing"
-        : "idle",
-    retry: retryLive,
-  };
+  return liveScheduleAtom.pipe(
+    Atom.mapResult(buildLiveTournamentSnapshot),
+    Atom.withServerValueInitial,
+  );
 };
 
-export type CurrentTournamentReadyState =
-  | LiveTournamentReadyState
-  | ArchivedTournamentReadyState;
+export const currentTournamentAtom = makeCurrentTournamentAtom();
+
+export interface CurrentTournamentReadyState {
+  readonly snapshot: CurrentTournamentSnapshot;
+  readonly freshness: LiveSnapshotFreshness | "archived";
+  readonly refreshFailed: boolean;
+  readonly retry: () => void;
+}
 
 const CurrentTournamentContext =
   createContext<CurrentTournamentReadyState | null>(null);
@@ -377,7 +304,10 @@ export const CurrentTournamentProvider = ({
   readonly state: CurrentTournamentReadyState;
   readonly children: ReactNode;
 }) =>
-  createElement(CurrentTournamentContext.Provider, { value: state }, children);
+  createElement(CurrentTournamentContext.Provider, {
+    value: state,
+    children,
+  });
 
 export const useCurrentTournamentReadyState =
   (): CurrentTournamentReadyState => {

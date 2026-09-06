@@ -1,3 +1,4 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,11 +7,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@laxdb/ui/components/ui/breadcrumb";
-import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { getFixture } from "../lib/matches";
+import { fixtureAtom } from "../lib/matches";
 
 type TeamSummary = {
   readonly id: string;
@@ -73,14 +73,9 @@ export function AppBreadcrumbs({ teams }: TeamNavigationProps) {
   const team = teams.find((entry) => entry.id === teamId);
   const teamName = team?.name ?? "Team";
   const isFixture = fixtureId !== null;
-  const fixtureQuery = useQuery({
-    queryKey: ["fixture", fixtureId],
-    queryFn: () =>
-      fixtureId === null
-        ? Promise.reject(new Error("Fixture ID is required"))
-        : getFixture({ data: { id: fixtureId } }),
-    enabled: isFixture,
-  });
+  const fixtureQuery = useAsyncQuery(
+    isFixture ? fixtureAtom(fixtureId ?? "") : undefined,
+  );
   const fixture = fixtureQuery.data;
   const fixtureTeam = teams.find((entry) => entry.id === fixture?.teamId);
   const fixtureLabel = fixture

@@ -1,3 +1,4 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import {
@@ -22,14 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { listTeams } from "../../lib/club";
+import { teamsAtom } from "../../lib/club";
 import {
-  listFixtures,
-  listReports,
+  selectedFixturesAtom,
+  selectedReportsAtom,
   type FixtureView,
   type MatchReportView,
 } from "../../lib/matches";
@@ -66,25 +66,13 @@ const resultOf = (fixture: FixtureView) => {
 const reportLinkClass =
   "underline underline-offset-2 hover:text-muted-foreground";
 
-const uniqueById = <T extends { readonly id: string }>(items: readonly T[]) => {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-};
-
 function Fixtures() {
   const ctx = Route.useRouteContext();
   const [selectedFilter, setSelectedFilter] = useState(
     ctx.isAdmin ? ALL_TEAMS_FILTER : MY_TEAMS_FILTER,
   );
 
-  const teamsQuery = useQuery({
-    queryKey: ["teams"],
-    queryFn: () => listTeams(),
-  });
+  const teamsQuery = useAsyncQuery(teamsAtom);
   const teams = teamsQuery.data ?? [];
   const activeMemberId = ctx.me?.activeMemberId ?? null;
   const myTeams = useMemo(
@@ -106,34 +94,22 @@ function Fixtures() {
     return [effectiveFilter];
   }, [effectiveFilter, myTeams, teams]);
 
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS_FILTER)
-        return listFixtures({ data: {} });
-      const fixtures = await Promise.all(
-        selectedTeamIds.map((teamId) => listFixtures({ data: { teamId } })),
-      );
-      return uniqueById(fixtures.flat());
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS_FILTER ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
-  const reportsQuery = useQuery({
-    queryKey: ["reports", effectiveFilter, selectedTeamIds],
-    queryFn: async () => {
-      if (effectiveFilter === ALL_TEAMS_FILTER)
-        return listReports({ data: {} });
-      const reports = await Promise.all(
-        selectedTeamIds.map((teamId) => listReports({ data: { teamId } })),
-      );
-      return uniqueById(reports.flat());
-    },
-    enabled:
-      effectiveFilter === ALL_TEAMS_FILTER ||
-      (teamsQuery.isSuccess && selectedTeamIds.length > 0),
-  });
+  const fixturesQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS_FILTER ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedFixturesAtom(
+          effectiveFilter === ALL_TEAMS_FILTER ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
+  const reportsQuery = useAsyncQuery(
+    effectiveFilter === ALL_TEAMS_FILTER ||
+      (teamsQuery.data !== undefined && selectedTeamIds.length > 0)
+      ? selectedReportsAtom(
+          effectiveFilter === ALL_TEAMS_FILTER ? null : selectedTeamIds,
+        )
+      : undefined,
+  );
 
   const err = teamsQuery.error ?? fixturesQuery.error ?? reportsQuery.error;
 
@@ -171,8 +147,8 @@ function Fixtures() {
   }, [fixtures, now]);
 
   const fixturesLoading =
-    teamsQuery.isPending ||
-    (selectedTeamIds.length > 0 && fixturesQuery.isPending);
+    teamsQuery.isLoading ||
+    (selectedTeamIds.length > 0 && fixturesQuery.isLoading);
   const showTeamColumn =
     effectiveFilter === ALL_TEAMS_FILTER || selectedTeamIds.length > 1;
 
@@ -233,7 +209,7 @@ function Fixtures() {
         </Alert>
       )}
 
-      {teamsQuery.isSuccess && teams.length === 0 && (
+      {teamsQuery.data !== undefined && teams.length === 0 && (
         <Card size="sm">
           <CardContent className="text-muted-foreground">
             No teams set up yet. An admin needs to create your team (and its
@@ -242,7 +218,7 @@ function Fixtures() {
         </Card>
       )}
 
-      {teamsQuery.isSuccess &&
+      {teamsQuery.data !== undefined &&
         effectiveFilter === MY_TEAMS_FILTER &&
         myTeams.length === 0 && (
           <Card size="sm">

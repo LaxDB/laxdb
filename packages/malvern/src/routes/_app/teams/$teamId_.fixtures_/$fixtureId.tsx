@@ -1,3 +1,7 @@
+import { RegistryContext } from "@effect/atom-react";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
@@ -19,25 +23,28 @@ import {
 } from "@laxdb/ui/components/ui/select";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
 import { Textarea } from "@laxdb/ui/components/ui/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createFileRoute,
   Link,
   redirect,
   useRouter,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Effect } from "effect";
+import { AtomRegistry } from "effect/unstable/reactivity";
+import { useContext, useEffect, useState } from "react";
 
 import {
-  listRoster,
+  rosterAtom,
   type RosterPlayerView,
   type TeamView,
 } from "../../../../lib/club";
 import {
+  imagesChanged,
+  reportsChanged,
+  fixtureAtom,
+  fixtureImagesAtom,
+  reportsAtom,
   deleteMatchImage,
-  getFixture,
-  listMatchImages,
-  listReports,
   submitReport,
   uploadMatchImage,
   type FixtureView,
@@ -45,19 +52,18 @@ import {
   type MatchReportView,
 } from "../../../../lib/matches";
 import {
-  getFixtureStats,
+  statsChanged,
+  fixtureStatsAtom,
   upsertFixtureStats,
-  type FixtureStatSheetView,
 } from "../../../../lib/stats";
 
 export const Route = createFileRoute(
   "/_app/teams/$teamId_/fixtures_/$fixtureId",
 )({
   beforeLoad: async ({ context, params }) => {
-    const fixture = await context.queryClient.ensureQueryData({
-      queryKey: ["fixture", params.fixtureId],
-      queryFn: () => getFixture({ data: { id: params.fixtureId } }),
-    });
+    const fixture = await Effect.runPromise(
+      AtomRegistry.getResult(context.registry, fixtureAtom(params.fixtureId)),
+    );
     if (fixture.teamId !== params.teamId) {
       throw redirect({
         href: `/teams/${fixture.teamId}/fixtures/${fixture.id}`,
@@ -168,10 +174,7 @@ function FixtureDetail() {
   const routeContext = Route.useRouteContext();
   const { fixtureId } = Route.useParams();
 
-  const fixtureQuery = useQuery({
-    queryKey: ["fixture", fixtureId],
-    queryFn: () => getFixture({ data: { id: fixtureId } }),
-  });
+  const fixtureQuery = useAsyncQuery(fixtureAtom(fixtureId ?? ""));
   const fixture = fixtureQuery.data;
   const activeMemberId = routeContext.me?.activeMemberId ?? null;
   const allowedTeamIds = routeContext.isAdmin
@@ -196,21 +199,17 @@ function FixtureDetail() {
       fixture?.scheduledAt !== undefined &&
       new Date(fixture.scheduledAt).getTime() <= Date.now());
 
-  const rosterQuery = useQuery({
-    queryKey: ["roster", teamId],
-    queryFn: () => listRoster({ data: { teamId } }),
-    enabled: teamId !== "" && canReport && played,
-  });
-  const imagesQuery = useQuery({
-    queryKey: ["match-images", fixtureId],
-    queryFn: () => listMatchImages({ data: { fixtureId } }),
-    enabled: fixture !== undefined && canReport && completed,
-  });
-  const reportsQuery = useQuery({
-    queryKey: ["reports", teamId],
-    queryFn: () => listReports({ data: { teamId } }),
-    enabled: teamId !== "" && canReport && completed,
-  });
+  const rosterQuery = useAsyncQuery(
+    teamId !== "" && canReport && played ? rosterAtom(teamId) : undefined,
+  );
+  const imagesQuery = useAsyncQuery(
+    fixture !== undefined && canReport && completed
+      ? fixtureImagesAtom(fixtureId)
+      : undefined,
+  );
+  const reportsQuery = useAsyncQuery(
+    teamId !== "" && canReport && completed ? reportsAtom(teamId) : undefined,
+  );
 
   const err =
     fixtureQuery.error ??
@@ -341,11 +340,8 @@ function FixtureStatsForm(props: {
   readonly roster: readonly RosterPlayerView[];
 }) {
   const { fixture, roster } = props;
-  const queryClient = useQueryClient();
-  const statsQuery = useQuery({
-    queryKey: ["fixture-stats", fixture.id],
-    queryFn: () => getFixtureStats({ data: { fixtureId: fixture.id } }),
-  });
+  const registry = useContext(RegistryContext);
+  const statsQuery = useAsyncQuery(fixtureStatsAtom(fixture.id));
   const [goalsForOverride, setGoalsForOverride] = useState("");
   const [goalsAgainstOverride, setGoalsAgainstOverride] = useState("");
   const [assistedGoals, setAssistedGoals] = useState("0");
@@ -401,45 +397,37 @@ function FixtureStatsForm(props: {
     });
   };
 
-  const saveMutation = useMutation({
-    mutationFn: () =>
-      upsertFixtureStats({
-        data: {
-          fixtureId: fixture.id,
-          goalsForOverride: optionalCount(goalsForOverride),
-          goalsAgainstOverride: optionalCount(goalsAgainstOverride),
-          assistedGoals: Number(assistedGoals || "0"),
-          shots: optionalCount(shots),
-          saves: optionalCount(saves),
-          players: roster.flatMap((player) => {
-            const draft = players[player.id];
-            return draft?.recorded === true
-              ? [
-                  {
-                    rosterPlayerId: player.id,
-                    goals: Number(draft.goals || "0"),
-                    assists: Number(draft.assists || "0"),
-                    shots: optionalCount(draft.shots),
-                    saves: optionalCount(draft.saves),
-                  },
-                ]
-              : [];
-          }),
-        },
-      }),
-    onSuccess: (sheet: FixtureStatSheetView) =>
-      Promise.all([
-        queryClient.setQueryData(["fixture-stats", fixture.id], sheet),
-        queryClient.invalidateQueries({
-          queryKey: ["team-summary", fixture.teamId],
+  const saveMutation = useAsyncAction(async () => {
+    const result = await upsertFixtureStats({
+      data: {
+        fixtureId: fixture.id,
+        goalsForOverride: optionalCount(goalsForOverride),
+        goalsAgainstOverride: optionalCount(goalsAgainstOverride),
+        assistedGoals: Number(assistedGoals || "0"),
+        shots: optionalCount(shots),
+        saves: optionalCount(saves),
+        players: roster.flatMap((player) => {
+          const draft = players[player.id];
+          return draft?.recorded === true
+            ? [
+                {
+                  rosterPlayerId: player.id,
+                  goals: Number(draft.goals || "0"),
+                  assists: Number(draft.assists || "0"),
+                  shots: optionalCount(draft.shots),
+                  saves: optionalCount(draft.saves),
+                },
+              ]
+            : [];
         }),
-        queryClient.invalidateQueries({
-          queryKey: ["team-player-stats", fixture.teamId],
-        }),
-      ]),
+      },
+    });
+    registry.update(statsChanged, (value) => value + 1);
+    await waitForQuery(registry, fixtureStatsAtom(fixture.id));
+    return result;
   });
 
-  if (statsQuery.isPending) {
+  if (statsQuery.isLoading) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Spinner /> Loading game statistics…
@@ -555,7 +543,7 @@ function FixtureStatsForm(props: {
           type="button"
           disabled={saveMutation.isPending}
           onClick={() => {
-            saveMutation.mutate();
+            saveMutation.execute();
           }}
         >
           {saveMutation.isPending ? "Saving statistics…" : "Save statistics"}
@@ -636,11 +624,11 @@ function MatchImagesCard(props: {
   readonly images: readonly MatchImageView[];
 }) {
   const { fixtureId, images } = props;
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  const uploadMutation = useMutation({
-    mutationFn: async (files: readonly File[]) => {
+  const uploadMutation = useAsyncAction(async (files: readonly File[]) => {
+    try {
       for (const file of files) {
         const contentType = acceptedImageType(file.type);
         if (contentType === null) {
@@ -659,15 +647,19 @@ function MatchImagesCard(props: {
           },
         });
       }
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["match-images", fixtureId] }),
+    } finally {
+      registry.update(imagesChanged, (value) => value + 1);
+      await waitForQuery(registry, fixtureImagesAtom(fixtureId));
+    }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteMatchImage({ data: { id } }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["match-images", fixtureId] }),
+  const deleteMutation = useAsyncAction(async (id: string) => {
+    const result = await deleteMatchImage({ data: { id } });
+
+    registry.update(imagesChanged, (value) => value + 1);
+    await waitForQuery(registry, fixtureImagesAtom(fixtureId));
+
+    return result;
   });
 
   const uploadError =
@@ -701,7 +693,7 @@ function MatchImagesCard(props: {
                 event.currentTarget.value = "";
                 setClientError(null);
                 if (files.length === 0) return;
-                uploadMutation.mutate(files);
+                uploadMutation.execute(files);
               }}
             />
           </Label>
@@ -750,7 +742,7 @@ function MatchImagesCard(props: {
                     size="sm"
                     disabled={deleteMutation.isPending}
                     onClick={() => {
-                      deleteMutation.mutate(image.id);
+                      deleteMutation.execute(image.id);
                     }}
                   >
                     Remove
@@ -773,25 +765,28 @@ function ReportFormInner(props: {
 }) {
   const { fixture, roster, images, existing } = props;
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
 
   const [top1, setTop1] = useState(existing?.topPlayer1Id ?? "");
   const [top2, setTop2] = useState(existing?.topPlayer2Id ?? "");
   const [top3, setTop3] = useState(existing?.topPlayer3Id ?? "");
   const [blurb, setBlurb] = useState(existing?.blurb ?? "");
 
-  const submitMutation = useMutation({
-    mutationFn: () =>
-      submitReport({
-        data: {
-          fixtureId: fixture.id,
-          topPlayer1Id: top1,
-          topPlayer2Id: top2 || null,
-          topPlayer3Id: top3 || null,
-          blurb: blurb.trim() || null,
-        },
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reports"] }),
+  const submitMutation = useAsyncAction(async () => {
+    const result = await submitReport({
+      data: {
+        fixtureId: fixture.id,
+        topPlayer1Id: top1,
+        topPlayer2Id: top2 || null,
+        topPlayer3Id: top3 || null,
+        blurb: blurb.trim() || null,
+      },
+    });
+
+    registry.update(reportsChanged, (value) => value + 1);
+    await waitForQuery(registry, reportsAtom(fixture.teamId));
+
+    return result;
   });
 
   const busy = submitMutation.isPending;
@@ -801,7 +796,7 @@ function ReportFormInner(props: {
   const submit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!top1) return;
-    submitMutation.mutate();
+    submitMutation.execute();
   };
 
   if (done) {

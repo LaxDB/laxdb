@@ -1,4 +1,7 @@
-import { ClubTeam } from "@laxdb/core/club/club.schema";
+import { useAtomSet, RegistryContext } from "@effect/atom-react";
+import { waitForQuery } from "@laxdb/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import {
   AlertDialog,
@@ -37,28 +40,36 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import type { ReactElement } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactElement,
+} from "react";
 
 import { authClient } from "../../lib/auth-client";
 import {
+  updateTeamAtom,
+  teamsChanged,
+  rosterChanged,
+  recipientsChanged,
+  teamsAtom,
+  recipientsAtom,
   addRecipient,
   deleteTeam,
-  listRecipients,
-  listTeams,
   removeRecipient,
-  updateTeam,
   type RecipientView,
   type TeamView,
 } from "../../lib/club";
-import { listMembers, type Member } from "../../lib/fines";
+import { membersChanged, membersAtom, type Member } from "../../lib/fines";
 import {
+  fixturesChanged,
+  seasonsAtom,
+  clubsAtom,
+  competitionsAtom,
   importGamedayTeams,
-  listCompetitionsForClubs,
-  listGamedayClubs,
-  listGamedaySeasons,
   syncGamedayAssociationSeason,
   type GamedayTeamCompetitionView,
 } from "../../lib/matches";
@@ -116,7 +127,7 @@ function ConfirmDialog({
   );
 }
 
-function SectionError({ error }: { error: Error | null }) {
+function SectionError({ error }: { error: Error | null | undefined }) {
   if (!error) return null;
   return (
     <Alert variant="destructive">
@@ -126,18 +137,9 @@ function SectionError({ error }: { error: Error | null }) {
 }
 
 function Admin() {
-  const membersQuery = useQuery({
-    queryKey: ["fine-members"],
-    queryFn: () => listMembers(),
-  });
-  const teamsQuery = useQuery({
-    queryKey: ["teams"],
-    queryFn: () => listTeams(),
-  });
-  const recipientsQuery = useQuery({
-    queryKey: ["recipients"],
-    queryFn: () => listRecipients(),
-  });
+  const membersQuery = useAsyncQuery(membersAtom);
+  const teamsQuery = useAsyncQuery(teamsAtom);
+  const recipientsQuery = useAsyncQuery(recipientsAtom);
 
   const err = membersQuery.error ?? teamsQuery.error ?? recipientsQuery.error;
 
@@ -181,12 +183,12 @@ function Admin() {
         </Alert>
       )}
 
-      <Teams teams={teams} loading={teamsQuery.isPending} />
+      <Teams teams={teams} loading={teamsQuery.isLoading} />
 
       <Coaches
         teams={teams}
         members={members}
-        loading={teamsQuery.isPending || membersQuery.isPending}
+        loading={teamsQuery.isLoading || membersQuery.isLoading}
       />
 
       <Recipients teams={teams} recipients={recipients} />
@@ -203,34 +205,39 @@ function Invite({
   members: readonly Member[];
   teams: readonly TeamView[];
 }) {
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"member" | "admin">("member");
   const [sent, setSent] = useState<string | null>(null);
 
-  const inviteMutation = useMutation({
-    mutationFn: (vars: { email: string; role: "member" | "admin" }) =>
-      authClient.organization.inviteMember(vars),
-    onMutate: () => {
+  const inviteMutation = useAsyncAction(
+    async (vars: { email: string; role: "member" | "admin" }) => {
       setSent(null);
-    },
-    onSuccess: (_result, vars) => {
+
+      const result = await authClient.organization.inviteMember(vars);
+
       setSent(vars.email);
       setEmail("");
-    },
-  });
 
-  const removeMemberMutation = useMutation({
-    mutationFn: (vars: { memberIdOrEmail: string }) =>
-      authClient.organization.removeMember(vars),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["fine-members"] }),
-  });
+      return result;
+    },
+  );
+
+  const removeMemberMutation = useAsyncAction(
+    async (vars: { memberIdOrEmail: string }) => {
+      const result = await authClient.organization.removeMember(vars);
+
+      registry.update(membersChanged, (value) => value + 1);
+      await waitForQuery(registry, membersAtom);
+
+      return result;
+    },
+  );
 
   const send = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!email.trim()) return;
-    inviteMutation.mutate({ email: email.trim(), role });
+    inviteMutation.execute({ email: email.trim(), role });
   };
 
   return (
@@ -319,7 +326,7 @@ function Invite({
                           </Button>
                         }
                         onConfirm={() => {
-                          removeMemberMutation.mutate({
+                          removeMemberMutation.execute({
                             memberIdOrEmail: m.id,
                           });
                         }}
@@ -336,12 +343,6 @@ function Invite({
   );
 }
 
-type TeamUpdate = {
-  id: string;
-  name?: string;
-  coachMemberId?: string | null;
-};
-
 function Coaches({
   teams,
   members,
@@ -351,35 +352,9 @@ function Coaches({
   members: readonly Member[];
   loading: boolean;
 }) {
-  const queryClient = useQueryClient();
-  const updateMutation = useMutation({
-    mutationFn: (vars: TeamUpdate) => updateTeam({ data: vars }),
-    onMutate: async (vars) => {
-      await queryClient.cancelQueries({ queryKey: ["teams"] });
-      const previous = queryClient.getQueryData<readonly TeamView[]>(["teams"]);
-      queryClient.setQueryData<readonly TeamView[]>(["teams"], (current) =>
-        current?.map((team) =>
-          team.id === vars.id
-            ? new ClubTeam({
-                id: team.id,
-                organizationId: team.organizationId,
-                name: vars.name ?? team.name,
-                coachMemberId:
-                  vars.coachMemberId === undefined
-                    ? team.coachMemberId
-                    : vars.coachMemberId,
-                createdAt: team.createdAt,
-              })
-            : team,
-        ),
-      );
-      return { previous };
-    },
-    onError: (_error, _vars, context) => {
-      queryClient.setQueryData(["teams"], context?.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["teams"] }),
-  });
+  // ponytail: one coach edit at a time; use per-team atoms for parallel edits.
+  const { error, isFetching: isUpdating } = useAsyncQuery(updateTeamAtom);
+  const update = useAtomSet(updateTeamAtom);
 
   return (
     <Card>
@@ -391,7 +366,7 @@ function Coaches({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <SectionError error={updateMutation.error} />
+        <SectionError error={error} />
         {loading ? (
           <p className="flex items-center gap-2 text-muted-foreground">
             <Spinner /> Loading coaches…
@@ -421,9 +396,10 @@ function Coaches({
                           label: memberLabel(member),
                         })),
                       ]}
+                      disabled={isUpdating}
                       value={team.coachMemberId ?? ""}
                       onValueChange={(value: string | null) => {
-                        updateMutation.mutate({
+                        update({
                           id: team.id,
                           coachMemberId:
                             value === null || value === "" ? null : value,
@@ -460,17 +436,13 @@ function Teams({
   teams: readonly TeamView[];
   loading: boolean;
 }) {
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [selectedClubNames, setSelectedClubNames] = useState<readonly string[]>(
     [],
   );
 
-  const seasonsQuery = useQuery({
-    queryKey: ["gameday-seasons"],
-    queryFn: () => listGamedaySeasons(),
-    staleTime: 1000 * 60 * 30,
-  });
+  const seasonsQuery = useAsyncQuery(seasonsAtom);
   const seasons = seasonsQuery.data ?? [];
 
   useEffect(() => {
@@ -478,12 +450,9 @@ function Teams({
     setSelectedSeasonId(seasons[0]?.seasonId ?? "");
   }, [seasons, selectedSeasonId]);
 
-  const clubsQuery = useQuery({
-    queryKey: ["gameday-clubs", selectedSeasonId],
-    queryFn: () => listGamedayClubs({ data: { seasonId: selectedSeasonId } }),
-    enabled: selectedSeasonId !== "",
-    staleTime: 1000 * 60 * 30,
-  });
+  const clubsQuery = useAsyncQuery(
+    selectedSeasonId === "" ? undefined : clubsAtom(selectedSeasonId),
+  );
   const gamedayClubs = useMemo(() => {
     const seen = new Set<string>();
     return (clubsQuery.data ?? []).filter((club) => {
@@ -493,45 +462,41 @@ function Teams({
       return true;
     });
   }, [clubsQuery.data]);
-  const competitionsQuery = useQuery({
-    queryKey: [
-      "gameday-competitions-for-clubs",
-      selectedSeasonId,
-      selectedClubNames,
-    ],
-    queryFn: () =>
-      listCompetitionsForClubs({
-        data: {
-          clubNames: [...selectedClubNames],
+  const competitionsQuery = useAsyncQuery(
+    selectedSeasonId !== "" && selectedClubNames.length > 0
+      ? competitionsAtom({
           seasonId: selectedSeasonId,
-        },
-      }),
-    enabled: selectedSeasonId !== "" && selectedClubNames.length > 0,
-    staleTime: 1000 * 60 * 10,
+          clubNames: selectedClubNames,
+        })
+      : undefined,
+  );
+
+  const deleteMutation = useAsyncAction(async (vars: { id: string }) => {
+    const result = await deleteTeam({ data: vars });
+
+    registry.update(teamsChanged, (value) => value + 1);
+    await waitForQuery(registry, teamsAtom);
+    registry.update(fixturesChanged, (value) => value + 1);
+    registry.update(rosterChanged, (value) => value + 1);
+    registry.update(recipientsChanged, (value) => value + 1);
+    await waitForQuery(registry, recipientsAtom);
+
+    return result;
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (vars: { id: string }) => deleteTeam({ data: vars }),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["teams"] }),
-        queryClient.invalidateQueries({ queryKey: ["fixtures"] }),
-        queryClient.invalidateQueries({ queryKey: ["roster"] }),
-        queryClient.invalidateQueries({ queryKey: ["recipients"] }),
-      ]),
-  });
+  const associationSyncMutation = useAsyncAction(
+    async (vars: { seasonId?: string; includeRosters?: boolean }) => {
+      const result = await syncGamedayAssociationSeason({ data: vars });
+      return result;
+    },
+  );
 
-  const associationSyncMutation = useMutation({
-    mutationFn: (vars: { seasonId?: string; includeRosters?: boolean }) =>
-      syncGamedayAssociationSeason({ data: vars }),
-  });
-
-  const importMutation = useMutation({
-    mutationFn: (vars: {
+  const importMutation = useAsyncAction(
+    async (vars: {
       seasonId: string;
       competitions: readonly GamedayTeamCompetitionView[];
-    }) =>
-      importGamedayTeams({
+    }) => {
+      const result = await importGamedayTeams({
         data: {
           seasonId: vars.seasonId,
           teams: vars.competitions.map((competition) => ({
@@ -541,14 +506,16 @@ function Teams({
             teamName: competition.teamName,
           })),
         },
-      }),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["teams"] }),
-        queryClient.invalidateQueries({ queryKey: ["fixtures"] }),
-        queryClient.invalidateQueries({ queryKey: ["roster"] }),
-      ]),
-  });
+      });
+
+      registry.update(teamsChanged, (value) => value + 1);
+      await waitForQuery(registry, teamsAtom);
+      registry.update(fixturesChanged, (value) => value + 1);
+      registry.update(rosterChanged, (value) => value + 1);
+
+      return result;
+    },
+  );
 
   const competitions = competitionsQuery.data ?? [];
   const syncMsg = associationSyncMutation.data
@@ -704,7 +671,7 @@ function Teams({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    associationSyncMutation.mutate({
+                    associationSyncMutation.execute({
                       ...(selectedSeasonId !== "" && {
                         seasonId: selectedSeasonId,
                       }),
@@ -724,7 +691,7 @@ function Teams({
                 <Button
                   type="button"
                   onClick={() => {
-                    importMutation.mutate({
+                    importMutation.execute({
                       seasonId: selectedSeasonId,
                       competitions,
                     });
@@ -774,7 +741,7 @@ function Teams({
                       key={team.id}
                       team={team}
                       onDelete={() => {
-                        deleteMutation.mutate({ id: team.id });
+                        deleteMutation.execute({ id: team.id });
                       }}
                     />
                   ))}
@@ -824,29 +791,32 @@ function Recipients({
   teams: readonly TeamView[];
   recipients: readonly RecipientView[];
 }) {
-  const queryClient = useQueryClient();
+  const registry = useContext(RegistryContext);
   const [label, setLabel] = useState("");
   const [email, setEmail] = useState("");
   const [teamId, setTeamId] = useState("");
 
-  const addMutation = useMutation({
-    mutationFn: (vars: {
-      label: string;
-      email: string;
-      teamId: string | null;
-    }) => addRecipient({ data: vars }),
-    onSuccess: () => {
+  const addMutation = useAsyncAction(
+    async (vars: { label: string; email: string; teamId: string | null }) => {
+      const result = await addRecipient({ data: vars });
+
       setLabel("");
       setEmail("");
       setTeamId("");
-      return queryClient.invalidateQueries({ queryKey: ["recipients"] });
-    },
-  });
+      registry.update(recipientsChanged, (value) => value + 1);
+      await waitForQuery(registry, recipientsAtom);
 
-  const removeMutation = useMutation({
-    mutationFn: (vars: { id: string }) => removeRecipient({ data: vars }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["recipients"] }),
+      return result;
+    },
+  );
+
+  const removeMutation = useAsyncAction(async (vars: { id: string }) => {
+    const result = await removeRecipient({ data: vars });
+
+    registry.update(recipientsChanged, (value) => value + 1);
+    await waitForQuery(registry, recipientsAtom);
+
+    return result;
   });
 
   const teamOptions = useMemo(
@@ -879,7 +849,7 @@ function Recipients({
           onSubmit={(e) => {
             e.preventDefault();
             if (!label.trim() || !email.trim()) return;
-            addMutation.mutate({
+            addMutation.execute({
               label: label.trim(),
               email: email.trim(),
               teamId: teamId || null,
@@ -961,7 +931,7 @@ function Recipients({
                         </Button>
                       }
                       onConfirm={() => {
-                        removeMutation.mutate({ id: recipient.id });
+                        removeMutation.execute({ id: recipient.id });
                       }}
                     />
                   </TableCell>

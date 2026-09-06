@@ -1,4 +1,6 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
+import { Button } from "@laxdb/ui/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,11 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@laxdb/ui/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
-import { getTeamStandings } from "../../../lib/stats";
+import { teamStandingsAtom } from "../../../lib/stats";
 
 export const Route = createFileRoute("/_app/teams/$teamId_/standings")({
   beforeLoad: ({ context, params }) => {
@@ -37,11 +38,12 @@ function TeamStandingsPage() {
   const { teamId } = Route.useParams();
   const ctx = Route.useRouteContext();
   const team = ctx.teams.find((entry) => entry.id === teamId);
-  const standingsQuery = useQuery({
-    queryKey: ["team-standings", teamId],
-    queryFn: () => getTeamStandings({ data: { teamId } }),
-    retry: false,
-  });
+  const {
+    data: standings,
+    error,
+    isLoading,
+    refresh: refreshStandings,
+  } = useAsyncQuery(teamStandingsAtom(teamId));
 
   return (
     <div className="flex flex-col gap-8">
@@ -51,25 +53,32 @@ function TeamStandingsPage() {
         description="The published GameDay ladder for this team's current competition."
       />
 
-      {standingsQuery.error && (
+      {error !== undefined && (
         <Alert variant="destructive">
-          <AlertDescription>{standingsQuery.error.message}</AlertDescription>
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span>{error.message}</span>
+            <Button variant="outline" size="sm" onClick={refreshStandings}>
+              Retry
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
-      {standingsQuery.isPending ? (
+      {isLoading && (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Spinner /> Loading standings…
         </p>
-      ) : standingsQuery.data ? (
+      )}
+
+      {standings !== undefined && (
         <Card>
           <CardHeader>
-            <CardTitle>{standingsQuery.data.compName}</CardTitle>
+            <CardTitle>{standings.compName}</CardTitle>
             <CardDescription>
-              Cached {standingsQuery.data.fetchedAt.toLocaleString()}
-              {standingsQuery.data.sourceUploadedAt === null
+              Cached {standings.fetchedAt.toLocaleString()}
+              {standings.sourceUploadedAt === null
                 ? ""
-                : ` · GameDay uploaded ${standingsQuery.data.sourceUploadedAt}`}
+                : ` · GameDay uploaded ${standings.sourceUploadedAt}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -90,11 +99,11 @@ function TeamStandingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {standingsQuery.data.rows.map((row) => (
+                {standings.rows.map((row) => (
                   <TableRow
                     key={`${row.position}:${row.teamName}`}
                     className={
-                      row.gamedayTeamId === standingsQuery.data.gamedayTeamId
+                      row.gamedayTeamId === standings.gamedayTeamId
                         ? "bg-muted/55 font-medium"
                         : undefined
                     }
@@ -116,7 +125,7 @@ function TeamStandingsPage() {
             </Table>
           </CardContent>
         </Card>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -1,16 +1,12 @@
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Schema } from "effect";
+import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { Effect, Schedule, Schema } from "effect";
 
+import { FetchError } from "./error";
 import { isActiveGameStatus } from "./game-status";
 import { validateLiveScheduleCandidate } from "./live-snapshot-validation";
 import { LiveSchedule } from "./schema";
 
 const decodeLiveSchedule = Schema.decodeUnknownSync(LiveSchedule);
-
-export const liveScheduleQueryKey = [
-  "world-lacrosse",
-  "live-schedule",
-] as const;
 
 const productionEndpoint = "https://live.world.laxdb.io/schedule";
 const requestTimeoutMs = 5_000;
@@ -47,34 +43,30 @@ export const fetchLiveSchedule = async (
   }
 };
 
-export const liveScheduleQueryOptions = (
-  enabled: boolean,
-  previous: () => LiveSchedule | undefined,
-) =>
-  queryOptions({
-    queryKey: liveScheduleQueryKey,
-    queryFn: ({ signal }) => fetchLiveSchedule(previous(), signal),
-    enabled,
-    gcTime: Infinity,
-    refetchInterval: enabled
-      ? (query) =>
-          query.state.data?.schedule.some((game) =>
-            isActiveGameStatus(game.status),
-          )
-            ? 30_000
-            : 60_000
-      : false,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: enabled,
-    retry: enabled ? 1 : false,
-    staleTime: 15_000,
-  });
-
-export const useLiveSchedule = (enabled: boolean) => {
-  const queryClient = useQueryClient();
-  return useQuery(
-    liveScheduleQueryOptions(enabled, () =>
-      queryClient.getQueryData<LiveSchedule>(liveScheduleQueryKey),
+const fetchLiveScheduleEffect = (previous: LiveSchedule | undefined) =>
+  Effect.tryPromise({
+    try: (signal) => fetchLiveSchedule(previous, signal),
+    catch: (cause) =>
+      FetchError.make({
+        url: endpoint(),
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Failed to fetch the live schedule",
+        cause,
+      }),
+  }).pipe(
+    Effect.retry(
+      Schedule.max([Schedule.spaced("1 second"), Schedule.recurs(1)]),
     ),
   );
-};
+
+export const liveScheduleAtom = makeAsyncQuery({
+  load: fetchLiveScheduleEffect,
+  staleTime: "15 seconds",
+  idleTTL: "Infinity",
+  pollInterval: (schedule) =>
+    schedule?.schedule.some((game) => isActiveGameStatus(game.status))
+      ? "30 seconds"
+      : "1 minute",
+});

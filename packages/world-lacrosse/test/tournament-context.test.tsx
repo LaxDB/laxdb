@@ -17,7 +17,6 @@ import {
   GOALKEEPER_RANKING_MINIMUM_SHOTS_FACED,
 } from "../src/lib/tournament-context";
 import {
-  TournamentContext,
   TournamentContextRank,
   TournamentGameContext,
 } from "../src/lib/tournament-context-schema";

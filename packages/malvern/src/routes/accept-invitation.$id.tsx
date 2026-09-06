@@ -1,7 +1,7 @@
+import { useAsyncAction } from "@laxdb/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -15,26 +15,21 @@ function Accept() {
   const { id } = Route.useParams();
   const router = useRouter();
 
-  const accept = useMutation({
-    mutationFn: async (invitationId: string) => {
-      const session = await authClient.getSession();
-      if (!session.data) return { needLogin: true };
-      const result = await authClient.organization.acceptInvitation({
-        invitationId,
-      });
-      if (result.error) {
-        throw new Error(result.error.message ?? "Failed to accept invitation");
-      }
-      return { needLogin: false };
-    },
-    onSuccess: async ({ needLogin }) => {
-      if (needLogin) return;
-      await router.invalidate();
-      await router.navigate({ to: "/fines" });
-    },
+  const accept = useAsyncAction(async (invitationId: string) => {
+    const session = await authClient.getSession();
+    if (!session.data) return { needLogin: true };
+    const result = await authClient.organization.acceptInvitation({
+      invitationId,
+    });
+    if (result.error) {
+      throw new Error(result.error.message ?? "Failed to accept invitation");
+    }
+    // Replace the document so no previous user's cache survives the identity change.
+    await router.navigate({ to: "/fines", reloadDocument: true });
+    return { needLogin: false };
   });
 
-  const { mutate } = accept;
+  const { execute: mutate } = accept;
   useEffect(() => {
     mutate(id);
   }, [mutate, id]);
@@ -67,7 +62,7 @@ function Accept() {
         {accept.data?.needLogin === false && (
           <p className="text-xs/relaxed">Joined. Redirecting…</p>
         )}
-        {accept.isError && (
+        {accept.error !== undefined && (
           <Alert variant="destructive">
             <AlertDescription>{accept.error.message}</AlertDescription>
           </Alert>

@@ -1,15 +1,15 @@
+import { useAsyncQuery } from "@laxdb/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { TeamPageHeader } from "../../../components/team-page-header";
 import {
-  listFixtures,
-  listMatchImages,
+  fixturesAtom,
+  teamImagesAtom,
   type FixtureView,
   type MatchImageView,
 } from "../../../lib/matches";
@@ -43,14 +43,8 @@ function TeamPhotosPage() {
   const { teamId } = Route.useParams();
   const context = Route.useRouteContext();
   const team = context.teams.find((entry) => entry.id === teamId);
-  const fixturesQuery = useQuery({
-    queryKey: ["fixtures", teamId],
-    queryFn: () => listFixtures({ data: { teamId } }),
-  });
-  const imagesQuery = useQuery({
-    queryKey: ["match-images", "team", teamId],
-    queryFn: () => listMatchImages({ data: { teamId } }),
-  });
+  const fixturesQuery = useAsyncQuery(fixturesAtom(teamId));
+  const imagesQuery = useAsyncQuery(teamImagesAtom(teamId));
   const imagesByFixture = useMemo(() => {
     const grouped = new Map<string, MatchImageView[]>();
     for (const image of imagesQuery.data ?? []) {
@@ -82,7 +76,7 @@ function TeamPhotosPage() {
           <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
-      {fixturesQuery.isPending || imagesQuery.isPending ? (
+      {fixturesQuery.isLoading || imagesQuery.isLoading ? (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Spinner /> Loading photos…
         </p>
