@@ -42,9 +42,9 @@ The installed `node_modules/effect/src` source is authoritative for the Effect v
 
 ## CHILD INTENT NODES
 
-- `packages/core/CLAUDE.md` - Domain logic, services, DB (CRITICAL - read first for backend work)
-- `packages/api/CLAUDE.md` - HttpApi/generated client patterns
-- `packages/ui/CLAUDE.md` - Base UI component APIs
-- `packages/pipeline/CLAUDE.md` - Data ingestion, external APIs, scraping patterns
-- `packages/cli/CLAUDE.md` - CLI tools for API interaction
+- `packages/core/AGENTS.md` - Domain logic, services, DB (CRITICAL - read first for backend work)
+- `packages/api/AGENTS.md` - HttpApi/generated client patterns
+- `packages/ui/AGENTS.md` - Base UI component APIs
+- `packages/pipeline/AGENTS.md` - Data ingestion, external APIs, scraping patterns
+- `packages/cli/AGENTS.md` - CLI tools for API interaction
 - `packages/practice-planner/AGENTS.md` - Visual practice planning canvas
