@@ -10,6 +10,7 @@ import * as Redacted from "effect/Redacted";
 
 import { database } from "./packages/api/src/database.ts";
 import { makeApiWorker } from "./packages/api/src/index.ts";
+import { apiPaths } from "./packages/malvern/api-paths.ts";
 import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/lib/tournament-mode.ts";
 
 export { database };
@@ -71,8 +72,7 @@ export default Alchemy.Stack(
     const bucket = yield* storage;
 
     const baseDomain = baseDomainForStage(stage);
-    const isLocal =
-      stage === config.stages.dev || stage.startsWith(`${config.stages.dev}_`);
+    const isLocal = (yield* Alchemy.AlchemyContext).dev;
     const malvernOrigin = isLocal
       ? "http://localhost:1438"
       : `https://malvern.${baseDomain}`;
@@ -85,18 +85,21 @@ export default Alchemy.Stack(
           ).join(",")
         : secrets.trustedOrigins;
 
-    const api = yield* makeApiWorker({
-      DB: db,
-      BETTER_AUTH_URL:
-        secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
-      EMAIL_SENDER: secrets.emailSender,
-      IS_LOCAL: isLocal ? "true" : "",
-      GOOGLE_CLIENT_ID: secrets.googleClientId,
-      GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
-      RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
-      TRUSTED_ORIGINS: trustedOrigins,
-      STORAGE: bucket,
-    });
+    const api = yield* makeApiWorker(
+      {
+        DB: db,
+        BETTER_AUTH_URL:
+          secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
+        EMAIL_SENDER: secrets.emailSender,
+        IS_LOCAL: isLocal ? "true" : "",
+        GOOGLE_CLIENT_ID: secrets.googleClientId,
+        GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
+        RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
+        TRUSTED_ORIGINS: trustedOrigins,
+        STORAGE: bucket,
+      },
+      apiPaths.map((path) => ({ pattern: `malvern.${baseDomain}${path}*` })),
+    );
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {
       rootDir: "./packages/marketing",
@@ -137,7 +140,8 @@ export default Alchemy.Stack(
 
     const malvern = yield* Cloudflare.Website.Vite("malvern", {
       rootDir: "./packages/malvern",
-      workersDev: true,
+      // Auth/image path routes apply to this domain, not workers.dev URLs.
+      workersDev: false,
       domain: `malvern.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
