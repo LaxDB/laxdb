@@ -1,0 +1,17 @@
+{
+  "patent": "US D707770 S",
+  "figures": [1, 2, 3, 4, 5, 6],
+  "scale_note": "166 mm comparison width, not a patent dimension",
+  "width_mm": 165.9703254699707,
+  "height_mm": 282.61491656303406,
+  "clear_aperture_rays": 45,
+  "top_string_slots": 6,
+  "side_string_slots_per_side": 18,
+  "continuous_stringing_rail_checks": 18,
+  "side_windows_per_side": 5,
+  "bottom_string_slots": 4,
+  "shaft_entry_open": true,
+  "closed_surface": true,
+  "mirage_files_unchanged": true,
+  "polygons": 165290
+}
