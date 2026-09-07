@@ -47,4 +47,4 @@ The installed `node_modules/effect/src` source is authoritative for the Effect v
 - `packages/ui/CLAUDE.md` - Base UI component APIs
 - `packages/pipeline/CLAUDE.md` - Data ingestion, external APIs, scraping patterns
 - `packages/cli/CLAUDE.md` - CLI tools for API interaction
-- `packages/practice-planner/CLAUDE.md` - Visual practice planning canvas
+- `packages/practice-planner/AGENTS.md` - Visual practice planning canvas
