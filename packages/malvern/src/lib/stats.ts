@@ -5,13 +5,13 @@ import type {
   TeamSeasonSummary,
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
+import { runApi } from "@laxdb/frontend/api";
+import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
-
-import { apiAuth, runApi } from "./api-client";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
 export type TeamSeasonSummaryView = typeof TeamSeasonSummary.Type;

@@ -1,0 +1,27 @@
+{
+  "name": "@laxdb/frontend",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./api": "./src/api.ts",
+    "./auth": "./src/auth.ts",
+    "./routing": "./src/routing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsgo --noEmit",
+    "test": "bun --bun vitest run",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix --quiet",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt"
+  },
+  "dependencies": {
+    "@laxdb/api": "workspace:*",
+    "@tanstack/react-start": "^1.143.12",
+    "effect": "4.0.0-beta.103"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.9"
+  }
+}

@@ -55,7 +55,7 @@ const { data: drills = [] } = useQuery({
 
 ### `runApi` boundary
 
-All API calls go through `runApi()` in `lib/api.ts`, which must only be called inside `createServerFn` handlers — never from client components. `runApi` manages a `ManagedRuntime` singleton backed by the generated Effect `HttpApiClient`, and JSON round-trips results to strip Effect `Schema.Class` instances (seroval can't serialize them).
+All API calls go through `runApi()` in `lib/api.ts`, only inside `createServerFn` handlers. It delegates to `@laxdb/frontend/api` without a session cookie. The shared client uses local HTTP in development and the `API` service binding in deployment. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`; keep app-specific auth paths and login settings in the app.
 
 ## HTTP API Client
 

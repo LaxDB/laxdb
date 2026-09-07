@@ -5,6 +5,7 @@
     "": {
       "name": "laxdb",
       "dependencies": {
+        "@laxdb/frontend": "workspace:*",
         "alchemy": "2.0.0-beta.67",
         "effect": "4.0.0-beta.103",
       },
@@ -100,12 +101,24 @@
         "tailwindcss": "^4.1.18",
       },
     },
+    "packages/frontend": {
+      "name": "@laxdb/frontend",
+      "dependencies": {
+        "@laxdb/api": "workspace:*",
+        "@tanstack/react-start": "^1.143.12",
+        "effect": "4.0.0-beta.103",
+      },
+      "devDependencies": {
+        "@types/node": "^24.10.9",
+      },
+    },
     "packages/malvern": {
       "name": "@laxdb/malvern",
       "dependencies": {
         "@effect/atom-react": "4.0.0-beta.103",
         "@laxdb/api": "workspace:*",
         "@laxdb/core": "workspace:*",
+        "@laxdb/frontend": "workspace:*",
         "@laxdb/reactivity": "workspace:*",
         "@laxdb/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
@@ -181,6 +194,7 @@
       "dependencies": {
         "@laxdb/api": "workspace:*",
         "@laxdb/core": "workspace:*",
+        "@laxdb/frontend": "workspace:*",
         "@laxdb/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/react-query": "^5.95.2",
@@ -777,6 +791,8 @@
     "@laxdb/core": ["@laxdb/core@workspace:packages/core"],
 
     "@laxdb/docs": ["@laxdb/docs@workspace:packages/docs"],
+
+    "@laxdb/frontend": ["@laxdb/frontend@workspace:packages/frontend"],
 
     "@laxdb/malvern": ["@laxdb/malvern@workspace:packages/malvern"],
 

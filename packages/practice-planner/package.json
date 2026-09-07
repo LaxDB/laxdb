@@ -17,6 +17,7 @@
   "dependencies": {
     "@laxdb/api": "workspace:*",
     "@laxdb/core": "workspace:*",
+    "@laxdb/frontend": "workspace:*",
     "@laxdb/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-query": "^5.95.2",

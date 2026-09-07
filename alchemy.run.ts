@@ -1,3 +1,4 @@
+import { apiRoutes } from "@laxdb/frontend/routing";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
@@ -98,7 +99,7 @@ export default Alchemy.Stack(
         TRUSTED_ORIGINS: trustedOrigins,
         STORAGE: bucket,
       },
-      apiPaths.map((path) => ({ pattern: `malvern.${baseDomain}${path}*` })),
+      apiRoutes(`malvern.${baseDomain}`, apiPaths),
     );
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {
@@ -124,6 +125,7 @@ export default Alchemy.Stack(
 
     const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
       rootDir: "./packages/practice-planner",
+      memo: { include: ["**/*", "../frontend/src/**"], lockfile: true },
       workersDev: true,
       domain: `planner.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
@@ -140,6 +142,7 @@ export default Alchemy.Stack(
 
     const malvern = yield* Cloudflare.Website.Vite("malvern", {
       rootDir: "./packages/malvern",
+      memo: { include: ["**/*", "../frontend/src/**"], lockfile: true },
       // Auth/image path routes apply to this domain, not workers.dev URLs.
       workersDev: false,
       domain: `malvern.${baseDomain}`,

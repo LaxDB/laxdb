@@ -15,13 +15,13 @@ import {
   type MatchImage,
   type MatchReport,
 } from "@laxdb/core/match/match.schema";
+import { runApi } from "@laxdb/frontend/api";
+import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
-
-import { apiAuth, runApi } from "./api-client";
 
 export type FixtureView = typeof Fixture.Type;
 export type MatchReportView = typeof MatchReport.Type;

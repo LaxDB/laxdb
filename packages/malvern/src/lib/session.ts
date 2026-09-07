@@ -1,12 +1,12 @@
 import { ApiClient } from "@laxdb/api/client";
 import { Me } from "@laxdb/core/auth/auth.schema";
+import { runApi } from "@laxdb/frontend/api";
+import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
 import { fromPromise } from "@laxdb/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
 import { AsyncResult } from "effect/unstable/reactivity";
-
-import { apiAuth, runApi } from "./api-client";
 
 export type MeCtx = Me | null;
 

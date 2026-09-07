@@ -1,17 +1,16 @@
-/**
- * Effect HTTP API client for the api worker.
- *
- * Server functions call the api worker with the generated Effect client.
- * Local dev uses the stable api dev port; deployed workers use the API service
- * binding. The apiAuth middleware captures the incoming request cookie and
- * runApi attaches it to the outgoing API request.
- */
+/** Server-only API calls for TanStack Start apps. Cookies stay request-local. */
+// oxlint-disable-next-line import/no-unassigned-import -- TanStack's marker prevents client imports.
+import "@tanstack/react-start/server-only";
+
 import { makeApiClientLayer, type ApiClient } from "@laxdb/api/client";
-import { createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 
-type ApiServiceBinding = { readonly fetch: typeof fetch };
+import { localApiUrl } from "./routing";
+
+type ApiServiceBinding = {
+  readonly fetch: (request: Request) => Promise<Response>;
+};
 
 type CloudflareWorkersModule = {
   readonly env: { readonly API: ApiServiceBinding };
@@ -36,10 +35,9 @@ const isCloudflareWorkersModule = (
 };
 
 const isLocal = process.env.IS_LOCAL === "true";
-const localApiUrl = `http://localhost:${process.env.API_PORT ?? "1437"}`;
 const apiUrl = isLocal ? localApiUrl : "http://api";
 
-const loadApiBinding = Effect.promise(async () => {
+const loadApiBinding = async () => {
   // oxlint-disable-next-line no-useless-concat -- A static specifier makes Vite resolve this worker runtime module at build time.
   const workerModule = "cloudflare:" + "workers";
   const workers: unknown = await import(/* @vite-ignore */ workerModule);
@@ -47,7 +45,7 @@ const loadApiBinding = Effect.promise(async () => {
     throw new TypeError("Cloudflare workers module is missing the API binding");
   }
   return workers.env.API;
-});
+};
 
 const attachCookie = (request: Request, cookie: string | undefined) => {
   if (cookie !== undefined) request.headers.set("cookie", cookie);
@@ -60,19 +58,21 @@ const toLocalApiRequest = (request: Request) => {
   return new Request(target, request);
 };
 
-const boundApiFetch =
-  (cookie: string | undefined): typeof fetch =>
-  async (input, init) => {
-    const request = attachCookie(new Request(input, init), cookie);
-    if (isLocal) return fetch(toLocalApiRequest(request));
+const boundApiFetch = (cookie: string | undefined): typeof fetch =>
+  Object.assign(
+    async (
+      input: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1],
+    ) => {
+      const request = attachCookie(new Request(input, init), cookie);
+      if (isLocal) return fetch(toLocalApiRequest(request));
 
-    const api = await Effect.runPromise(loadApiBinding);
-    return api.fetch(request);
-  };
-
-export const apiAuth = createMiddleware().server(({ request, next }) =>
-  next({ context: { apiCookie: request.headers.get("cookie") ?? undefined } }),
-);
+      const api = await loadApiBinding();
+      return api.fetch(request);
+    },
+    // Preserve runtime fetch helpers, such as Bun's preconnect.
+    fetch,
+  );
 
 const clientLayer = (cookie: string | undefined) =>
   makeApiClientLayer(apiUrl).pipe(
@@ -93,11 +93,6 @@ export async function runApi<A, E>(
     effect.pipe(
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- runApi executes the fully provided effect at this Promise boundary.
       Effect.provide(clientLayer(cookie)),
-      Effect.tapError((error) =>
-        Effect.sync(() => {
-          console.log("[runApi] failed", error);
-        }),
-      ),
     ),
   );
   return structuredClone(result);
