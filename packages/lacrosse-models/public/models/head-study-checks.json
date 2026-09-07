@@ -1,0 +1,23 @@
+{
+  "clear_aperture_rays": 45,
+  "solid_scoop_checks": 3,
+  "scoop_rear_second_difference_mm": 0.004626810550689697,
+  "open_top_string_slots": 6,
+  "front_scoop_recesses": 2,
+  "rear_throat_wall_checks": 3,
+  "receiver_single_rim_checks": 16,
+  "rear_screw_holes": 1,
+  "rear_screw_placement": "Provisional; rear face not visible in available product photos",
+  "ball_stop_geometry_sha256": "8a2b581a07f6c32dcfe7d162bac5236f215a1e91523aa809b95169738eb54d6a",
+  "ball_stop_platform_checks": 3,
+  "open_bottom_string_holes": 4,
+  "front_openings_traced": 10,
+  "side_openings_traced": 25,
+  "hexagonal_cells": 200,
+  "unique_cell_shapes": 1,
+  "cell_width_mm": 10.0,
+  "cell_height_mm": 18.0,
+  "unique_shared_edges": 661,
+  "maximum_junction_valence": 3,
+  "mesh_state": "Flat material study; not fitted or deformed into the head"
+}

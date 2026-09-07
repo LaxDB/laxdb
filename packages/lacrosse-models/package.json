@@ -1,0 +1,29 @@
+{
+  "name": "@laxdb/lacrosse-models",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3011 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 3011 --strictPort",
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix --quiet",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt"
+  },
+  "dependencies": {
+    "@google/model-viewer": "^4.3.1",
+    "@laxdb/ui": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "tailwindcss": "^4.1.18",
+    "vite": "^8.2.0"
+  }
+}

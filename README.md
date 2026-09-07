@@ -15,6 +15,7 @@ laxdb is a suite of management tools designed specifically for lacrosse teams an
 ## Project Structure
 
 - `packages/api`: Effect HttpApi server with generated typed client
+- `packages/lacrosse-models`: Standalone lacrosse model viewer, Blender generators, and reference assets
 - `packages/core`: Shared business logic, database schemas, and core services
 - `packages/cli`: HTTP API-driven developer CLI
 - `packages/docs`: Documentation site built with Fumadocs
