@@ -1,5 +1,6 @@
 import { ApiClient } from "@laxdb/api/client";
 import { UpdateDrillInput } from "@laxdb/core/drill/drill.schema";
+import { runApi } from "@laxdb/frontend/api";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Separator } from "@laxdb/ui/components/ui/separator";
@@ -14,7 +15,6 @@ import {
   DrillFormFields,
   type DrillFormFieldsProps,
 } from "@/components/drill-form-fields";
-import { runApi } from "@/lib/api";
 import { DRILL_DIFFICULTY_COLORS } from "@/lib/drill-definitions";
 import type { Difficulty, FieldSpace, Intensity } from "@/types";
 

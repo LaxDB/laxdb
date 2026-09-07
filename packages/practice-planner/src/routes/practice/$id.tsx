@@ -5,12 +5,16 @@ import {
   PracticeItemVariant as PracticeItemVariantSchema,
   PracticeStatus as PracticeStatusSchema,
 } from "@laxdb/core/practice/practice.schema";
+import { runApi } from "@laxdb/frontend/api";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Separator } from "@laxdb/ui/components/ui/separator";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
+import { Atom } from "effect/unstable/reactivity";
 import { Sparkles, Library, GitBranch, Settings } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 
@@ -25,7 +29,6 @@ import { useCanvasControls } from "@/hooks/use-canvas-controls";
 import { DrillsProvider } from "@/hooks/use-drills";
 import { usePracticeEditor } from "@/hooks/use-practice-editor";
 import { usePracticePersistence } from "@/hooks/use-practice-persistence";
-import { runApi } from "@/lib/api";
 import {
   fromDb,
   orderNodesByFlow,
@@ -43,6 +46,11 @@ const loadDrills = createServerFn({ method: "GET" }).handler(() =>
     }),
   ),
 );
+
+const drillsAtom = makeAsyncQuery({
+  load: () => fromPromise(() => loadDrills()),
+  staleTime: "5 minutes",
+}).pipe(Atom.withServerValueInitial);
 
 const SaveItemFields = {
   type: PracticeItemTypeSchema,
@@ -188,10 +196,7 @@ function PracticePlannerPage() {
     edges: dbEdges,
   } = Route.useLoaderData();
 
-  const { data: drills = [] } = useQuery({
-    queryKey: ["drills"],
-    queryFn: () => loadDrills(),
-  });
+  const { data: drills = [] } = useAsyncQuery(drillsAtom);
 
   // Convert DB data to canvas graph
   const initialGraph = useMemo(

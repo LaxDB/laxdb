@@ -10,7 +10,6 @@ import * as Redacted from "effect/Redacted";
 
 import { database } from "./packages/api/src/database.ts";
 import { makeApiWorker } from "./packages/api/src/index.ts";
-import { apiPaths } from "./packages/malvern/api-paths.ts";
 import { tournamentRefreshCrons } from "./packages/world-lacrosse/src/lib/tournament-mode.ts";
 
 export { database };
@@ -98,7 +97,10 @@ export default Alchemy.Stack(
         TRUSTED_ORIGINS: trustedOrigins,
         STORAGE: bucket,
       },
-      apiPaths.map((path) => ({ pattern: `malvern.${baseDomain}${path}*` })),
+      [
+        { pattern: `malvern.${baseDomain}/api/auth/*` },
+        { pattern: `malvern.${baseDomain}/api/report-images/*` },
+      ],
     );
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {

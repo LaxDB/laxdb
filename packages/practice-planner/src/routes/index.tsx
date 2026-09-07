@@ -1,4 +1,5 @@
 import { ApiClient } from "@laxdb/api/client";
+import { runApi } from "@laxdb/frontend/api";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
@@ -14,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
-import { runApi } from "@/lib/api";
 import { practiceName } from "@/lib/practice-name";
 
 const listPractices = createServerFn({ method: "GET" }).handler(() =>

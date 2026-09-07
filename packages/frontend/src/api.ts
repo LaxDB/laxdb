@@ -3,6 +3,7 @@
 import "@tanstack/react-start/server-only";
 
 import { makeApiClientLayer, type ApiClient } from "@laxdb/api/client";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 
@@ -74,9 +75,9 @@ const runtime = ManagedRuntime.make(
 );
 
 export async function runApi<A, E>(
-  cookie: string | undefined,
   effect: Effect.Effect<A, E, ApiClient>,
 ): Promise<A> {
+  const cookie = getRequestHeader("cookie");
   const result = await runtime.runPromise(
     effect.pipe(
       Effect.provideService(FetchHttpClient.Fetch, boundApiFetch(cookie)),

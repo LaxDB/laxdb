@@ -1,4 +1,5 @@
 import { ApiClient } from "@laxdb/api/client";
+import { runApi } from "@laxdb/frontend/api";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Input } from "@laxdb/ui/components/ui/input";
@@ -23,7 +24,6 @@ import {
 import { useState } from "react";
 
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
-import { runApi } from "@/lib/api";
 import {
   DRILL_DIFFICULTY_COLORS,
   DRILL_DIFFICULTY_FILTER_OPTIONS,

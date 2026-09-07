@@ -1,10 +1,8 @@
-import { apiProxy } from "@laxdb/frontend/routing";
+import { localApiUrl } from "@laxdb/frontend/routing";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-
-import { apiPaths } from "./api-paths";
 
 export default defineConfig({
   build: {
@@ -25,7 +23,10 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
-    proxy: apiProxy(apiPaths),
+    proxy: {
+      "/api/auth/": { target: localApiUrl },
+      "/api/report-images/": { target: localApiUrl },
+    },
     watch: {
       ignored: ["**/route-tree.gen.ts", "**/.tanstack/**"],
     },

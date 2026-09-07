@@ -6,7 +6,6 @@ import type {
   FineTemplate,
 } from "@laxdb/core/fine/fine.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
 import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
@@ -18,17 +17,14 @@ export type FineTemplateView = typeof FineTemplate.Type;
 export type FineView = typeof Fine.Type;
 export type AuditEntry = typeof FineAuditEntry.Type;
 
-export const listMembers = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
-    runApi(
-      context.apiCookie,
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.listMembers({ payload: {} });
-      }),
-    ),
-  );
+export const listMembers = createServerFn({ method: "GET" }).handler(() =>
+  runApi(
+    Effect.gen(function* () {
+      const client = yield* ApiClient;
+      return yield* client.Fines.listMembers({ payload: {} });
+    }),
+  ),
+);
 
 export const membersChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const membersAtom = makeAsyncQuery({
@@ -36,24 +32,19 @@ export const membersAtom = makeAsyncQuery({
   load: () => fromPromise(() => listMembers()),
 });
 
-export const listTemplates = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
-    runApi(
-      context.apiCookie,
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.listTemplates({ payload: {} });
-      }),
-    ),
-  );
+export const listTemplates = createServerFn({ method: "GET" }).handler(() =>
+  runApi(
+    Effect.gen(function* () {
+      const client = yield* ApiClient;
+      return yield* client.Fines.listTemplates({ payload: {} });
+    }),
+  ),
+);
 
 export const createTemplate = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { label: string; amountCents: number }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.createTemplate({ payload: data });
@@ -62,11 +53,9 @@ export const createTemplate = createServerFn({ method: "POST" })
   );
 
 export const deleteTemplate = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.deleteTemplate({ payload: data });
@@ -74,17 +63,14 @@ export const deleteTemplate = createServerFn({ method: "POST" })
     ),
   );
 
-export const listFines = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
-    runApi(
-      context.apiCookie,
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.listFines({ payload: {} });
-      }),
-    ),
-  );
+export const listFines = createServerFn({ method: "GET" }).handler(() =>
+  runApi(
+    Effect.gen(function* () {
+      const client = yield* ApiClient;
+      return yield* client.Fines.listFines({ payload: {} });
+    }),
+  ),
+);
 
 export const finesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const finesAtom = makeAsyncQuery({
@@ -93,11 +79,9 @@ export const finesAtom = makeAsyncQuery({
 });
 
 export const listMemberFines = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { memberId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.listMemberFines({ payload: data });
@@ -106,7 +90,6 @@ export const listMemberFines = createServerFn({ method: "GET" })
   );
 
 export const issueFine = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       memberId: string;
@@ -115,9 +98,8 @@ export const issueFine = createServerFn({ method: "POST" })
       amountCents?: number | undefined;
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.issueFine({ payload: data });
@@ -126,11 +108,9 @@ export const issueFine = createServerFn({ method: "POST" })
   );
 
 export const payFine = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.payFine({ payload: data });
@@ -139,11 +119,9 @@ export const payFine = createServerFn({ method: "POST" })
   );
 
 export const forgiveFine = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string; note: string | null }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.forgiveFine({ payload: data });
@@ -152,13 +130,11 @@ export const forgiveFine = createServerFn({ method: "POST" })
   );
 
 export const adjustFine = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { id: string; amountCents: number; note: string | null }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.adjustFine({ payload: data });
@@ -173,11 +149,9 @@ export const auditAtom = makeAsyncQuery({
 });
 
 export const listAudit = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { limit?: number | undefined }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Fines.listAudit({ payload: data });

@@ -5,7 +5,6 @@
   "sideEffects": false,
   "exports": {
     "./api": "./src/api.ts",
-    "./auth": "./src/auth.ts",
     "./reactivity/atom-query": "./src/reactivity/atom-query.ts",
     "./reactivity/promise": "./src/reactivity/promise.ts",
     "./reactivity/react": "./src/reactivity/react.ts",

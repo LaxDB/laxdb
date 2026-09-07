@@ -1,5 +1,6 @@
 import { ApiClient } from "@laxdb/api/client";
 import { CreatePlayInput } from "@laxdb/core/play/play.schema";
+import { runApi } from "@laxdb/frontend/api";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Separator } from "@laxdb/ui/components/ui/separator";
 import { voidAsync } from "@laxdb/ui/lib/void-async";
@@ -10,7 +11,6 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { PlayFormFields } from "@/components/play-form-fields";
-import { runApi } from "@/lib/api";
 import type { PlayCategory } from "@/types";
 
 // ---------------------------------------------------------------------------

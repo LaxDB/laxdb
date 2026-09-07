@@ -1,4 +1,5 @@
 import { ApiClient } from "@laxdb/api/client";
+import { requestHandler } from "@tanstack/react-start/server";
 import { Effect, Schema } from "effect";
 import { afterEach, expect, test, vi } from "vitest";
 
@@ -44,16 +45,30 @@ test.each(["true", "false"])(
       clients.add(yield* ApiClient);
       return yield* getMe;
     });
-    const cookies = ["session=alice", "session=bob", undefined];
+    const handler = requestHandler(async () => {
+      await Promise.resolve();
+      return Response.json(await runApi(lookup));
+    });
+    const incoming = ["session=alice", "session=bob", undefined].map(
+      (cookie) =>
+        new Request("http://app.test/", {
+          headers: cookie === undefined ? {} : { cookie },
+        }),
+    );
     // ponytail: serial binding mocks; use a Workers pool for concurrent binding tests.
-    const results =
+    const responses =
       isLocal === "true"
-        ? await Promise.all(cookies.map((cookie) => runApi(cookie, lookup)))
-        : await Array.fromAsync(cookies, (cookie) => runApi(cookie, lookup));
-    expect(results.map((result) => result.userId)).toEqual([
-      "session=alice",
-      "session=bob",
-      "anonymous",
+        ? await Promise.all(
+            incoming.map((request) => Promise.resolve(handler(request, {}))),
+          )
+        : await Array.fromAsync(incoming, (request) => handler(request, {}));
+    const results: unknown[] = await Promise.all(
+      responses.map((response) => response.json()),
+    );
+    expect(results).toMatchObject([
+      { userId: "session=alice" },
+      { userId: "session=bob" },
+      { userId: "anonymous" },
     ]);
     expect(clients.size).toBe(1);
     expect(requests).toHaveLength(3);
@@ -74,25 +89,23 @@ test("missing service bindings fail without falling back to public HTTP", async 
   vi.doMock("cloudflare:workers", () => ({ env: {} }));
   const network = vi.spyOn(globalThis, "fetch");
   const { runApi } = await import("../src/api");
-  await expect(runApi(undefined, getMe)).rejects.toMatchObject({
-    reason: {
-      cause: {
-        message: "Cloudflare workers module is missing the API binding",
+  const handler = requestHandler(async () => {
+    await expect(runApi(getMe)).rejects.toMatchObject({
+      reason: {
+        cause: {
+          message: "Cloudflare workers module is missing the API binding",
+        },
       },
-    },
+    });
+    return new Response();
   });
+  expect((await handler(new Request("http://app.test/"), {})).status).toBe(200);
   expect(network).not.toHaveBeenCalled();
 });
 
-test("the local proxy forwards only the paths each app enables", async () => {
-  vi.stubEnv("API_PORT", "15437");
-  const { apiProxy } = await import("../src/routing");
-  const paths = ["/api/auth/", "/api/report-images/"];
-  expect(apiProxy(paths)).toEqual({
-    "/api/auth/": { target: "http://localhost:15437" },
-    "/api/report-images/": { target: "http://localhost:15437" },
-  });
-  expect(apiProxy([])).toEqual({});
+test("runApi requires a server request instead of silently dropping its cookie", async () => {
+  const { runApi } = await import("../src/api");
+  await expect(runApi(getMe)).rejects.toThrow("No StartEvent found");
 });
 
 test("runApi preserves typed API errors and returns plain data for TanStack", async () => {
@@ -107,24 +120,26 @@ test("runApi preserves typed API errors and returns plain data for TanStack", as
     ),
   );
   const { runApi } = await import("../src/api");
-  expect(
-    await runApi(
-      undefined,
-      getMe.pipe(
-        Effect.catchTag("AuthenticationError", (error) =>
-          Effect.succeed(error.message),
+  const handler = requestHandler(async () => {
+    expect(
+      await runApi(
+        getMe.pipe(
+          Effect.catchTag("AuthenticationError", (error) =>
+            Effect.succeed(error.message),
+          ),
         ),
       ),
-    ),
-  ).toBe("Sign in required");
+    ).toBe("Sign in required");
 
-  class Result extends Schema.Class<Result>("Result")({
-    name: Schema.String,
-  }) {}
-  const result = await runApi(
-    undefined,
-    Effect.succeed(new Result({ name: "Practice" })),
-  );
-  expect(result).toEqual({ name: "Practice" });
-  expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    class Result extends Schema.Class<Result>("Result")({
+      name: Schema.String,
+    }) {}
+    const result = await runApi(
+      Effect.succeed(new Result({ name: "Practice" })),
+    );
+    expect(result).toEqual({ name: "Practice" });
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    return new Response();
+  });
+  expect((await handler(new Request("http://app.test/"), {})).status).toBe(200);
 });

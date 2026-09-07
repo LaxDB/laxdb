@@ -22,7 +22,7 @@
 | -------------------------- | ---------------------- | ----------------- |
 | `Effect.catchAll`          | Swallows typed errors  | `Effect.catchTag` |
 | Direct DB in routes        | Bypasses service layer | service → repo    |
-| `useState` for server data | Missing cache/sync     | TanStack Query    |
+| `useState` for server data | Missing cache/sync     | Shared Effect query helpers |
 
 <!-- effect-solutions:start -->
 

@@ -1,7 +1,6 @@
 import { ApiClient } from "@laxdb/api/client";
 import { Me } from "@laxdb/core/auth/auth.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
 import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
@@ -22,20 +21,17 @@ export const meAtom = makeAsyncQuery({
   },
 });
 
-export const getMe = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(
-    ({ context }): Promise<MeCtx> =>
-      runApi(
-        context.apiCookie,
-        Effect.gen(function* () {
-          const client = yield* ApiClient;
-          return yield* client.Auth.me({ payload: {} });
-        }).pipe(
-          // Only "not signed in" becomes null (→ login redirect). Transport or
-          // authorization failures should surface loudly, not masquerade as a
-          // logged-out user.
-          Effect.catchTag("AuthenticationError", () => Effect.succeed(null)),
-        ),
+export const getMe = createServerFn({ method: "GET" }).handler(
+  (): Promise<MeCtx> =>
+    runApi(
+      Effect.gen(function* () {
+        const client = yield* ApiClient;
+        return yield* client.Auth.me({ payload: {} });
+      }).pipe(
+        // Only "not signed in" becomes null (→ login redirect). Transport or
+        // authorization failures should surface loudly, not masquerade as a
+        // logged-out user.
+        Effect.catchTag("AuthenticationError", () => Effect.succeed(null)),
       ),
-  );
+    ),
+);

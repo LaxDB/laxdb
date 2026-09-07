@@ -16,7 +16,6 @@ import {
   type MatchReport,
 } from "@laxdb/core/match/match.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { apiAuth } from "@laxdb/frontend/auth";
 import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
 import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
@@ -36,11 +35,9 @@ export type SyncGamedayAssociationSeasonView =
 export type SyncGamedayRosterView = typeof SyncGamedayRosterResult.Type;
 
 export const listFixtures = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listFixtures({ payload: data });
@@ -92,11 +89,9 @@ export const selectedFixturesAtom = Atom.family(
 );
 
 export const getFixture = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.getFixture({ payload: data });
@@ -105,11 +100,9 @@ export const getFixture = createServerFn({ method: "GET" })
   );
 
 export const syncFixtures = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.syncFixtures({ payload: data });
@@ -118,11 +111,9 @@ export const syncFixtures = createServerFn({ method: "POST" })
   );
 
 export const syncGamedayRoster = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.syncGamedayRoster({ payload: data });
@@ -131,13 +122,11 @@ export const syncGamedayRoster = createServerFn({ method: "POST" })
   );
 
 export const syncGamedayAssociationSeason = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { seasonId?: string; includeRosters?: boolean }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.syncGamedayAssociationSeason({
@@ -148,16 +137,14 @@ export const syncGamedayAssociationSeason = createServerFn({ method: "POST" })
   );
 
 export const importGamedayTeams = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       seasonId: string;
       teams: readonly GamedayTeamCompetitionView[];
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.importGamedayTeams({ payload: data });
@@ -166,11 +153,9 @@ export const importGamedayTeams = createServerFn({ method: "POST" })
   );
 
 export const listCompetitions = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listCompetitions({ payload: data });
@@ -179,11 +164,9 @@ export const listCompetitions = createServerFn({ method: "GET" })
   );
 
 export const listGamedayTeams = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { compId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listGamedayTeams({ payload: data });
@@ -191,17 +174,15 @@ export const listGamedayTeams = createServerFn({ method: "GET" })
     ),
   );
 
-export const listGamedaySeasons = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
+export const listGamedaySeasons = createServerFn({ method: "GET" }).handler(
+  () =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listGamedaySeasons({ payload: {} });
       }),
     ),
-  );
+);
 
 export const seasonsAtom = makeAsyncQuery({
   load: () => fromPromise(() => listGamedaySeasons()),
@@ -230,11 +211,9 @@ export const competitionsAtom = Atom.family(
 );
 
 export const listGamedayClubs = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listGamedayClubs({ payload: data });
@@ -243,11 +222,9 @@ export const listGamedayClubs = createServerFn({ method: "GET" })
   );
 
 export const listCompetitionsForClubs = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { clubNames: string[]; seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listCompetitionsForClubs({
@@ -258,11 +235,9 @@ export const listCompetitionsForClubs = createServerFn({ method: "GET" })
   );
 
 export const listReports = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listReports({ payload: data });
@@ -291,7 +266,6 @@ export const selectedReportsAtom = Atom.family(
 );
 
 export const submitReport = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       fixtureId: string;
@@ -301,9 +275,8 @@ export const submitReport = createServerFn({ method: "POST" })
       blurb?: string | null;
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.submitReport({ payload: data });
@@ -312,11 +285,9 @@ export const submitReport = createServerFn({ method: "POST" })
   );
 
 export const listMatchImages = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { fixtureId?: string; teamId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.listMatchImages({ payload: data });
@@ -351,7 +322,6 @@ export const selectedImagesAtom = Atom.family(
 );
 
 export const uploadMatchImage = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       fixtureId: string;
@@ -360,9 +330,8 @@ export const uploadMatchImage = createServerFn({ method: "POST" })
       dataBase64: string;
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.uploadMatchImage({ payload: data });
@@ -371,11 +340,9 @@ export const uploadMatchImage = createServerFn({ method: "POST" })
   );
 
 export const deleteMatchImage = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Matches.deleteMatchImage({ payload: data });
