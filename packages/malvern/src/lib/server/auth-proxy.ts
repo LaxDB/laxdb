@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 
-import { env } from "../../env";
+import { fetchApi, localApiUrl } from "../api-fetch";
 
 const isLocalRequest = (request: Request) => {
   const host = new URL(request.url).hostname;
@@ -8,7 +8,7 @@ const isLocalRequest = (request: Request) => {
 };
 
 const apiOrigin = (request: Request) =>
-  isLocalRequest(request) ? "http://localhost:1437" : "http://api";
+  isLocalRequest(request) ? localApiUrl : "http://api";
 
 const toApiRequest = (request: Request) => {
   const source = new URL(request.url);
@@ -67,11 +67,7 @@ export const traceResponse = <E>(
 export const forwardApiRequest = (request: Request) =>
   traceResponse(
     "api.proxy",
-    Effect.promise(() =>
-      isLocalRequest(request)
-        ? fetch(toApiRequest(request))
-        : env.API.fetch(toApiRequest(request)),
-    ),
+    Effect.promise(() => fetchApi(toApiRequest(request))),
   );
 
 export const forwardAuthRequest = (request: Request) =>

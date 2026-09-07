@@ -11,64 +11,17 @@ import { createMiddleware } from "@tanstack/react-start";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 
-type ApiServiceBinding = { readonly fetch: typeof fetch };
-
-type CloudflareWorkersModule = {
-  readonly env: { readonly API: ApiServiceBinding };
-};
-
-const isCloudflareWorkersModule = (
-  value: unknown,
-): value is CloudflareWorkersModule => {
-  if (typeof value !== "object" || value === null || !("env" in value)) {
-    return false;
-  }
-  const env = value.env;
-  return (
-    typeof env === "object" &&
-    env !== null &&
-    "API" in env &&
-    typeof env.API === "object" &&
-    env.API !== null &&
-    "fetch" in env.API &&
-    typeof env.API.fetch === "function"
-  );
-};
-
-const isLocal = process.env.IS_LOCAL === "true";
-const localApiUrl = `http://localhost:${process.env.API_PORT ?? "1437"}`;
-const apiUrl = isLocal ? localApiUrl : "http://api";
-
-const loadApiBinding = Effect.promise(async () => {
-  // oxlint-disable-next-line no-useless-concat -- A static specifier makes Vite resolve this worker runtime module at build time.
-  const workerModule = "cloudflare:" + "workers";
-  const workers: unknown = await import(/* @vite-ignore */ workerModule);
-  if (!isCloudflareWorkersModule(workers)) {
-    throw new TypeError("Cloudflare workers module is missing the API binding");
-  }
-  return workers.env.API;
-});
+import { apiUrl, fetchApi } from "./api-fetch";
 
 const attachCookie = (request: Request, cookie: string | undefined) => {
   if (cookie !== undefined) request.headers.set("cookie", cookie);
   return request;
 };
 
-const toLocalApiRequest = (request: Request) => {
-  const source = new URL(request.url);
-  const target = new URL(`${source.pathname}${source.search}`, localApiUrl);
-  return new Request(target, request);
-};
-
 const boundApiFetch =
   (cookie: string | undefined): typeof fetch =>
-  async (input, init) => {
-    const request = attachCookie(new Request(input, init), cookie);
-    if (isLocal) return fetch(toLocalApiRequest(request));
-
-    const api = await Effect.runPromise(loadApiBinding);
-    return api.fetch(request);
-  };
+  (input, init) =>
+    fetchApi(attachCookie(new Request(input, init), cookie));
 
 export const apiAuth = createMiddleware().server(({ request, next }) =>
   next({ context: { apiCookie: request.headers.get("cookie") ?? undefined } }),
