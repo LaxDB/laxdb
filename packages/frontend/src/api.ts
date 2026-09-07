@@ -3,7 +3,7 @@
 import "@tanstack/react-start/server-only";
 
 import { makeApiClientLayer, type ApiClient } from "@laxdb/api/client";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import { FetchHttpClient } from "effect/unstable/http";
 
 import { localApiUrl } from "./routing";
@@ -52,12 +52,6 @@ const attachCookie = (request: Request, cookie: string | undefined) => {
   return request;
 };
 
-const toLocalApiRequest = (request: Request) => {
-  const source = new URL(request.url);
-  const target = new URL(`${source.pathname}${source.search}`, localApiUrl);
-  return new Request(target, request);
-};
-
 const boundApiFetch = (cookie: string | undefined): typeof fetch =>
   Object.assign(
     async (
@@ -65,7 +59,7 @@ const boundApiFetch = (cookie: string | undefined): typeof fetch =>
       init?: Parameters<typeof fetch>[1],
     ) => {
       const request = attachCookie(new Request(input, init), cookie);
-      if (isLocal) return fetch(toLocalApiRequest(request));
+      if (isLocal) return fetch(request);
 
       const api = await loadApiBinding();
       return api.fetch(request);
@@ -74,25 +68,18 @@ const boundApiFetch = (cookie: string | undefined): typeof fetch =>
     fetch,
   );
 
-const clientLayer = (cookie: string | undefined) =>
-  makeApiClientLayer(apiUrl).pipe(
-    Layer.provide(
-      FetchHttpClient.layer.pipe(
-        Layer.provide(
-          Layer.succeed(FetchHttpClient.Fetch, boundApiFetch(cookie)),
-        ),
-      ),
-    ),
-  );
+// Cache client construction, not request cookies or API responses.
+const runtime = ManagedRuntime.make(
+  makeApiClientLayer(apiUrl).pipe(Layer.provide(FetchHttpClient.layer)),
+);
 
 export async function runApi<A, E>(
   cookie: string | undefined,
   effect: Effect.Effect<A, E, ApiClient>,
 ): Promise<A> {
-  const result = await Effect.runPromise(
+  const result = await runtime.runPromise(
     effect.pipe(
-      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- runApi executes the fully provided effect at this Promise boundary.
-      Effect.provide(clientLayer(cookie)),
+      Effect.provideService(FetchHttpClient.Fetch, boundApiFetch(cookie)),
     ),
   );
   return structuredClone(result);

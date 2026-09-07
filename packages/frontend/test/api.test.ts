@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 test.each(["true", "false"])(
-  "API transport keeps cookies request-local (IS_LOCAL=%s)",
+  "API transport reuses its client and keeps cookies request-local (IS_LOCAL=%s)",
   async (isLocal) => {
     vi.stubEnv("IS_LOCAL", isLocal);
     vi.stubEnv("API_PORT", "15437");
@@ -39,17 +39,23 @@ test.each(["true", "false"])(
     vi.doMock("cloudflare:workers", () => ({ env: { API: binding } }));
     const { runApi } = await import("../src/api");
 
+    const clients = new Set<typeof ApiClient.Service>();
+    const lookup = Effect.gen(function* () {
+      clients.add(yield* ApiClient);
+      return yield* getMe;
+    });
     const cookies = ["session=alice", "session=bob", undefined];
     // ponytail: serial binding mocks; use a Workers pool for concurrent binding tests.
     const results =
       isLocal === "true"
-        ? await Promise.all(cookies.map((cookie) => runApi(cookie, getMe)))
-        : await Array.fromAsync(cookies, (cookie) => runApi(cookie, getMe));
+        ? await Promise.all(cookies.map((cookie) => runApi(cookie, lookup)))
+        : await Array.fromAsync(cookies, (cookie) => runApi(cookie, lookup));
     expect(results.map((result) => result.userId)).toEqual([
       "session=alice",
       "session=bob",
       "anonymous",
     ]);
+    expect(clients.size).toBe(1);
     expect(requests).toHaveLength(3);
     for (const request of requests) {
       expect(request.url).toBe(
