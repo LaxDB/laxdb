@@ -1,4 +1,3 @@
-import { apiRoutes } from "@laxdb/frontend/routing";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
@@ -99,12 +98,11 @@ export default Alchemy.Stack(
         TRUSTED_ORIGINS: trustedOrigins,
         STORAGE: bucket,
       },
-      apiRoutes(`malvern.${baseDomain}`, apiPaths),
+      apiPaths.map((path) => ({ pattern: `malvern.${baseDomain}${path}*` })),
     );
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {
       rootDir: "./packages/marketing",
-      workersDev: true,
       domain: baseDomain,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -115,7 +113,6 @@ export default Alchemy.Stack(
 
     const rulesWiki = yield* Cloudflare.Website.Vite("rules-wiki", {
       rootDir: "./packages/rules-wiki",
-      workersDev: true,
       domain: `rules.${baseDomain}`,
       dev: {
         port: 1441,
@@ -125,11 +122,6 @@ export default Alchemy.Stack(
 
     const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
       rootDir: "./packages/practice-planner",
-      memo: {
-        include: ["**/*", "../frontend/src/**", "../frontend/package.json"],
-        lockfile: true,
-      },
-      workersDev: true,
       domain: `planner.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -145,11 +137,6 @@ export default Alchemy.Stack(
 
     const malvern = yield* Cloudflare.Website.Vite("malvern", {
       rootDir: "./packages/malvern",
-      memo: {
-        include: ["**/*", "../frontend/src/**", "../frontend/package.json"],
-        lockfile: true,
-      },
-      // Auth/image path routes apply to this domain, not workers.dev URLs.
       workersDev: false,
       domain: `malvern.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
@@ -168,7 +155,6 @@ export default Alchemy.Stack(
 
     const worldLacrosseLive = yield* Cloudflare.Worker("world-lacrosse-live", {
       main: "./packages/world-lacrosse/src/live-scores-worker.ts",
-      workersDev: true,
       domain: `live.world.${baseDomain}`,
       crons: tournamentRefreshCrons(stage, config.stages.prod),
       compatibility: { flags: ["nodejs_compat"] },
@@ -183,11 +169,6 @@ export default Alchemy.Stack(
 
     const worldLacrosse = yield* Cloudflare.Website.Vite("world-lacrosse", {
       rootDir: "./packages/world-lacrosse",
-      memo: {
-        include: ["**/*", "../frontend/src/**", "../frontend/package.json"],
-        lockfile: true,
-      },
-      workersDev: true,
       domain: `world.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {

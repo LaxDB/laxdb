@@ -84,19 +84,14 @@ test("missing service bindings fail without falling back to public HTTP", async 
   expect(network).not.toHaveBeenCalled();
 });
 
-test("routing forwards only the paths each app enables", async () => {
+test("the local proxy forwards only the paths each app enables", async () => {
   vi.stubEnv("API_PORT", "15437");
-  const { apiRoutes, apiProxy } = await import("../src/routing");
+  const { apiProxy } = await import("../src/routing");
   const paths = ["/api/auth/", "/api/report-images/"];
-  expect(apiRoutes("malvern.preview.dev.laxdb.io", paths)).toEqual([
-    { pattern: "malvern.preview.dev.laxdb.io/api/auth/*" },
-    { pattern: "malvern.preview.dev.laxdb.io/api/report-images/*" },
-  ]);
   expect(apiProxy(paths)).toEqual({
     "/api/auth/": { target: "http://localhost:15437" },
     "/api/report-images/": { target: "http://localhost:15437" },
   });
-  expect(apiRoutes("planner.laxdb.io", [])).toEqual([]);
   expect(apiProxy([])).toEqual({});
 });
 
