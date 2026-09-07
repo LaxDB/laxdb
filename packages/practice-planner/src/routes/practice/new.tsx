@@ -1,4 +1,5 @@
 import { ApiClient } from "@laxdb/api/client";
+import { runApi } from "@laxdb/frontend/api";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
   Field,
@@ -19,7 +20,6 @@ import { Effect, Schema } from "effect";
 import { Calendar, Clock, MapPin, Loader2 } from "lucide-react";
 import { useState } from "react";
 
-import { runApi } from "@/lib/api";
 import { decodePracticeDefaults, practiceDefaultsScope } from "@/lib/defaults";
 
 // ---------------------------------------------------------------------------

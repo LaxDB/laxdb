@@ -153,11 +153,15 @@ const makeRoutes = (auth: Auth, services: ServicesLayer) =>
     makeMatchImageRoute(services),
   ).pipe(Layer.provide(DateTime.layerCurrentZoneLocal));
 
-export const makeApiWorker = (env: Cloudflare.WorkerBindingProps = {}) =>
+export const makeApiWorker = (
+  env: Cloudflare.WorkerBindingProps = {},
+  routes: Cloudflare.WorkerRouteConfig[] = [],
+) =>
   Cloudflare.Worker(
     "api",
     {
       main: import.meta.filename,
+      routes,
       dev: {
         port: 1437,
         strictPort: true,

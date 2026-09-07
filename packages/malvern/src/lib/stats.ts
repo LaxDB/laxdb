@@ -5,13 +5,12 @@ import type {
   TeamSeasonSummary,
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
-import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
-import { fromPromise } from "@laxdb/reactivity/promise";
+import { runApi } from "@laxdb/frontend/api";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
-
-import { apiAuth, runApi } from "./api-client";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
 export type TeamSeasonSummaryView = typeof TeamSeasonSummary.Type;
@@ -27,11 +26,9 @@ export type FixturePlayerStatInput = {
 };
 
 export const getFixtureStats = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { fixtureId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Stats.getFixtureStats({ payload: data });
@@ -40,7 +37,6 @@ export const getFixtureStats = createServerFn({ method: "GET" })
   );
 
 export const upsertFixtureStats = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       fixtureId: string;
@@ -52,9 +48,8 @@ export const upsertFixtureStats = createServerFn({ method: "POST" })
       players: readonly FixturePlayerStatInput[];
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Stats.upsertFixtureStats({ payload: data });
@@ -63,11 +58,9 @@ export const upsertFixtureStats = createServerFn({ method: "POST" })
   );
 
 export const getTeamSummary = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Stats.getTeamSummary({ payload: data });
@@ -76,11 +69,9 @@ export const getTeamSummary = createServerFn({ method: "GET" })
   );
 
 export const getTeamPlayerStats = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Stats.getTeamPlayerStats({ payload: data });
@@ -89,11 +80,9 @@ export const getTeamPlayerStats = createServerFn({ method: "GET" })
   );
 
 export const getTeamStandings = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Stats.getTeamStandings({ payload: data });

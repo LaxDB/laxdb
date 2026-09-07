@@ -101,7 +101,9 @@ export const makeAsyncQuery = <A, E>(
     options.refreshSignal === undefined
       ? hydratable
       : hydratable.pipe(Atom.makeRefreshOnSignal(options.refreshSignal));
+  // Cache the data; recreate the SWR wrapper on remount to check staleness.
   const cached = refreshable.pipe(
+    Atom.setIdleTTL(idleTTL),
     Atom.swr({
       staleTime,
       revalidateOnMount,
@@ -114,5 +116,5 @@ export const makeAsyncQuery = <A, E>(
     options.pollInterval === undefined
       ? cached
       : cached.pipe(withPolling(options.pollInterval));
-  return query.pipe(Atom.setIdleTTL(idleTTL));
+  return query.pipe(Atom.setIdleTTL(0));
 };

@@ -28,7 +28,7 @@ const practices = Route.useLoaderData();
 
 ### Client-side (non-blocking, cached)
 
-Use `useQuery` with the same `createServerFn` pattern for data that loads after the page renders. The server function still executes on the server — `useQuery` just calls it from the client without blocking SSR.
+Use the shared Effect query helpers for deferred data. `Atom.withServerValueInitial` prevents requests during SSR. The server function still executes on the server.
 
 ```tsx
 const loadDrills = createServerFn({ method: "GET" }).handler(() =>
@@ -38,11 +38,13 @@ const loadDrills = createServerFn({ method: "GET" }).handler(() =>
   })),
 );
 
+const drillsAtom = makeAsyncQuery({
+  load: () => fromPromise(() => loadDrills()),
+  staleTime: "5 minutes",
+}).pipe(Atom.withServerValueInitial);
+
 // In component:
-const { data: drills = [] } = useQuery({
-  queryKey: ["drills"],
-  queryFn: () => loadDrills(),
-});
+const { data: drills = [] } = useAsyncQuery(drillsAtom);
 ```
 
 ### When to use which
@@ -50,12 +52,12 @@ const { data: drills = [] } = useQuery({
 | Pattern | When |
 |---------|------|
 | Route loader | Data visible on first paint |
-| `useQuery` + `createServerFn` | Data behind interaction, cacheable across navigations |
+| `useAsyncQuery` + `createServerFn` | Data behind interaction, cacheable across navigations |
 | Mutation + navigate | Create/update then redirect |
 
 ### `runApi` boundary
 
-All API calls go through `runApi()` in `lib/api.ts`, which must only be called inside `createServerFn` handlers — never from client components. `runApi` manages a `ManagedRuntime` singleton backed by the generated Effect `HttpApiClient`, and JSON round-trips results to strip Effect `Schema.Class` instances (seroval can't serialize them).
+Import `runApi` directly from `@laxdb/frontend/api`. Call it only inside `createServerFn` handlers. It reads the current request's cookie through TanStack and forwards it without storing session state. Requests without cookies stay anonymous. The shared client uses local HTTP in development and the `API` service binding in deployment. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`. Keep app-specific auth paths and login settings in the app.
 
 ## HTTP API Client
 
@@ -77,7 +79,7 @@ Scalar types (`Difficulty`, `DrillCategory`, `PracticeItemType`, etc.) are deriv
 | Call `runApi()` from client components | Wrap in `createServerFn` |
 | Duplicate types from core | Derive via `Schema.Schema.Type<>` |
 | Pass shared data as props through layers | Context provider + hook |
-| Block SSR with data not on first paint | `useQuery` for deferred data |
+| Block SSR with data not on first paint | `useAsyncQuery` with `Atom.withServerValueInitial` for deferred data |
 | Use `Practice` for the canvas model | `PracticeGraph` (avoids DB collision) |
 
 ## Key Constraints

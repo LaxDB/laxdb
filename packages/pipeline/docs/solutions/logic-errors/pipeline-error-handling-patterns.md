@@ -217,5 +217,5 @@ return yield* Schema.decodeUnknown(NLLExtractionManifest)(parsed).pipe(
 
 - **Error types**: `packages/pipeline/src/error.ts`
 - **Effect source**: `node_modules/effect/src`
-- **Anti-patterns**: `CLAUDE.md` (root) - `Effect.catchAll` documented as blocking pattern
+- **Anti-patterns**: `AGENTS.md` (root) - `Effect.catchAll` documented as blocking pattern
 - **REST client retry**: `packages/pipeline/src/api-client/rest-client.service.ts`

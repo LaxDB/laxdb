@@ -4,29 +4,25 @@ import {
   type ReportRecipient,
   type RosterPlayer,
 } from "@laxdb/core/club/club.schema";
-import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
-import { fromPromise } from "@laxdb/reactivity/promise";
+import { runApi } from "@laxdb/frontend/api";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
-
-import { apiAuth, runApi } from "./api-client";
 
 export type TeamView = typeof ClubTeam.Type;
 export type RosterPlayerView = typeof RosterPlayer.Type;
 export type RecipientView = typeof ReportRecipient.Type;
 
-export const listTeams = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
-    runApi(
-      context.apiCookie,
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Club.listTeams({ payload: {} });
-      }),
-    ),
-  );
+export const listTeams = createServerFn({ method: "GET" }).handler(() =>
+  runApi(
+    Effect.gen(function* () {
+      const client = yield* ApiClient;
+      return yield* client.Club.listTeams({ payload: {} });
+    }),
+  ),
+);
 
 export const teamsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const teamsAtom = makeAsyncQuery({
@@ -43,13 +39,11 @@ export const teamsAtom = makeAsyncQuery({
 }).pipe(Atom.optimistic);
 
 export const createTeam = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { name: string; coachMemberId?: string | null }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.createTeam({ payload: data });
@@ -58,14 +52,12 @@ export const createTeam = createServerFn({ method: "POST" })
   );
 
 export const updateTeam = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { id: string; name?: string; coachMemberId?: string | null }) =>
       input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.updateTeam({ payload: data });
@@ -102,11 +94,9 @@ export const updateTeamAtom = Atom.optimisticFn(teamsAtom, {
 });
 
 export const deleteTeam = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.deleteTeam({ payload: data });
@@ -115,11 +105,9 @@ export const deleteTeam = createServerFn({ method: "POST" })
   );
 
 export const listRoster = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.listRoster({ payload: data });
@@ -136,14 +124,12 @@ export const rosterAtom = Atom.family((teamId: string) =>
 );
 
 export const addRosterPlayer = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { teamId: string; name: string; jerseyNumber?: number | null }) =>
       input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.addRosterPlayer({ payload: data });
@@ -152,7 +138,6 @@ export const addRosterPlayer = createServerFn({ method: "POST" })
   );
 
 export const updateRosterPlayer = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: {
       id: string;
@@ -161,9 +146,8 @@ export const updateRosterPlayer = createServerFn({ method: "POST" })
       active?: boolean;
     }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.updateRosterPlayer({ payload: data });
@@ -172,11 +156,9 @@ export const updateRosterPlayer = createServerFn({ method: "POST" })
   );
 
 export const removeRosterPlayer = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.removeRosterPlayer({ payload: data });
@@ -184,17 +166,14 @@ export const removeRosterPlayer = createServerFn({ method: "POST" })
     ),
   );
 
-export const listRecipients = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
-  .handler(({ context }) =>
-    runApi(
-      context.apiCookie,
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Club.listRecipients({ payload: {} });
-      }),
-    ),
-  );
+export const listRecipients = createServerFn({ method: "GET" }).handler(() =>
+  runApi(
+    Effect.gen(function* () {
+      const client = yield* ApiClient;
+      return yield* client.Club.listRecipients({ payload: {} });
+    }),
+  ),
+);
 
 export const recipientsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const recipientsAtom = makeAsyncQuery({
@@ -203,11 +182,9 @@ export const recipientsAtom = makeAsyncQuery({
 });
 
 export const listRecipientsForTeam = createServerFn({ method: "GET" })
-  .middleware([apiAuth])
   .inputValidator((input: { teamId: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.listRecipientsForTeam({ payload: data });
@@ -216,13 +193,11 @@ export const listRecipientsForTeam = createServerFn({ method: "GET" })
   );
 
 export const addRecipient = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator(
     (input: { teamId?: string | null; label: string; email: string }) => input,
   )
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.addRecipient({ payload: data });
@@ -231,11 +206,9 @@ export const addRecipient = createServerFn({ method: "POST" })
   );
 
 export const removeRecipient = createServerFn({ method: "POST" })
-  .middleware([apiAuth])
   .inputValidator((input: { id: string }) => input)
-  .handler(({ data, context }) =>
+  .handler(({ data }) =>
     runApi(
-      context.apiCookie,
       Effect.gen(function* () {
         const client = yield* ApiClient;
         return yield* client.Club.removeRecipient({ payload: data });

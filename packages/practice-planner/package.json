@@ -15,11 +15,12 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
+    "@effect/atom-react": "4.0.0-beta.103",
     "@laxdb/api": "workspace:*",
     "@laxdb/core": "workspace:*",
+    "@laxdb/frontend": "workspace:*",
     "@laxdb/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-query": "^5.95.2",
     "@tanstack/react-router": "^1.143.11",
     "@tanstack/react-start": "^1.143.12",
     "@vitejs/plugin-react": "^6.0.5",

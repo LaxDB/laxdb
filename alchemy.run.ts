@@ -71,8 +71,7 @@ export default Alchemy.Stack(
     const bucket = yield* storage;
 
     const baseDomain = baseDomainForStage(stage);
-    const isLocal =
-      stage === config.stages.dev || stage.startsWith(`${config.stages.dev}_`);
+    const isLocal = (yield* Alchemy.AlchemyContext).dev;
     const malvernOrigin = isLocal
       ? "http://localhost:1438"
       : `https://malvern.${baseDomain}`;
@@ -85,22 +84,27 @@ export default Alchemy.Stack(
           ).join(",")
         : secrets.trustedOrigins;
 
-    const api = yield* makeApiWorker({
-      DB: db,
-      BETTER_AUTH_URL:
-        secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
-      EMAIL_SENDER: secrets.emailSender,
-      IS_LOCAL: isLocal ? "true" : "",
-      GOOGLE_CLIENT_ID: secrets.googleClientId,
-      GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
-      RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
-      TRUSTED_ORIGINS: trustedOrigins,
-      STORAGE: bucket,
-    });
+    const api = yield* makeApiWorker(
+      {
+        DB: db,
+        BETTER_AUTH_URL:
+          secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
+        EMAIL_SENDER: secrets.emailSender,
+        IS_LOCAL: isLocal ? "true" : "",
+        GOOGLE_CLIENT_ID: secrets.googleClientId,
+        GOOGLE_CLIENT_SECRET: secrets.googleClientSecret,
+        RESEND_API_KEY: isLocal ? Redacted.make("") : secrets.resendApiKey,
+        TRUSTED_ORIGINS: trustedOrigins,
+        STORAGE: bucket,
+      },
+      [
+        { pattern: `malvern.${baseDomain}/api/auth/*` },
+        { pattern: `malvern.${baseDomain}/api/report-images/*` },
+      ],
+    );
 
     const marketing = yield* Cloudflare.Website.Vite("marketing", {
       rootDir: "./packages/marketing",
-      workersDev: true,
       domain: baseDomain,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -111,7 +115,6 @@ export default Alchemy.Stack(
 
     const rulesWiki = yield* Cloudflare.Website.Vite("rules-wiki", {
       rootDir: "./packages/rules-wiki",
-      workersDev: true,
       domain: `rules.${baseDomain}`,
       dev: {
         port: 1441,
@@ -121,7 +124,6 @@ export default Alchemy.Stack(
 
     const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
       rootDir: "./packages/practice-planner",
-      workersDev: true,
       domain: `planner.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -137,7 +139,7 @@ export default Alchemy.Stack(
 
     const malvern = yield* Cloudflare.Website.Vite("malvern", {
       rootDir: "./packages/malvern",
-      workersDev: true,
+      workersDev: false,
       domain: `malvern.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {
@@ -155,7 +157,6 @@ export default Alchemy.Stack(
 
     const worldLacrosseLive = yield* Cloudflare.Worker("world-lacrosse-live", {
       main: "./packages/world-lacrosse/src/live-scores-worker.ts",
-      workersDev: true,
       domain: `live.world.${baseDomain}`,
       crons: tournamentRefreshCrons(stage, config.stages.prod),
       compatibility: { flags: ["nodejs_compat"] },
@@ -170,7 +171,6 @@ export default Alchemy.Stack(
 
     const worldLacrosse = yield* Cloudflare.Website.Vite("world-lacrosse", {
       rootDir: "./packages/world-lacrosse",
-      workersDev: true,
       domain: `world.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
       dev: {

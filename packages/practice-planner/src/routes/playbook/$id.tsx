@@ -1,5 +1,6 @@
 import { ApiClient } from "@laxdb/api/client";
 import { UpdatePlayInput } from "@laxdb/core/play/play.schema";
+import { runApi } from "@laxdb/frontend/api";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Separator } from "@laxdb/ui/components/ui/separator";
@@ -14,7 +15,6 @@ import {
   PlayFormFields,
   type PlayFormFieldsProps,
 } from "@/components/play-form-fields";
-import { runApi } from "@/lib/api";
 import { PLAY_CATEGORY_COLORS } from "@/lib/play-definitions";
 import type { PlayCategory } from "@/types";
 

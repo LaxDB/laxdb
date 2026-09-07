@@ -1,10 +1,9 @@
 /// <reference types="vite/client" />
 
+import { RegistryProvider } from "@effect/atom-react";
 import { ThemeProvider } from "@laxdb/ui/components/theme-provider";
-import type { QueryClient } from "@tanstack/react-query";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
-  createRootRouteWithContext,
+  createRootRoute,
   HeadContent,
   Outlet,
   Scripts,
@@ -22,9 +21,7 @@ function NotFound() {
   );
 }
 
-export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient;
-}>()({
+export const Route = createRootRoute({
   notFoundComponent: NotFound,
   head: () => ({
     meta: [
@@ -42,20 +39,19 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="min-h-screen overflow-x-hidden bg-background text-foreground antialiased">
-        <QueryClientProvider client={queryClient}>
+        <RegistryProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             <AppShell>
               <Outlet />
             </AppShell>
           </ThemeProvider>
-        </QueryClientProvider>
+        </RegistryProvider>
         <Scripts />
       </body>
     </html>

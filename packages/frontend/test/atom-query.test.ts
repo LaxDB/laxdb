@@ -5,10 +5,10 @@ import {
   AtomRegistry,
   Hydration,
 } from "effect/unstable/reactivity";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { makeAsyncQuery } from "./atom-query";
-import { fromPromise } from "./promise";
+import { makeAsyncQuery } from "../src/reactivity/atom-query";
+import { fromPromise } from "../src/reactivity/promise";
 
 describe("makeAsyncQuery", () => {
   it("shares loader data with hydrated consumers without sharing server requests", async () => {
@@ -174,8 +174,8 @@ describe("makeAsyncQuery", () => {
   it("keeps unused queries for five minutes by default", () => {
     const atom = makeAsyncQuery({ load: () => Effect.succeed(1) });
 
-    expect(atom.keepAlive).toBe(false);
-    expect(atom.idleTTL).toBe(5 * 60 * 1_000);
+    expect(atom.initialValueTarget?.keepAlive).toBe(false);
+    expect(atom.initialValueTarget?.idleTTL).toBe(5 * 60 * 1_000);
   });
 
   it("allows each query to override the idle lifetime", () => {
@@ -188,30 +188,51 @@ describe("makeAsyncQuery", () => {
       idleTTL: "Infinity",
     });
 
-    expect(disposable.keepAlive).toBe(false);
-    expect(disposable.idleTTL).toBe(0);
-    expect(applicationOwned.keepAlive).toBe(true);
-    expect(applicationOwned.idleTTL).toBeUndefined();
+    expect(disposable.initialValueTarget?.keepAlive).toBe(false);
+    expect(disposable.initialValueTarget?.idleTTL).toBe(0);
+    expect(applicationOwned.initialValueTarget?.keepAlive).toBe(true);
+    expect(applicationOwned.initialValueTarget?.idleTTL).toBeUndefined();
   });
 
-  it("uses stale-time overrides on remount", () => {
+  it("defers client-only queries and keeps them fresh for five minutes", async () => {
+    let now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
     let loads = 0;
     const atom = makeAsyncQuery({
       load: () => Effect.sync(() => ++loads),
-      staleTime: "1 minute",
-    });
+      staleTime: "5 minutes",
+    }).pipe(Atom.withServerValueInitial);
     const registry = AtomRegistry.make();
+    try {
+      expect(AsyncResult.isInitial(Atom.getServerValue(atom, registry))).toBe(
+        true,
+      );
+      expect(loads).toBe(0);
 
-    const unmount = registry.mount(atom);
-    const first = registry.get(atom);
-    expect(AsyncResult.getOrThrow(first)).toBe(1);
-    unmount();
+      const unmount = registry.mount(atom);
+      expect(AsyncResult.getOrThrow(registry.get(atom))).toBe(1);
+      unmount();
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
 
-    const remount = registry.mount(atom);
-    const second = registry.get(atom);
-    expect(AsyncResult.getOrThrow(second)).toBe(1);
-    expect(loads).toBe(1);
-    remount();
-    registry.dispose();
+      now += 5 * 60 * 1_000 - 1;
+      const remount = registry.mount(atom);
+      expect(AsyncResult.getOrThrow(registry.get(atom))).toBe(1);
+      expect(loads).toBe(1);
+      remount();
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+
+      now += 2;
+      const staleMount = registry.mount(atom);
+      expect(AsyncResult.getOrThrow(registry.get(atom))).toBe(2);
+      expect(loads).toBe(2);
+      staleMount();
+    } finally {
+      registry.dispose();
+      clock.mockRestore();
+    }
   });
 });

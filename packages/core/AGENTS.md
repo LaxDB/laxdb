@@ -120,4 +120,4 @@ Use **SQLite text columns** + **`Schema.Literal` unions in Effect** for enumerat
 
 Only complex subsystems have dedicated Intent Nodes. Other domains (organization, team, player, game, season, feedback, email, user) follow the standard per-domain file pattern above and don't need separate documentation.
 
-- `src/drizzle/CLAUDE.md` - Database connection and Cloudflare D1 specifics
+- `src/drizzle/AGENTS.md` - Database connection and Cloudflare D1 specifics
