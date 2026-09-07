@@ -1,4 +1,4 @@
-import { useAsyncAction } from "@laxdb/reactivity/react-action";
+import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {

@@ -1,4 +1,4 @@
-import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import {

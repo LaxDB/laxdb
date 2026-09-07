@@ -7,8 +7,8 @@ import type {
 } from "@laxdb/core/fine/fine.schema";
 import { runApi } from "@laxdb/frontend/api";
 import { apiAuth } from "@laxdb/frontend/auth";
-import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
-import { fromPromise } from "@laxdb/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";

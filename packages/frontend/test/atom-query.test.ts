@@ -7,8 +7,8 @@ import {
 } from "effect/unstable/reactivity";
 import { describe, expect, it } from "vitest";
 
-import { makeAsyncQuery } from "./atom-query";
-import { fromPromise } from "./promise";
+import { makeAsyncQuery } from "../src/reactivity/atom-query";
+import { fromPromise } from "../src/reactivity/promise";
 
 describe("makeAsyncQuery", () => {
   it("shares loader data with hydrated consumers without sharing server requests", async () => {

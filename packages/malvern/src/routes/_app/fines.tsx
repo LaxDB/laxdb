@@ -3,9 +3,9 @@ import {
   DisplayCurrencyFromCents,
   DisplayDateFromDate,
 } from "@laxdb/core/schema";
-import { waitForQuery } from "@laxdb/reactivity/atom-query";
-import { useAsyncQuery } from "@laxdb/reactivity/react";
-import { useAsyncAction } from "@laxdb/reactivity/react-action";
+import { waitForQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
+import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";

@@ -1,4 +1,4 @@
-import { useAsyncQuery } from "@laxdb/reactivity/react";
+import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
 import type { ReactNode } from "react";
 
 import {

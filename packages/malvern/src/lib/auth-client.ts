@@ -1,5 +1,5 @@
-import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
-import { fromPromise } from "@laxdb/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { fromPromise } from "@laxdb/frontend/reactivity/promise";
 import {
   magicLinkClient,
   organizationClient,

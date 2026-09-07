@@ -1,4 +1,4 @@
-import { makeAsyncQuery } from "@laxdb/reactivity/atom-query";
+import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
 import { Effect, Schedule, Schema } from "effect";
 
 import { FetchError } from "./error";
