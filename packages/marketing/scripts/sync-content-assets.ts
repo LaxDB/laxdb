@@ -8,12 +8,10 @@
  * changelog notes, and Markdown source files are intentionally ignored.
  */
 
-import { BunRuntime } from "@effect/platform-bun";
+import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import { Console, Effect, FileSystem } from "effect";
 
-const contentDirectory = new URL("../src/content/", import.meta.url).pathname;
-const outputDirectory = new URL("../public/content-assets/", import.meta.url).pathname;
 const ignoredDirectoryNames = new Set(["Templates", "changelog"]);
 const markdownExtensions = new Set([".md", ".mdx"]);
 
@@ -45,7 +43,10 @@ function isSyncableAsset(relativePath: string): boolean {
   return !markdownExtensions.has(extension(relativePath));
 }
 
-const syncContentAssets = Effect.gen(function* () {
+export const syncContentAssets = Effect.fn("syncContentAssets")(function* (
+  contentDirectory: string,
+  outputDirectory: string,
+) {
   const fs = yield* FileSystem.FileSystem;
 
   yield* fs.makeDirectory(outputDirectory, { recursive: true });
@@ -77,4 +78,9 @@ const syncContentAssets = Effect.gen(function* () {
   yield* Console.log(`Synced ${copied} content asset${copied === 1 ? "" : "s"}.`);
 });
 
-syncContentAssets.pipe(Effect.provide(BunFileSystem.layer), BunRuntime.runMain);
+if (import.meta.main) {
+  syncContentAssets(
+    new URL("../src/content/", import.meta.url).pathname,
+    new URL("../public/content-assets/", import.meta.url).pathname,
+  ).pipe(Effect.provide(BunFileSystem.layer), BunRuntime.runMain);
+}
