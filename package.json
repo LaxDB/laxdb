@@ -9,7 +9,7 @@
     "build": "turbo build",
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",
-    "dev": "alchemy dev",
+    "dev": "infisical run --env=dev -- alchemy dev",
     "test": "bun ./scripts/run-workspace-tests.mjs",
     "test:integration": "bun ./scripts/run-workspace-integration-tests.mjs",
     "test:ci": "bash ./scripts/run-ci-tests.sh",
