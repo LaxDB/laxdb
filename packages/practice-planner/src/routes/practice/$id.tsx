@@ -37,12 +37,7 @@ import { generateQuickPlan } from "@/lib/quick-plan";
 import type { Drill, DrillCategory, PracticeNode } from "@/types";
 
 const loadDrills = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Drills.listDrills();
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Drills.listDrills())),
 );
 
 const drillsAtom = makeAsyncQuery({

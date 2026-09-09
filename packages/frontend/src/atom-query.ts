@@ -78,40 +78,28 @@ const previousValue = <A>(
   Option.getOrUndefined(Option.flatMap(result, AsyncResult.value));
 
 const withPolling = <A, E>(
-  interval: (value: A | undefined) => Duration.Input,
-): ((
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
-) => Atom.Atom<AsyncResult.AsyncResult<A, E>>) =>
-  Atom.transform((get, atom) => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const schedule = (result: AsyncResult.AsyncResult<A, E>): void => {
-      if (timer !== undefined) clearTimeout(timer);
-      timer = undefined;
-      if (
-        result.waiting ||
-        AsyncResult.isInitial(result) ||
-        typeof document === "undefined"
-      )
-        return;
+  interval: (value: A | undefined) => Duration.Input,
+) =>
+  Atom.transform(atom, (get) => {
+    const result = get(atom);
+    if (
+      typeof document !== "undefined" &&
+      !result.waiting &&
+      !AsyncResult.isInitial(result)
+    ) {
       const value = Option.getOrUndefined(AsyncResult.value(result));
-      timer = setTimeout(
+      const timer = setTimeout(
         () => {
           if (document.visibilityState === "visible") get.refresh(atom);
         },
-        Duration.toMillis(Duration.fromInputUnsafe(interval(value))),
+        Duration.toMillis(interval(value)),
       );
-    };
-
-    const current = get.once(atom);
-    schedule(current);
-    get.subscribe(atom, (result) => {
-      schedule(result);
-      get.setSelf(result);
-    });
-    get.addFinalizer(() => {
-      if (timer !== undefined) clearTimeout(timer);
-    });
-    return current;
+      get.addFinalizer(() => {
+        clearTimeout(timer);
+      });
+    }
+    return result;
   });
 
 /** Use Effect loaders when queries need typed failures, retries, or previous data. */
@@ -146,23 +134,15 @@ export const makeEffectQuery = <A, E>(
   const query =
     options.pollInterval === undefined
       ? cached
-      : cached.pipe(withPolling(options.pollInterval));
+      : withPolling(cached, options.pollInterval);
   return query.pipe(Atom.setIdleTTL(0));
 };
-
-export interface AsyncQueryState<A, E> {
-  readonly data: A | undefined;
-  readonly error: E | undefined;
-  readonly isLoading: boolean;
-  readonly isFetching: boolean;
-  readonly refresh: () => void;
-}
 
 const disabledQuery = Atom.make(AsyncResult.initial());
 
 export const useAsyncQuery = <A, E>(
   atom: Atom.Atom<AsyncResult.AsyncResult<A, E>> | undefined,
-): AsyncQueryState<A, E> => {
+) => {
   const result = useAtomValue(atom ?? disabledQuery);
   const refresh = useAtomRefresh(atom ?? disabledQuery);
   const data = Option.getOrUndefined(AsyncResult.value(result));

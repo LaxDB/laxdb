@@ -8,7 +8,6 @@ import type {
 import { runApi } from "@laxdb/frontend/api";
 import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 
 export type Member = typeof FineMember.Type;
@@ -17,12 +16,7 @@ export type FineView = typeof Fine.Type;
 export type AuditEntry = typeof FineAuditEntry.Type;
 
 export const listMembers = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Fines.listMembers({ payload: {} });
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Fines.listMembers({ payload: {} }))),
 );
 
 export const membersChanged = Atom.make(0).pipe(Atom.keepAlive);
@@ -33,10 +27,7 @@ export const membersAtom = makeAsyncQuery({
 
 export const listTemplates = createServerFn({ method: "GET" }).handler(() =>
   runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Fines.listTemplates({ payload: {} });
-    }),
+    ApiClient.use((client) => client.Fines.listTemplates({ payload: {} })),
   ),
 );
 
@@ -44,10 +35,7 @@ export const createTemplate = createServerFn({ method: "POST" })
   .inputValidator((input: { label: string; amountCents: number }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.createTemplate({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.createTemplate({ payload: data })),
     ),
   );
 
@@ -55,20 +43,12 @@ export const deleteTemplate = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.deleteTemplate({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.deleteTemplate({ payload: data })),
     ),
   );
 
 export const listFines = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Fines.listFines({ payload: {} });
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Fines.listFines({ payload: {} }))),
 );
 
 export const finesChanged = Atom.make(0).pipe(Atom.keepAlive);
@@ -81,10 +61,9 @@ export const listMemberFines = createServerFn({ method: "GET" })
   .inputValidator((input: { memberId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.listMemberFines({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Fines.listMemberFines({ payload: data }),
+      ),
     ),
   );
 
@@ -99,32 +78,21 @@ export const issueFine = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.issueFine({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.issueFine({ payload: data })),
     ),
   );
 
 export const payFine = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(({ data }) =>
-    runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.payFine({ payload: data });
-      }),
-    ),
+    runApi(ApiClient.use((client) => client.Fines.payFine({ payload: data }))),
   );
 
 export const forgiveFine = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; note: string | null }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.forgiveFine({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.forgiveFine({ payload: data })),
     ),
   );
 
@@ -134,10 +102,7 @@ export const adjustFine = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.adjustFine({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.adjustFine({ payload: data })),
     ),
   );
 
@@ -151,9 +116,6 @@ export const listAudit = createServerFn({ method: "GET" })
   .inputValidator((input: { limit?: number | undefined }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Fines.listAudit({ payload: data });
-      }),
+      ApiClient.use((client) => client.Fines.listAudit({ payload: data })),
     ),
   );

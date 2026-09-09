@@ -8,7 +8,6 @@ import type {
 import { runApi } from "@laxdb/frontend/api";
 import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
@@ -28,10 +27,9 @@ export const getFixtureStats = createServerFn({ method: "GET" })
   .inputValidator((input: { fixtureId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getFixtureStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getFixtureStats({ payload: data }),
+      ),
     ),
   );
 
@@ -49,10 +47,9 @@ export const upsertFixtureStats = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.upsertFixtureStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.upsertFixtureStats({ payload: data }),
+      ),
     ),
   );
 
@@ -60,10 +57,7 @@ export const getTeamSummary = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamSummary({ payload: data });
-      }),
+      ApiClient.use((client) => client.Stats.getTeamSummary({ payload: data })),
     ),
   );
 
@@ -71,10 +65,9 @@ export const getTeamPlayerStats = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamPlayerStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getTeamPlayerStats({ payload: data }),
+      ),
     ),
   );
 
@@ -82,10 +75,9 @@ export const getTeamStandings = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamStandings({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getTeamStandings({ payload: data }),
+      ),
     ),
   );
 
