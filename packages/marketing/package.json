@@ -10,7 +10,6 @@
     "sync:content-assets": "bun scripts/sync-content-assets.ts",
     "start": "node .output/server/index.mjs",
     "serve": "vite preview",
-    "test": "bun test vite",
     "typecheck": "bun run gen:content-collections && tsgo --noEmit",
     "lint": "bun run gen:content-collections && oxlint --type-aware",
     "lint:fix": "bun run gen:content-collections && oxlint --type-aware --fix --quiet",
