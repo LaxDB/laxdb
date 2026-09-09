@@ -4,22 +4,19 @@ import { Schema } from "effect";
  * HTTP response error (non-2xx status code).
  * The `url` field is required since this error only occurs after making a request.
  */
-export class HttpError extends Schema.TaggedErrorClass<HttpError>()(
-  "HttpError",
-  {
-    message: Schema.String,
-    url: Schema.String,
-    method: Schema.optional(Schema.String),
-    statusCode: Schema.optional(Schema.Number),
-    cause: Schema.optional(Schema.Unknown),
-  },
-) {}
+export class HttpError extends Schema.TaggedError<HttpError>()("HttpError", {
+  message: Schema.String,
+  url: Schema.String,
+  method: Schema.optional(Schema.String),
+  statusCode: Schema.optional(Schema.Number),
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 /**
  * Network-level error (connection refused, DNS failure, etc.).
  * The `url` field is required since this error only occurs when attempting a request.
  */
-export class NetworkError extends Schema.TaggedErrorClass<NetworkError>()(
+export class NetworkError extends Schema.TaggedError<NetworkError>()(
   "NetworkError",
   {
     message: Schema.String,
@@ -32,7 +29,7 @@ export class NetworkError extends Schema.TaggedErrorClass<NetworkError>()(
  * Request timeout error.
  * The `url` field is required since this error only occurs when a request times out.
  */
-export class TimeoutError extends Schema.TaggedErrorClass<TimeoutError>()(
+export class TimeoutError extends Schema.TaggedError<TimeoutError>()(
   "TimeoutError",
   {
     message: Schema.String,
@@ -45,7 +42,7 @@ export class TimeoutError extends Schema.TaggedErrorClass<TimeoutError>()(
  * Rate limit error (HTTP 429).
  * The `url` field is required since this error only occurs from a server response.
  */
-export class RateLimitError extends Schema.TaggedErrorClass<RateLimitError>()(
+export class RateLimitError extends Schema.TaggedError<RateLimitError>()(
   "RateLimitError",
   {
     message: Schema.String,
@@ -60,20 +57,17 @@ export class RateLimitError extends Schema.TaggedErrorClass<RateLimitError>()(
  * - Input validation (before any request is made, no URL available)
  * - Response parsing (URL is available)
  */
-export class ParseError extends Schema.TaggedErrorClass<ParseError>()(
-  "ParseError",
-  {
-    message: Schema.String,
-    url: Schema.optional(Schema.String),
-    cause: Schema.optional(Schema.Unknown),
-  },
-) {}
+export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
+  message: Schema.String,
+  url: Schema.optional(Schema.String),
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 /**
  * GraphQL-level error (errors array in response).
  * Distinct from HTTP errors - the request succeeded but the GraphQL operation failed.
  */
-export class GraphQLError extends Schema.TaggedErrorClass<GraphQLError>()(
+export class GraphQLError extends Schema.TaggedError<GraphQLError>()(
   "GraphQLError",
   {
     message: Schema.String,

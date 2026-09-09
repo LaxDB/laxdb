@@ -13,26 +13,26 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
-    "@effect/atom-react": "4.0.0-beta.103",
+    "@effect/atom-react": "4.0.0-rc.112",
     "@laxdb/api": "workspace:*",
     "@laxdb/core": "workspace:*",
     "@laxdb/frontend": "workspace:*",
     "@laxdb/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-router": "^1.143.11",
-    "@tanstack/react-start": "^1.143.12",
-    "better-auth": "^1.6.5",
-    "effect": "4.0.0-beta.103",
+    "@tanstack/react-router": "^1.170.33",
+    "@tanstack/react-start": "^1.168.50",
+    "better-auth": "^1.7.3",
+    "effect": "4.0.0-rc.112",
     "lucide-react": "^0.475.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "scheduler": "^0.27.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^6.0.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.1.18",
-    "vite": "^8.2.0"
+    "vite": "^8.2.2"
   }
 }

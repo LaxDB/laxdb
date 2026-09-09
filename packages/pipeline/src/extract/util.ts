@@ -11,7 +11,7 @@ import { type PipelineError, type RateLimitError } from "../error";
  * Error for file write failures.
  * Preserves the original platform error as cause for debugging.
  */
-export class FileWriteError extends Schema.TaggedErrorClass<FileWriteError>()(
+export class FileWriteError extends Schema.TaggedError<FileWriteError>()(
   "FileWriteError",
   {
     message: Schema.String,

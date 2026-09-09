@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()(
+export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
   "NotFoundError",
   {
     domain: Schema.String,
@@ -11,7 +11,7 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()(
   },
 ) {}
 
-export class ValidationError extends Schema.TaggedErrorClass<ValidationError>()(
+export class ValidationError extends Schema.TaggedError<ValidationError>()(
   "ValidationError",
   {
     domain: Schema.optional(Schema.String),
@@ -21,7 +21,7 @@ export class ValidationError extends Schema.TaggedErrorClass<ValidationError>()(
   },
 ) {}
 
-export class CliInputError extends Schema.TaggedErrorClass<CliInputError>()(
+export class CliInputError extends Schema.TaggedError<CliInputError>()(
   "CliInputError",
   {
     source: Schema.String,
@@ -30,7 +30,7 @@ export class CliInputError extends Schema.TaggedErrorClass<CliInputError>()(
   },
 ) {}
 
-export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()(
+export class DatabaseError extends Schema.TaggedError<DatabaseError>()(
   "DatabaseError",
   {
     domain: Schema.optional(Schema.String),
@@ -41,7 +41,7 @@ export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()(
   },
 ) {}
 
-export class ConstraintViolationError extends Schema.TaggedErrorClass<ConstraintViolationError>()(
+export class ConstraintViolationError extends Schema.TaggedError<ConstraintViolationError>()(
   "ConstraintViolationError",
   {
     constraint: Schema.String,
@@ -53,7 +53,7 @@ export class ConstraintViolationError extends Schema.TaggedErrorClass<Constraint
   },
 ) {}
 
-export class AuthenticationError extends Schema.TaggedErrorClass<AuthenticationError>()(
+export class AuthenticationError extends Schema.TaggedError<AuthenticationError>()(
   "AuthenticationError",
   {
     code: Schema.optional(Schema.Number),
@@ -62,7 +62,7 @@ export class AuthenticationError extends Schema.TaggedErrorClass<AuthenticationE
   },
 ) {}
 
-export class AuthorizationError extends Schema.TaggedErrorClass<AuthorizationError>()(
+export class AuthorizationError extends Schema.TaggedError<AuthorizationError>()(
   "AuthorizationError",
   {
     code: Schema.optional(Schema.Number),

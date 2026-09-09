@@ -11,7 +11,7 @@ export const waitForQuery = <A, E>(
     AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true }),
   );
 
-export class RequestError extends Schema.TaggedErrorClass<RequestError>()(
+export class RequestError extends Schema.TaggedError<RequestError>()(
   "RequestError",
   { message: Schema.String, cause: Schema.Defect() },
 ) {}

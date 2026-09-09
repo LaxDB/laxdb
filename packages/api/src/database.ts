@@ -15,7 +15,7 @@ export const database = Effect.gen(function* () {
 
   return yield* Cloudflare.D1.Database("database", {
     name: stage === "prod" ? "laxdb" : `laxdb-${stage}`,
-    migrationsDir: schema.out,
+    migrations: schema,
     readReplication: { mode: readReplicationMode },
   }).pipe(Alchemy.RemovalPolicy.retain(stage === "prod"));
 });

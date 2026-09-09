@@ -9,44 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StatisticsRouteImport } from './routes/statistics'
-import { Route as StandingsRouteImport } from './routes/standings'
-import { Route as ScheduleRouteImport } from './routes/schedule'
-import { Route as FormatRouteImport } from './routes/format'
-import { Route as AnalysisRouteImport } from './routes/analysis'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AnalysisRouteImport } from './routes/analysis'
+import { Route as FormatRouteImport } from './routes/format'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as StandingsRouteImport } from './routes/standings'
+import { Route as StatisticsRouteImport } from './routes/statistics'
+import { Route as AnalysisInsightsRouteImport } from './routes/analysis_.insights'
+import { Route as EvaluateTeamIdRouteImport } from './routes/evaluate/$teamId'
+import { Route as GamesGameIdRouteImport } from './routes/games/$gameId'
+import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams/$teamId'
-import { Route as PlayersPlayerIdRouteImport } from './routes/players/$playerId'
-import { Route as GamesGameIdRouteImport } from './routes/games/$gameId'
-import { Route as EvaluateTeamIdRouteImport } from './routes/evaluate/$teamId'
-import { Route as AnalysisInsightsRouteImport } from './routes/analysis_.insights'
 import { Route as CompareLeftTeamIdRightTeamIdRouteImport } from './routes/compare/$leftTeamId/$rightTeamId'
 
-const StatisticsRoute = StatisticsRouteImport.update({
-  id: '/statistics',
-  path: '/statistics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StandingsRoute = StandingsRouteImport.update({
-  id: '/standings',
-  path: '/standings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ScheduleRoute = ScheduleRouteImport.update({
-  id: '/schedule',
-  path: '/schedule',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FormatRoute = FormatRouteImport.update({
-  id: '/format',
-  path: '/format',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalysisRoute = AnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -54,9 +34,49 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormatRoute = FormatRouteImport.update({
+  id: '/format',
+  path: '/format',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StandingsRoute = StandingsRouteImport.update({
+  id: '/standings',
+  path: '/standings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatisticsRoute = StatisticsRouteImport.update({
+  id: '/statistics',
+  path: '/statistics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalysisInsightsRoute = AnalysisInsightsRouteImport.update({
+  id: '/analysis_/insights',
+  path: '/analysis/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EvaluateTeamIdRoute = EvaluateTeamIdRouteImport.update({
+  id: '/evaluate/$teamId',
+  path: '/evaluate/$teamId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesGameIdRoute = GamesGameIdRouteImport.update({
+  id: '/games/$gameId',
+  path: '/games/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
+  id: '/players/$playerId',
+  path: '/players/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamsIndexRoute = TeamsIndexRouteImport.update({
@@ -67,26 +87,6 @@ const TeamsIndexRoute = TeamsIndexRouteImport.update({
 const TeamsTeamIdRoute = TeamsTeamIdRouteImport.update({
   id: '/teams/$teamId',
   path: '/teams/$teamId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
-  id: '/players/$playerId',
-  path: '/players/$playerId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GamesGameIdRoute = GamesGameIdRouteImport.update({
-  id: '/games/$gameId',
-  path: '/games/$gameId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EvaluateTeamIdRoute = EvaluateTeamIdRouteImport.update({
-  id: '/evaluate/$teamId',
-  path: '/evaluate/$teamId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalysisInsightsRoute = AnalysisInsightsRouteImport.update({
-  id: '/analysis_/insights',
-  path: '/analysis/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompareLeftTeamIdRightTeamIdRoute =
@@ -215,39 +215,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/statistics': {
-      id: '/statistics'
-      path: '/statistics'
-      fullPath: '/statistics'
-      preLoaderRoute: typeof StatisticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/standings': {
-      id: '/standings'
-      path: '/standings'
-      fullPath: '/standings'
-      preLoaderRoute: typeof StandingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/schedule': {
-      id: '/schedule'
-      path: '/schedule'
-      fullPath: '/schedule'
-      preLoaderRoute: typeof ScheduleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/format': {
-      id: '/format'
-      path: '/format'
-      fullPath: '/format'
-      preLoaderRoute: typeof FormatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analysis': {
-      id: '/analysis'
-      path: '/analysis'
-      fullPath: '/analysis'
-      preLoaderRoute: typeof AnalysisRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -257,11 +229,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/format': {
+      id: '/format'
+      path: '/format'
+      fullPath: '/format'
+      preLoaderRoute: typeof FormatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/standings': {
+      id: '/standings'
+      path: '/standings'
+      fullPath: '/standings'
+      preLoaderRoute: typeof StandingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/statistics': {
+      id: '/statistics'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof StatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis_/insights': {
+      id: '/analysis_/insights'
+      path: '/analysis/insights'
+      fullPath: '/analysis/insights'
+      preLoaderRoute: typeof AnalysisInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evaluate/$teamId': {
+      id: '/evaluate/$teamId'
+      path: '/evaluate/$teamId'
+      fullPath: '/evaluate/$teamId'
+      preLoaderRoute: typeof EvaluateTeamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/$gameId': {
+      id: '/games/$gameId'
+      path: '/games/$gameId'
+      fullPath: '/games/$gameId'
+      preLoaderRoute: typeof GamesGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/$playerId': {
+      id: '/players/$playerId'
+      path: '/players/$playerId'
+      fullPath: '/players/$playerId'
+      preLoaderRoute: typeof PlayersPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teams/': {
@@ -276,34 +304,6 @@ declare module '@tanstack/react-router' {
       path: '/teams/$teamId'
       fullPath: '/teams/$teamId'
       preLoaderRoute: typeof TeamsTeamIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/players/$playerId': {
-      id: '/players/$playerId'
-      path: '/players/$playerId'
-      fullPath: '/players/$playerId'
-      preLoaderRoute: typeof PlayersPlayerIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/games/$gameId': {
-      id: '/games/$gameId'
-      path: '/games/$gameId'
-      fullPath: '/games/$gameId'
-      preLoaderRoute: typeof GamesGameIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/evaluate/$teamId': {
-      id: '/evaluate/$teamId'
-      path: '/evaluate/$teamId'
-      fullPath: '/evaluate/$teamId'
-      preLoaderRoute: typeof EvaluateTeamIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analysis_/insights': {
-      id: '/analysis_/insights'
-      path: '/analysis/insights'
-      fullPath: '/analysis/insights'
-      preLoaderRoute: typeof AnalysisInsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compare/$leftTeamId/$rightTeamId': {

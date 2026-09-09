@@ -5,5 +5,4 @@ export default defineConfig({
   schema: "./src/drizzle/schema.ts",
   out: "./migrations",
   verbose: true,
-  strict: true,
 }) satisfies Config;

@@ -6,7 +6,7 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
  * JSON literal; the competitions page is plain server-rendered HTML.
  */
 
-export class GamedayError extends Schema.TaggedErrorClass<GamedayError>()(
+export class GamedayError extends Schema.TaggedError<GamedayError>()(
   "GamedayError",
   {
     message: Schema.String,

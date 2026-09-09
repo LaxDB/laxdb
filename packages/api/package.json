@@ -16,11 +16,11 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
-    "@alchemy.run/better-auth": "2.0.0-beta.73",
+    "@alchemy.run/better-auth": "2.0.0-beta.76",
     "@laxdb/core": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241218.0"
+    "@cloudflare/workers-types": "^5.20260908.1"
   },
   "effect": {
     "generateExports": {
