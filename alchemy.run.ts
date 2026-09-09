@@ -37,7 +37,11 @@ export const kv = Cloudflare.KV.Namespace("kv");
 export const worldLacrosseLiveScores = Cloudflare.KV.Namespace(
   "world-lacrosse-live-scores",
 );
-export const storage = Cloudflare.R2.Bucket("storage");
+export const storage = Cloudflare.R2.Bucket("storage").pipe(
+  Alchemy.RemovalPolicy.retain(
+    Alchemy.Stage.pipe(Effect.map((stage) => stage === "prod")),
+  ),
+);
 
 const stackSecrets = Config.all({
   betterAuthUrl: Config.string("BETTER_AUTH_URL").pipe(Config.withDefault("")),
