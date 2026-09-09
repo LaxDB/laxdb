@@ -1,3 +1,4 @@
+import type { D1Client } from "@effect/sql-d1/D1Client";
 import type { EffectSQLiteD1Database } from "drizzle-orm/effect-d1";
 import { Array as Arr, Cause, Context, Data, Effect, Layer } from "effect";
 
@@ -38,6 +39,26 @@ export const query = <T, E, R>(
       }),
   );
 
+/** Decode raw batch columns before applying the domain's existing output schema. */
+export const mapBatchRow = (
+  columns: Readonly<
+    Record<
+      string,
+      {
+        readonly name: string;
+        readonly mapFromDriverValue: (value: unknown) => unknown;
+      }
+    >
+  >,
+  row: Readonly<Record<string, unknown>>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(columns).map(([key, column]) => {
+      const value = row[column.name];
+      return [key, value === null ? null : column.mapFromDriverValue(value)];
+    }),
+  );
+
 /** Take first element from array as Effect — fails with NoSuchElementError */
 export const headOrFail = <A>(arr: readonly A[]) =>
   Effect.fromOption(Arr.head(arr));
@@ -46,10 +67,33 @@ export const headOrFail = <A>(arr: readonly A[]) =>
 // DrizzleService — provides Alchemy's Effect-native D1 Drizzle database
 // ---------------------------------------------------------------------------
 
-export class DrizzleService extends Context.Service<
-  DrizzleService,
-  EffectSQLiteD1Database
->()("DrizzleService") {}
+type Database = EffectSQLiteD1Database & { readonly $client: D1Client };
 
-export const DatabaseLive = (database: Effect.Effect<EffectSQLiteD1Database>) =>
+export class DrizzleService extends Context.Service<DrizzleService, Database>()(
+  "DrizzleService",
+) {}
+
+export const DatabaseLive = (database: Effect.Effect<Database>) =>
   Layer.effect(DrizzleService, database);
+
+/** Compile Drizzle writes without executing them, then commit one native D1 batch.
+ * Keep nested chains on the same database so Alchemy resolves them per request.
+ * Results are raw D1 rows, not Drizzle-decoded rows.
+ */
+export const batch = (
+  db: Database,
+  statements: readonly { toSQL(): { sql: string; params: unknown[] } }[],
+) =>
+  Effect.suspend(() =>
+    query(
+      db.$client.batch(
+        statements.map((statement) => {
+          const compiled = statement.toSQL();
+          return db.$client.unsafe<Record<string, unknown>>(
+            compiled.sql,
+            compiled.params,
+          );
+        }),
+      ),
+    ),
+  );

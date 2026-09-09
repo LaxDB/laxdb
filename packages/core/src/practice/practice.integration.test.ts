@@ -1,6 +1,8 @@
 import { describe, expect, it } from "@effect/vitest";
+import { sql } from "drizzle-orm";
 import { Effect, Layer } from "effect";
 
+import { DrizzleService, query, SqlError } from "../drizzle/drizzle.service";
 import { TestDatabaseLive, truncateAll } from "../test/db";
 import { makeTestRunner } from "../test/effect";
 import {
@@ -237,6 +239,59 @@ describe("PracticeService integration", () => {
             label: "Offense",
           },
         ]);
+      }),
+    ));
+
+  it("rolls back edge deletion when replacement insertion fails with a typed SqlError", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        const svc = yield* PracticeService;
+        const repo = yield* PracticeRepo.make;
+        const db = yield* DrizzleService;
+        const practice = yield* svc.create(validCreatePractice());
+        const source = yield* svc.addItem(validAddItem(practice.publicId));
+        const target = yield* svc.addItem(validAddItem(practice.publicId));
+        const input = {
+          practicePublicId: practice.publicId,
+          edges: [
+            {
+              sourcePublicId: source.publicId,
+              targetPublicId: target.publicId,
+              label: "old",
+            },
+          ],
+        };
+        const old = yield* svc.replaceEdges(input);
+        yield* query(
+          db.run(sql`CREATE TRIGGER fail_edge_insert BEFORE INSERT ON practice_edge
+        BEGIN SELECT RAISE(ABORT, 'forced edge failure'); END`),
+        );
+        const error = yield* repo
+          .replaceEdges({
+            ...input,
+            edges: [
+              {
+                sourcePublicId: source.publicId,
+                targetPublicId: target.publicId,
+                label: null,
+              },
+            ],
+          })
+          .pipe(
+            Effect.flip,
+            Effect.ensuring(
+              query(db.run(sql`DROP TRIGGER fail_edge_insert`)).pipe(
+                Effect.orDie,
+              ),
+            ),
+          );
+        expect(error).toBeInstanceOf(SqlError);
+        expect(String(error.cause)).toContain("forced edge failure");
+        expect(yield* svc.listEdges(input)).toEqual(old);
+        // A failed batch must not poison subsequent statements or empty replacements.
+        expect(yield* svc.replaceEdges({ ...input, edges: [] })).toEqual([]);
+        expect(yield* svc.listEdges(input)).toEqual([]);
       }),
     ));
 

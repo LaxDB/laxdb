@@ -1,14 +1,18 @@
 import {
+  batch,
   DrizzleService,
   headOrFail,
+  mapBatchRow,
   query,
 } from "@laxdb/core/drizzle/drizzle.service";
-import { and, desc, eq, getColumns, lte } from "drizzle-orm";
-import { Context, Effect, Layer } from "effect";
+import { and, desc, eq, getColumns, lte, sql, type SQL } from "drizzle-orm";
+import type { SQLiteUpdateSetSource } from "drizzle-orm/sqlite-core";
+import { Context, Effect, Layer, Schema } from "effect";
 import { nanoid } from "nanoid";
 
 import { members, users } from "../auth/auth.sql";
 
+import { Fine } from "./fine.schema";
 import type {
   AdjustFineInput,
   ApplyFineDoublingsInput,
@@ -35,37 +39,82 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
     const templateColumns = getColumns(fineTemplates);
     const eventColumns = getColumns(fineEvents);
 
-    const getFine = (input: FineByIdInput) =>
-      query(
-        db
-          .select(fineColumns)
-          .from(fines)
-          .where(
-            and(
-              eq(fines.organizationId, input.organizationId),
-              eq(fines.id, input.id),
-            ),
+    const selectFine = (input: FineByIdInput) =>
+      db
+        .select(fineColumns)
+        .from(fines)
+        .where(
+          and(
+            eq(fines.organizationId, input.organizationId),
+            eq(fines.id, input.id),
           ),
-      ).pipe(Effect.flatMap(headOrFail));
+        );
 
-    const makeEvent = (input: {
-      readonly fineId: string;
+    const getFine = (input: FineByIdInput) =>
+      query(selectFine(input)).pipe(Effect.flatMap(headOrFail));
+
+    const writeFine = (
+      input: FineByIdInput,
+      statements: Parameters<typeof batch>[1],
+    ) =>
+      batch(db, [...statements, selectFine(input)]).pipe(
+        Effect.flatMap((results) => headOrFail(results.at(-1) ?? [])),
+        Effect.map((row) =>
+          Schema.decodeUnknownSync(Fine)(mapBatchRow(fineColumns, row)),
+        ),
+      );
+
+    // The audit SELECT reads the current state inside the batch. Its unique ID
+    // gates the update, so a stale or repeated action cannot invent a transition.
+    const transition = (input: {
+      readonly id: string;
+      readonly organizationId: string;
+      readonly condition?: SQL | undefined;
+      readonly set: SQLiteUpdateSetSource<typeof fines>;
       readonly kind: FineEventKind;
-      readonly amountCents: number;
-      readonly deltaCents: number;
+      readonly amountCents: SQL<number>;
+      readonly deltaCents: SQL<number>;
       readonly actorUserId?: string | null | undefined;
       readonly note?: string | null | undefined;
-      readonly at?: Date | undefined;
-    }) => ({
-      id: nanoid(),
-      fineId: input.fineId,
-      kind: input.kind,
-      amountCents: input.amountCents,
-      deltaCents: input.deltaCents,
-      actorUserId: input.actorUserId ?? null,
-      note: input.note ?? null,
-      at: input.at ?? new Date(),
-    });
+      readonly at: Date;
+    }) => {
+      const eventId = nanoid();
+      const scope = and(
+        eq(fines.organizationId, input.organizationId),
+        eq(fines.id, input.id),
+      );
+      return [
+        db
+          .insert(fineEvents)
+          .select(
+            db
+              .select({
+                id: sql<string>`${eventId}`.as("id"),
+                fineId: fines.id,
+                kind: sql<FineEventKind>`${input.kind}`.as("kind"),
+                amountCents: input.amountCents.as("amount_cents"),
+                deltaCents: input.deltaCents.as("delta_cents"),
+                actorUserId: sql<
+                  string | null
+                >`${input.actorUserId ?? null}`.as("actor_user_id"),
+                note: sql<string | null>`${input.note ?? null}`.as("note"),
+                at: sql<Date>`${input.at.getTime()}`.as("at"),
+              })
+              .from(fines)
+              .where(and(scope, input.condition)),
+          )
+          .returning({ id: fineEvents.id }),
+        db
+          .update(fines)
+          .set(input.set)
+          .where(
+            and(
+              scope,
+              sql`exists (select 1 from ${fineEvents} where ${fineEvents.id} = ${eventId})`,
+            ),
+          ),
+      ];
+    };
 
     return {
       list: (input: OrganizationScopedInput) =>
@@ -201,11 +250,12 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
 
           const issuedAt = new Date();
           const dueAt = input.dueAt ?? new Date(issuedAt.getTime() + WEEK_MS);
-          const fine = yield* query(
-            db
-              .insert(fines)
-              .values({
-                id: nanoid(),
+          const id = nanoid();
+          return yield* writeFine(
+            { organizationId: input.organizationId, id },
+            [
+              db.insert(fines).values({
+                id,
                 organizationId: input.organizationId,
                 memberId: input.memberId,
                 templateId: input.templateId ?? null,
@@ -217,117 +267,76 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
                 dueAt,
                 paidAt: null,
                 issuedByUserId: input.issuedByUserId ?? null,
-              })
-              .returning(fineColumns),
-          ).pipe(Effect.flatMap(headOrFail));
-
-          yield* query(
-            db.insert(fineEvents).values(
-              makeEvent({
-                fineId: fine.id,
+              }),
+              db.insert(fineEvents).values({
+                id: nanoid(),
+                fineId: id,
                 kind: "issued",
                 amountCents,
                 deltaCents: amountCents,
-                actorUserId: input.issuedByUserId,
+                actorUserId: input.issuedByUserId ?? null,
+                note: null,
                 at: issuedAt,
               }),
-            ),
+            ],
           );
-
-          return fine;
         }),
 
       pay: (input: FineActionInput) =>
         Effect.gen(function* () {
-          const fine = yield* getFine(input);
-          if (fine.status !== "unpaid") return fine;
           const now = new Date();
-          const updated = yield* query(
-            db
-              .update(fines)
-              .set({ status: "paid", paidAt: now })
-              .where(
-                and(
-                  eq(fines.organizationId, input.organizationId),
-                  eq(fines.id, input.id),
-                ),
-              )
-              .returning(fineColumns),
-          ).pipe(Effect.flatMap(headOrFail));
-          yield* query(
-            db.insert(fineEvents).values(
-              makeEvent({
-                fineId: input.id,
-                kind: "paid",
-                amountCents: fine.amountCents,
-                deltaCents: -fine.amountCents,
-                actorUserId: input.actorUserId,
-                at: now,
-              }),
-            ),
+          return yield* writeFine(
+            input,
+            transition({
+              id: input.id,
+              organizationId: input.organizationId,
+              actorUserId: input.actorUserId,
+              condition: eq(fines.status, "unpaid"),
+              set: { status: "paid", paidAt: now },
+              kind: "paid",
+              amountCents: sql`${fines.amountCents}`,
+              deltaCents: sql`-${fines.amountCents}`,
+              note: null,
+              at: now,
+            }),
           );
-          return updated;
         }),
 
       forgive: (input: FineActionInput) =>
         Effect.gen(function* () {
-          const fine = yield* getFine(input);
-          if (fine.status !== "unpaid") return fine;
-          const updated = yield* query(
-            db
-              .update(fines)
-              .set({ status: "forgiven" })
-              .where(
-                and(
-                  eq(fines.organizationId, input.organizationId),
-                  eq(fines.id, input.id),
-                ),
-              )
-              .returning(fineColumns),
-          ).pipe(Effect.flatMap(headOrFail));
-          yield* query(
-            db.insert(fineEvents).values(
-              makeEvent({
-                fineId: input.id,
-                kind: "forgiven",
-                amountCents: fine.amountCents,
-                deltaCents: -fine.amountCents,
-                actorUserId: input.actorUserId,
-                note: input.note,
-              }),
-            ),
+          return yield* writeFine(
+            input,
+            transition({
+              id: input.id,
+              organizationId: input.organizationId,
+              actorUserId: input.actorUserId,
+              note: input.note,
+              condition: eq(fines.status, "unpaid"),
+              set: { status: "forgiven" },
+              kind: "forgiven",
+              amountCents: sql`${fines.amountCents}`,
+              deltaCents: sql`-${fines.amountCents}`,
+              at: new Date(),
+            }),
           );
-          return updated;
         }),
 
       adjust: (input: AdjustFineInput) =>
         Effect.gen(function* () {
-          const fine = yield* getFine(input);
-          const updated = yield* query(
-            db
-              .update(fines)
-              .set({ amountCents: input.amountCents })
-              .where(
-                and(
-                  eq(fines.organizationId, input.organizationId),
-                  eq(fines.id, input.id),
-                ),
-              )
-              .returning(fineColumns),
-          ).pipe(Effect.flatMap(headOrFail));
-          yield* query(
-            db.insert(fineEvents).values(
-              makeEvent({
-                fineId: input.id,
-                kind: "adjusted",
-                amountCents: input.amountCents,
-                deltaCents: input.amountCents - fine.amountCents,
-                actorUserId: input.actorUserId,
-                note: input.note,
-              }),
-            ),
+          return yield* writeFine(
+            input,
+            transition({
+              id: input.id,
+              organizationId: input.organizationId,
+              actorUserId: input.actorUserId,
+              note: input.note,
+              set: { amountCents: input.amountCents },
+              kind: "adjusted",
+              amountCents: sql`${input.amountCents}`,
+              deltaCents: sql`${input.amountCents} - ${fines.amountCents}`,
+              at: new Date(),
+            }),
           );
-          return updated;
         }),
 
       listEvents: (input: FineByIdInput) =>
@@ -365,31 +374,36 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
 
           if (due.length === 0) return { doubled: 0 };
 
-          yield* Effect.forEach(due, (fine) => {
-            const amountCents = fine.amountCents * 2;
-            const dueAt = new Date(now.getTime() + WEEK_MS);
-            return Effect.all([
-              query(
-                db
-                  .update(fines)
-                  .set({ amountCents, dueAt })
-                  .where(eq(fines.id, fine.id)),
-              ),
-              query(
-                db.insert(fineEvents).values(
-                  makeEvent({
-                    fineId: fine.id,
-                    kind: "doubled",
-                    amountCents,
-                    deltaCents: amountCents - fine.amountCents,
-                    at: now,
-                  }),
+          const results = yield* batch(
+            db,
+            due.flatMap((fine) =>
+              transition({
+                id: fine.id,
+                organizationId: fine.organizationId,
+                condition: and(
+                  eq(fines.status, "unpaid"),
+                  eq(fines.dueAt, fine.dueAt),
+                  lte(fines.dueAt, now),
                 ),
-              ),
-            ]);
-          });
+                set: {
+                  amountCents: sql`${fines.amountCents} * 2`,
+                  dueAt: new Date(now.getTime() + WEEK_MS),
+                },
+                kind: "doubled",
+                amountCents: sql`${fines.amountCents} * 2`,
+                deltaCents: sql`${fines.amountCents}`,
+                at: now,
+              }),
+            ),
+          );
 
-          return { doubled: due.length };
+          return {
+            doubled: results.reduce(
+              (count, rows, index) =>
+                count + (index % 2 === 0 ? rows.length : 0),
+              0,
+            ),
+          };
         }),
     };
   }),

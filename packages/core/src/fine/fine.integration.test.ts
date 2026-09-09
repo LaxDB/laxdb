@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@effect/vitest";
-import { DrizzleService, query } from "@laxdb/core/drizzle/drizzle.service";
+import {
+  DrizzleService,
+  query,
+  SqlError,
+} from "@laxdb/core/drizzle/drizzle.service";
+import { eq, sql } from "drizzle-orm";
 import { Effect, Layer } from "effect";
 
 import { members, organizations, users } from "../auth/auth.sql";
@@ -8,6 +13,7 @@ import { makeTestRunner } from "../test/effect";
 
 import { FineRepo } from "./fine.repo";
 import { FineService } from "./fine.service";
+import { fineEvents, fines } from "./fine.sql";
 
 const ServiceLayer = Layer.effect(FineService, FineService.make).pipe(
   Layer.provide(Layer.effect(FineRepo, FineRepo.make)),
@@ -68,6 +74,266 @@ const seedFineMember = Effect.gen(function* () {
 });
 
 describe("FineService integration", () => {
+  it("rolls back a new fine if its audit insert fails", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedFineMember;
+        const db = yield* DrizzleService;
+        const repo = yield* FineRepo.make;
+        yield* query(
+          db.run(sql`CREATE TRIGGER fail_fine_event BEFORE INSERT ON fine_events
+        BEGIN SELECT RAISE(ABORT, 'forced audit failure'); END`),
+        );
+        const error = yield* repo
+          .issue({
+            organizationId: ORG_ID,
+            memberId: MEMBER_ID,
+            reason: "Rollback",
+            amountCents: 200,
+          })
+          .pipe(
+            Effect.flip,
+            Effect.ensuring(
+              query(db.run(sql`DROP TRIGGER fail_fine_event`)).pipe(
+                Effect.orDie,
+              ),
+            ),
+          );
+        expect(error).toBeInstanceOf(SqlError);
+        expect(String(error.cause)).toContain("forced audit failure");
+        expect(yield* query(db.select().from(fines))).toEqual([]);
+        expect(yield* query(db.select().from(fineEvents))).toEqual([]);
+      }),
+    ));
+
+  it.each(["pay", "forgive", "adjust", "applyDoublings"])(
+    "rolls back fine state and audit events when %s fails after its event insert",
+    (action) =>
+      run(
+        Effect.gen(function* () {
+          yield* truncateAll;
+          yield* seedFineMember;
+          const db = yield* DrizzleService;
+          const svc = yield* FineService;
+          const now = new Date("2026-05-15T00:00:00Z");
+          const first = yield* svc.issue({
+            organizationId: ORG_ID,
+            memberId: MEMBER_ID,
+            reason: "First",
+            amountCents: 200,
+            dueAt: new Date("2026-05-01T00:00:00Z"),
+          });
+          const second = yield* svc.issue({
+            organizationId: ORG_ID,
+            memberId: MEMBER_ID,
+            reason: "Second",
+            amountCents: 300,
+            dueAt: first.dueAt,
+          });
+          const oldFines = yield* query(db.select().from(fines));
+          const oldEvents = yield* query(db.select().from(fineEvents));
+          yield* query(
+            db.run(sql`CREATE TRIGGER fail_fine_update BEFORE UPDATE ON fines
+        WHEN NEW.reason = 'Second' BEGIN SELECT RAISE(ABORT, 'forced fine failure'); END`),
+          );
+          const input = {
+            organizationId: ORG_ID,
+            id: second.id,
+            actorUserId: USER_ID,
+          };
+          const mutation = Effect.gen(function* () {
+            if (action === "pay") yield* svc.pay(input);
+            else if (action === "forgive") yield* svc.forgive(input);
+            else if (action === "adjust")
+              yield* svc.adjust({ ...input, amountCents: 450 });
+            else yield* svc.applyDoublings({ now });
+          });
+          const error = yield* mutation.pipe(
+            Effect.flip,
+            Effect.ensuring(
+              query(db.run(sql`DROP TRIGGER fail_fine_update`)).pipe(
+                Effect.orDie,
+              ),
+            ),
+          );
+          expect(error._tag).toBe("DatabaseError");
+          expect(yield* query(db.select().from(fines))).toEqual(oldFines);
+          expect(yield* query(db.select().from(fineEvents))).toEqual(oldEvents);
+        }),
+      ),
+  );
+
+  it.each(["pay", "forgive"])(
+    "overlapping payments and %s create only one terminal event",
+    (action) =>
+      run(
+        Effect.gen(function* () {
+          yield* truncateAll;
+          yield* seedFineMember;
+          const svc = yield* FineService;
+          const fine = yield* svc.issue({
+            organizationId: ORG_ID,
+            memberId: MEMBER_ID,
+            reason: "Race",
+            amountCents: 400,
+          });
+          const input = {
+            organizationId: ORG_ID,
+            id: fine.id,
+            actorUserId: USER_ID,
+          };
+          yield* Effect.all(
+            [
+              svc.pay(input),
+              action === "pay" ? svc.pay(input) : svc.forgive(input),
+            ],
+            { concurrency: "unbounded" },
+          );
+          const current = yield* svc.get(input);
+          const events = yield* svc.listEvents(input);
+          const terminal = events.filter(
+            (event) => event.kind === "paid" || event.kind === "forgiven",
+          );
+          expect(terminal).toHaveLength(1);
+          expect(terminal[0]?.kind).toBe(current.status);
+          expect(terminal[0]?.deltaCents).toBe(-400);
+          yield* svc.pay(input);
+          yield* svc.forgive(input);
+          expect(yield* svc.listEvents(input)).toEqual(events);
+        }),
+      ),
+  );
+
+  it("overlapping doublings count only actual transitions and use current amounts", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedFineMember;
+        const svc = yield* FineService;
+        const now = new Date("2026-05-15T00:00:00Z");
+        const fine = yield* svc.issue({
+          organizationId: ORG_ID,
+          memberId: MEMBER_ID,
+          reason: "Due",
+          amountCents: 400,
+          dueAt: new Date("2026-05-01T00:00:00Z"),
+        });
+        const input = { organizationId: ORG_ID, id: fine.id };
+        const results = yield* Effect.all(
+          [svc.applyDoublings({ now }), svc.applyDoublings({ now })],
+          { concurrency: "unbounded" },
+        );
+        expect(
+          results.reduce((total, result) => total + result.doubled, 0),
+        ).toBe(1);
+        const current = yield* svc.get(input);
+        expect(current.amountCents).toBe(800);
+        expect(current.dueAt).toEqual(new Date("2026-05-22T00:00:00Z"));
+        expect(
+          (yield* svc.listEvents(input)).filter(
+            (event) => event.kind === "doubled",
+          ),
+        ).toHaveLength(1);
+      }),
+    ));
+
+  it.each(["pay", "forgive", "adjust"])(
+    "overlapping doubling and %s keep audit amounts consistent",
+    (action) =>
+      run(
+        Effect.gen(function* () {
+          yield* truncateAll;
+          yield* seedFineMember;
+          const svc = yield* FineService;
+          const db = yield* DrizzleService;
+          const now = new Date("2026-05-15T00:00:00Z");
+          const fine = yield* svc.issue({
+            organizationId: ORG_ID,
+            memberId: MEMBER_ID,
+            reason: "Race",
+            amountCents: 400,
+            dueAt: new Date("2026-05-01T00:00:00Z"),
+          });
+          const input = { organizationId: ORG_ID, id: fine.id };
+          yield* Effect.all(
+            [
+              svc.applyDoublings({ now }),
+              action === "pay"
+                ? svc.pay(input)
+                : action === "forgive"
+                  ? svc.forgive(input)
+                  : svc.adjust({ ...input, amountCents: 500 }),
+            ],
+            { concurrency: "unbounded" },
+          );
+          const current = yield* svc.get(input);
+          const events = yield* query(
+            db
+              .select()
+              .from(fineEvents)
+              .where(eq(fineEvents.fineId, fine.id))
+              .orderBy(sql`rowid`),
+          );
+          let amount = 0;
+          let settled = false;
+          for (const event of events) {
+            if (event.kind === "paid" || event.kind === "forgiven") {
+              expect(event.amountCents).toBe(amount);
+              expect(event.deltaCents).toBe(-amount);
+              settled = true;
+            } else {
+              expect(settled).toBe(false);
+              expect(event.deltaCents).toBe(event.amountCents - amount);
+              amount = event.amountCents;
+            }
+          }
+          expect(current.amountCents).toBe(amount);
+          expect(current.status).toBe(
+            action === "adjust"
+              ? "unpaid"
+              : action === "pay"
+                ? "paid"
+                : "forgiven",
+          );
+        }),
+      ),
+  );
+
+  it("overlapping adjustments compute deltas from the committed previous amount", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedFineMember;
+        const svc = yield* FineService;
+        const fine = yield* svc.issue({
+          organizationId: ORG_ID,
+          memberId: MEMBER_ID,
+          reason: "Adjust",
+          amountCents: 400,
+        });
+        const input = { organizationId: ORG_ID, id: fine.id };
+        const adjusted = yield* Effect.all(
+          [
+            svc.adjust({ ...input, amountCents: 500 }),
+            svc.adjust({ ...input, amountCents: 600 }),
+          ],
+          { concurrency: "unbounded" },
+        );
+        const current = yield* svc.get(input);
+        const events = yield* svc.listEvents(input);
+        expect(events).toHaveLength(3);
+        expect(adjusted.map((row) => row.amountCents)).toEqual([500, 600]);
+        expect(
+          events.reduce((total, event) => total + event.deltaCents, 0),
+        ).toBe(current.amountCents);
+        const error = yield* svc
+          .pay({ ...input, organizationId: OTHER_ORG_ID })
+          .pipe(Effect.flip);
+        expect(error._tag).toBe("NotFoundError");
+        expect(yield* svc.listEvents(input)).toEqual(events);
+      }),
+    ));
   it("creates, updates, lists, and deletes fine templates within an organization", () =>
     run(
       Effect.gen(function* () {

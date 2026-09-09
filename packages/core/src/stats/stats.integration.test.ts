@@ -19,7 +19,7 @@ import {
 } from "@laxdb/core/match/gameday.sql";
 import { MatchRepo } from "@laxdb/core/match/match.repo";
 import { fixtures } from "@laxdb/core/match/match.sql";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Effect, Layer } from "effect";
 
 import { TestDatabaseLive, truncateAll } from "../test/db";
@@ -27,6 +27,7 @@ import { makeTestRunner } from "../test/effect";
 
 import { StatsRepo } from "./stats.repo";
 import { StatsService } from "./stats.service";
+import { fixturePlayerStats, fixtureTeamStats } from "./stats.sql";
 
 const ORG_ID = "stats-org";
 const OTHER_ORG_ID = "stats-other-org";
@@ -282,6 +283,100 @@ const seedStats = Effect.gen(function* () {
 });
 
 describe("StatsService integration", () => {
+  it("rolls back team totals and player changes when the final stale-row deletion fails", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedStats;
+        const db = yield* DrizzleService;
+        const service = yield* StatsService;
+        yield* query(
+          db
+            .update(rosterPlayers)
+            .set({ teamId: TEAM_ID })
+            .where(eq(rosterPlayers.id, OTHER_PLAYER_ID)),
+        );
+        const input = {
+          organizationId: ORG_ID,
+          fixtureId: FIXTURE_ID,
+          submittedByUserId: USER_ID,
+          goalsForOverride: 10,
+          goalsAgainstOverride: 4,
+          assistedGoals: 3,
+          shots: 15,
+          saves: null,
+          players: [PLAYER_ID, OTHER_PLAYER_ID].map((rosterPlayerId) => ({
+            rosterPlayerId,
+            goals: 2,
+            assists: 1,
+            shots: null,
+            saves: 0,
+          })),
+        };
+        yield* service.upsertFixtureStatSheet(input);
+        yield* query(
+          db.insert(rosterPlayers).values({
+            id: "stats-new-player",
+            organizationId: ORG_ID,
+            teamId: TEAM_ID,
+            name: "New Player",
+            active: true,
+          }),
+        );
+        const oldTeams = yield* query(db.select().from(fixtureTeamStats));
+        const oldPlayers = yield* query(db.select().from(fixturePlayerStats));
+        yield* query(
+          db.run(sql`CREATE TRIGGER fail_stats_delete BEFORE DELETE ON fixture_player_stats
+        BEGIN SELECT RAISE(ABORT, 'forced stats failure'); END`),
+        );
+        const replacement = {
+          ...input,
+          assistedGoals: 5,
+          players: [
+            {
+              rosterPlayerId: PLAYER_ID,
+              goals: 5,
+              assists: 2,
+              shots: 8,
+              saves: null,
+            },
+            {
+              rosterPlayerId: "stats-new-player",
+              goals: 1,
+              assists: 0,
+              shots: null,
+              saves: null,
+            },
+          ],
+        };
+        const error = yield* service
+          .upsertFixtureStatSheet(replacement)
+          .pipe(
+            Effect.flip,
+            Effect.ensuring(
+              query(db.run(sql`DROP TRIGGER fail_stats_delete`)).pipe(
+                Effect.orDie,
+              ),
+            ),
+          );
+        expect(error._tag).toBe("DatabaseError");
+        expect(yield* query(db.select().from(fixtureTeamStats))).toEqual(
+          oldTeams,
+        );
+        expect(yield* query(db.select().from(fixturePlayerStats))).toEqual(
+          oldPlayers,
+        );
+        const saved = yield* service.upsertFixtureStatSheet(replacement);
+        expect(saved.team?.assistedGoals).toBe(5);
+        expect(saved.players).toHaveLength(2);
+        expect(saved.players[0]?.goals).toBe(5);
+        const updatedPlayers = yield* query(
+          db.select().from(fixturePlayerStats),
+        );
+        expect(updatedPlayers[0]?.id).toBe(oldPlayers[0]?.id);
+        expect(updatedPlayers[0]?.createdAt).toEqual(oldPlayers[0]?.createdAt);
+      }),
+    ));
   it("keeps manual fixture stats source-aware, partial, and season isolated", () =>
     run(
       Effect.gen(function* () {

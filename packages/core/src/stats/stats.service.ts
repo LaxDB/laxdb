@@ -231,7 +231,7 @@ export class StatsService extends Context.Service<StatsService>()(
               );
             }
           }
-          yield* repo.upsertFixtureTeamStats({
+          yield* repo.saveFixtureStats({
             organizationId: decoded.organizationId,
             fixtureId: fixture.id,
             teamId: fixture.teamId,
@@ -241,23 +241,10 @@ export class StatsService extends Context.Service<StatsService>()(
             shots: decoded.shots,
             saves: decoded.saves,
             submittedByUserId: decoded.submittedByUserId,
-          });
-          yield* repo.replaceFixturePlayerStats({
-            organizationId: decoded.organizationId,
-            fixtureId: fixture.id,
-            teamId: fixture.teamId,
             players: decoded.players,
           });
           return yield* getFixtureStatSheet(decoded);
         }).pipe(
-          Effect.catchTag("NoSuchElementError", () =>
-            Effect.fail(
-              new NotFoundError({
-                domain: "FixtureStats",
-                id: input.fixtureId,
-              }),
-            ),
-          ),
           Effect.catchTag("SqlError", (error) =>
             Effect.fail(parseSqlError(error)),
           ),

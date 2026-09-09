@@ -1,4 +1,5 @@
 import {
+  batch,
   DrizzleService,
   headOrFail,
   query,
@@ -96,14 +97,20 @@ export class StatsRepo extends Context.Service<StatsRepo>()("StatsRepo", {
             .orderBy(asc(rosterPlayers.name)),
         ),
 
-      upsertFixtureTeamStats: (input: UpsertFixtureTeamStats) =>
-        query(
-          db
+      saveFixtureStats: (
+        input: UpsertFixtureTeamStats & {
+          readonly players: readonly UpsertFixturePlayerStats[];
+        },
+      ) =>
+        Effect.gen(function* () {
+          const now = new Date();
+          const { players, ...team } = input;
+          const teamWrite = db
             .insert(fixtureTeamStats)
             .values({
-              ...input,
+              ...team,
               id: nanoid(),
-              createdAt: new Date(),
+              createdAt: now,
             })
             .onConflictDoUpdate({
               target: [
@@ -117,53 +124,39 @@ export class StatsRepo extends Context.Service<StatsRepo>()("StatsRepo", {
                 shots: input.shots,
                 saves: input.saves,
                 submittedByUserId: input.submittedByUserId,
-                updatedAt: new Date(),
+                updatedAt: now,
               },
-            })
-            .returning(teamStatColumns),
-        ).pipe(Effect.flatMap(headOrFail)),
-
-      replaceFixturePlayerStats: (input: {
-        readonly organizationId: string;
-        readonly fixtureId: string;
-        readonly teamId: string;
-        readonly players: readonly UpsertFixturePlayerStats[];
-      }) =>
-        Effect.gen(function* () {
-          const now = new Date();
-          yield* Effect.forEach(
-            input.players,
-            (player) =>
-              query(
-                db
-                  .insert(fixturePlayerStats)
-                  .values({
-                    id: nanoid(),
-                    organizationId: input.organizationId,
-                    fixtureId: input.fixtureId,
-                    teamId: input.teamId,
-                    ...player,
-                    createdAt: now,
-                  })
-                  .onConflictDoUpdate({
-                    target: [
-                      fixturePlayerStats.organizationId,
-                      fixturePlayerStats.fixtureId,
-                      fixturePlayerStats.rosterPlayerId,
-                    ],
-                    set: {
-                      goals: player.goals,
-                      assists: player.assists,
-                      shots: player.shots,
-                      saves: player.saves,
-                      updatedAt: now,
-                    },
-                  }),
-              ),
-            { discard: true },
+            });
+          const playerWrites = players.map((player) =>
+            db
+              .insert(fixturePlayerStats)
+              .values({
+                id: nanoid(),
+                organizationId: input.organizationId,
+                fixtureId: input.fixtureId,
+                teamId: input.teamId,
+                ...player,
+                createdAt: now,
+              })
+              .onConflictDoUpdate({
+                target: [
+                  fixturePlayerStats.organizationId,
+                  fixturePlayerStats.fixtureId,
+                  fixturePlayerStats.rosterPlayerId,
+                ],
+                set: {
+                  goals: player.goals,
+                  assists: player.assists,
+                  shots: player.shots,
+                  saves: player.saves,
+                  updatedAt: now,
+                },
+              }),
           );
-          const ids = input.players.map((player) => player.rosterPlayerId);
-          yield* query(
+          const ids = players.map((player) => player.rosterPlayerId);
+          yield* batch(db, [
+            teamWrite,
+            ...playerWrites,
             db
               .delete(fixturePlayerStats)
               .where(
@@ -184,8 +177,8 @@ export class StatsRepo extends Context.Service<StatsRepo>()("StatsRepo", {
                       notInArray(fixturePlayerStats.rosterPlayerId, ids),
                     ),
               ),
-          );
-          return input.players.length;
+          ]);
+          return players.length;
         }),
 
       resolveTeamSeasonLink: (input: {
