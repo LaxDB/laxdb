@@ -10,6 +10,7 @@ export type AuthConfig = {
   baseURL: string;
   trustedOrigins?: string[] | undefined;
   useSecureCookies?: boolean | undefined;
+  cookiePrefix?: string | undefined;
   google: {
     clientId: string;
     clientSecret: string;
@@ -99,6 +100,7 @@ export const createAuthOptions = (config: AuthConfig) => {
     baseURL: config.baseURL,
     trustedOrigins: config.trustedOrigins,
     advanced: {
+      cookiePrefix: config.cookiePrefix,
       useSecureCookies: config.useSecureCookies ?? true,
     },
     emailAndPassword: { enabled: false },

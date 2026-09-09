@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { realpathSync } from "node:fs";
+
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
@@ -76,6 +79,13 @@ export default Alchemy.Stack(
 
     const baseDomain = baseDomainForStage(stage);
     const isLocal = (yield* Alchemy.AlchemyContext).dev;
+    // Cookies ignore ports. Share one namespace per physical checkout, not app.
+    const authCookiePrefix = isLocal
+      ? `laxdb-dev-${createHash("sha256")
+          .update(realpathSync(import.meta.dirname))
+          .digest("hex")
+          .slice(0, 16)}`
+      : "";
     const malvernOrigin = isLocal
       ? "http://localhost:1438"
       : `https://malvern.${baseDomain}`;
@@ -91,6 +101,7 @@ export default Alchemy.Stack(
     const api = yield* makeApiWorker(
       {
         DB: db,
+        AUTH_COOKIE_PREFIX: authCookiePrefix,
         BETTER_AUTH_URL:
           secrets.betterAuthUrl === "" ? malvernOrigin : secrets.betterAuthUrl,
         EMAIL_SENDER: secrets.emailSender,

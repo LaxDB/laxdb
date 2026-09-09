@@ -48,6 +48,18 @@ infisical run --env=dev -- bun run dev
 
 See [docs/infisical/cli.md](docs/infisical/cli.md) for more details.
 
+### Local auth cookies
+
+Alchemy local development uses `laxdb-dev-<hash>` as the Better Auth cookie prefix.
+The hash comes from the physical checkout directory containing `alchemy.run.ts`, not the branch, stage, app, or port.
+Browsers do not isolate cookies by port. Apps in the same checkout keep sharing cookies through their API worker.
+Separate checkouts use different cookie names. This does not isolate other browser storage or replace database and port isolation.
+
+Sign in again after this change. Existing local cookies are not reused or deleted.
+Moving the checkout changes its prefix and requires another sign-in. Restart local development after moving it.
+Branch changes and restarts at the same path keep the prefix. Symbolic links to the same checkout use the same prefix.
+All deployed stages keep Better Auth's default names, including the existing `__Secure-` prefix for HTTPS.
+
 ### Installation
 
 ```bash

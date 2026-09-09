@@ -16,6 +16,7 @@ import type { AuthService } from "./auth.service";
 export type AuthEnv = {
   readonly DB: D1Database;
   readonly BETTER_AUTH_URL: string;
+  readonly AUTH_COOKIE_PREFIX?: string;
   readonly TRUSTED_ORIGINS?: string;
   readonly RESEND_API_KEY?: string;
   readonly EMAIL_SENDER?: string;
@@ -32,6 +33,8 @@ export const isAuthEnv = (value: unknown): value is AuthEnv =>
   isRecord(value.DB) &&
   typeof value.DB.prepare === "function" &&
   typeof value.BETTER_AUTH_URL === "string" &&
+  (value.AUTH_COOKIE_PREFIX === undefined ||
+    typeof value.AUTH_COOKIE_PREFIX === "string") &&
   (value.TRUSTED_ORIGINS === undefined ||
     typeof value.TRUSTED_ORIGINS === "string");
 
@@ -119,6 +122,7 @@ export const makeAuth = (
     ...createAuthOptions({
       db: runtimeEnv?.DB,
       baseURL,
+      cookiePrefix: runtimeEnv?.AUTH_COOKIE_PREFIX || undefined,
       trustedOrigins: runtimeEnv?.TRUSTED_ORIGINS?.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean),
