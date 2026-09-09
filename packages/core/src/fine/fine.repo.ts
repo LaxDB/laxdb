@@ -31,6 +31,11 @@ import { fineEvents, fines, fineTemplates } from "./fine.sql";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+type FineChange =
+  | { readonly kind: "paid" | "forgiven" }
+  | { readonly kind: "adjusted"; readonly amountCents: number }
+  | { readonly kind: "doubled"; readonly dueAt: Date };
+
 export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
   make: Effect.gen(function* () {
     const db = yield* DrizzleService;
@@ -66,19 +71,45 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
 
     // The audit SELECT reads the current state inside the batch. Its unique ID
     // gates the update, so a stale or repeated action cannot invent a transition.
-    const transition = (input: {
-      readonly id: string;
-      readonly organizationId: string;
-      readonly condition?: SQL | undefined;
-      readonly set: SQLiteUpdateSetSource<typeof fines>;
-      readonly kind: FineEventKind;
-      readonly amountCents: SQL<number>;
-      readonly deltaCents: SQL<number>;
-      readonly actorUserId?: string | null | undefined;
-      readonly note?: string | null | undefined;
-      readonly at: Date;
-    }) => {
+    const fineChange = (
+      input: FineActionInput,
+      change: FineChange,
+      at = new Date(),
+    ) => {
+      let set: SQLiteUpdateSetSource<typeof fines>;
+      let condition: SQL | undefined = eq(fines.status, "unpaid");
+      let amountCents = sql<number>`${fines.amountCents}`;
+      let deltaCents = sql<number>`-${fines.amountCents}`;
+
+      switch (change.kind) {
+        case "paid":
+          set = { status: "paid", paidAt: at };
+          break;
+        case "forgiven":
+          set = { status: "forgiven" };
+          break;
+        case "adjusted":
+          // Adjustments remain valid for settled fines, as before.
+          condition = undefined;
+          amountCents = sql`${change.amountCents}`;
+          deltaCents = sql`${change.amountCents} - ${fines.amountCents}`;
+          set = { amountCents: change.amountCents };
+          break;
+        case "doubled":
+          condition = and(
+            condition,
+            eq(fines.dueAt, change.dueAt),
+            lte(fines.dueAt, at),
+          );
+          amountCents = sql`${fines.amountCents} * 2`;
+          deltaCents = sql`${fines.amountCents}`;
+          set = { amountCents, dueAt: new Date(at.getTime() + WEEK_MS) };
+          break;
+      }
+
       const eventId = nanoid();
+      const actorUserId = input.actorUserId ?? null;
+      const note = change.kind === "paid" ? null : (input.note ?? null);
       const scope = and(
         eq(fines.organizationId, input.organizationId),
         eq(fines.id, input.id),
@@ -91,22 +122,22 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
               .select({
                 id: sql<string>`${eventId}`.as("id"),
                 fineId: fines.id,
-                kind: sql<FineEventKind>`${input.kind}`.as("kind"),
-                amountCents: input.amountCents.as("amount_cents"),
-                deltaCents: input.deltaCents.as("delta_cents"),
-                actorUserId: sql<
-                  string | null
-                >`${input.actorUserId ?? null}`.as("actor_user_id"),
-                note: sql<string | null>`${input.note ?? null}`.as("note"),
-                at: sql<Date>`${input.at.getTime()}`.as("at"),
+                kind: sql<FineEventKind>`${change.kind}`.as("kind"),
+                amountCents: amountCents.as("amount_cents"),
+                deltaCents: deltaCents.as("delta_cents"),
+                actorUserId: sql<string | null>`${actorUserId}`.as(
+                  "actor_user_id",
+                ),
+                note: sql<string | null>`${note}`.as("note"),
+                at: sql<Date>`${at.getTime()}`.as("at"),
               })
               .from(fines)
-              .where(and(scope, input.condition)),
+              .where(and(scope, condition)),
           )
           .returning({ id: fineEvents.id }),
         db
           .update(fines)
-          .set(input.set)
+          .set(set)
           .where(
             and(
               scope,
@@ -283,61 +314,25 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
         }),
 
       pay: (input: FineActionInput) =>
-        Effect.gen(function* () {
-          const now = new Date();
-          return yield* writeFine(
-            input,
-            transition({
-              id: input.id,
-              organizationId: input.organizationId,
-              actorUserId: input.actorUserId,
-              condition: eq(fines.status, "unpaid"),
-              set: { status: "paid", paidAt: now },
-              kind: "paid",
-              amountCents: sql`${fines.amountCents}`,
-              deltaCents: sql`-${fines.amountCents}`,
-              note: null,
-              at: now,
-            }),
-          );
-        }),
+        Effect.suspend(() =>
+          writeFine(input, fineChange(input, { kind: "paid" })),
+        ),
 
       forgive: (input: FineActionInput) =>
-        Effect.gen(function* () {
-          return yield* writeFine(
-            input,
-            transition({
-              id: input.id,
-              organizationId: input.organizationId,
-              actorUserId: input.actorUserId,
-              note: input.note,
-              condition: eq(fines.status, "unpaid"),
-              set: { status: "forgiven" },
-              kind: "forgiven",
-              amountCents: sql`${fines.amountCents}`,
-              deltaCents: sql`-${fines.amountCents}`,
-              at: new Date(),
-            }),
-          );
-        }),
+        Effect.suspend(() =>
+          writeFine(input, fineChange(input, { kind: "forgiven" })),
+        ),
 
       adjust: (input: AdjustFineInput) =>
-        Effect.gen(function* () {
-          return yield* writeFine(
+        Effect.suspend(() =>
+          writeFine(
             input,
-            transition({
-              id: input.id,
-              organizationId: input.organizationId,
-              actorUserId: input.actorUserId,
-              note: input.note,
-              set: { amountCents: input.amountCents },
+            fineChange(input, {
               kind: "adjusted",
-              amountCents: sql`${input.amountCents}`,
-              deltaCents: sql`${input.amountCents} - ${fines.amountCents}`,
-              at: new Date(),
+              amountCents: input.amountCents,
             }),
-          );
-        }),
+          ),
+        ),
 
       listEvents: (input: FineByIdInput) =>
         Effect.gen(function* () {
@@ -377,23 +372,7 @@ export class FineRepo extends Context.Service<FineRepo>()("FineRepo", {
           const results = yield* batch(
             db,
             due.flatMap((fine) =>
-              transition({
-                id: fine.id,
-                organizationId: fine.organizationId,
-                condition: and(
-                  eq(fines.status, "unpaid"),
-                  eq(fines.dueAt, fine.dueAt),
-                  lte(fines.dueAt, now),
-                ),
-                set: {
-                  amountCents: sql`${fines.amountCents} * 2`,
-                  dueAt: new Date(now.getTime() + WEEK_MS),
-                },
-                kind: "doubled",
-                amountCents: sql`${fines.amountCents} * 2`,
-                deltaCents: sql`${fines.amountCents}`,
-                at: now,
-              }),
+              fineChange(fine, { kind: "doubled", dueAt: fine.dueAt }, now),
             ),
           );
 
