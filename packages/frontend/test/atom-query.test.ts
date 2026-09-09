@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import {
   AsyncResult,
   Atom,
@@ -7,22 +7,22 @@ import {
 } from "effect/unstable/reactivity";
 import { describe, expect, it, vi } from "vitest";
 
-import { makeAsyncQuery } from "../src/reactivity/atom-query";
-import { fromPromise } from "../src/reactivity/promise";
+import {
+  fromPromise,
+  makeAsyncQuery,
+  makeEffectQuery,
+} from "../src/atom-query";
 
 describe("makeAsyncQuery", () => {
   it("shares loader data with hydrated consumers without sharing server requests", async () => {
     let calls = 0;
     const query = makeAsyncQuery({
-      load: () => fromPromise(() => Promise.resolve(++calls)),
+      load: () => Promise.resolve(++calls),
       staleTime: "5 minutes",
       refreshSignal: Atom.make(0),
       serialization: {
         key: "test/me",
-        schema: AsyncResult.Schema({
-          success: Schema.Number,
-          error: Schema.Error(),
-        }),
+        schema: Schema.Number,
       },
     }).pipe(Atom.optimistic);
     const server = AtomRegistry.make();
@@ -56,9 +56,7 @@ describe("makeAsyncQuery", () => {
       makeAsyncQuery({
         refreshSignal: changed,
         load: () =>
-          fromPromise(() =>
-            fail ? Promise.reject(error) : Promise.resolve(`${id}:${version}`),
-          ),
+          fail ? Promise.reject(error) : Promise.resolve(`${id}:${version}`),
       }),
     );
     const registry = AtomRegistry.make();
@@ -91,9 +89,11 @@ describe("makeAsyncQuery", () => {
       expect(AsyncResult.value(result)).toEqual(
         expect.objectContaining({ value: "a:2" }),
       );
-      expect(AsyncResult.error(result)).toEqual(
-        expect.objectContaining({ value: error }),
-      );
+      expect(Option.getOrUndefined(AsyncResult.error(result))).toMatchObject({
+        _tag: "RequestError",
+        message: error.message,
+        cause: error,
+      });
     } finally {
       stopFirst();
       stopSecond();
@@ -105,7 +105,7 @@ describe("makeAsyncQuery", () => {
     let saved = "original";
     let pending = Promise.withResolvers<string>();
     const query = makeAsyncQuery({
-      load: () => fromPromise(() => Promise.resolve(saved)),
+      load: () => Promise.resolve(saved),
     }).pipe(Atom.optimistic);
     const update = Atom.optimisticFn(query, {
       reducer: (current, value: string) =>
@@ -147,7 +147,7 @@ describe("makeAsyncQuery", () => {
     const changed = Atom.make(0).pipe(Atom.keepAlive);
     let version = 1;
     const query = makeAsyncQuery({
-      load: () => fromPromise(() => Promise.resolve(version)),
+      load: () => Promise.resolve(version),
       staleTime: "5 minutes",
       refreshSignal: changed,
     });
@@ -172,7 +172,7 @@ describe("makeAsyncQuery", () => {
   });
 
   it("keeps unused queries for five minutes by default", () => {
-    const atom = makeAsyncQuery({ load: () => Effect.succeed(1) });
+    const atom = makeAsyncQuery({ load: () => Promise.resolve(1) });
 
     expect(atom.initialValueTarget?.keepAlive).toBe(false);
     expect(atom.initialValueTarget?.idleTTL).toBe(5 * 60 * 1_000);
@@ -180,11 +180,11 @@ describe("makeAsyncQuery", () => {
 
   it("allows each query to override the idle lifetime", () => {
     const disposable = makeAsyncQuery({
-      load: () => Effect.succeed(1),
+      load: () => Promise.resolve(1),
       idleTTL: 0,
     });
     const applicationOwned = makeAsyncQuery({
-      load: () => Effect.succeed(1),
+      load: () => Promise.resolve(1),
       idleTTL: "Infinity",
     });
 
@@ -198,7 +198,7 @@ describe("makeAsyncQuery", () => {
     let now = Date.now();
     const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
     let loads = 0;
-    const atom = makeAsyncQuery({
+    const atom = makeEffectQuery({
       load: () => Effect.sync(() => ++loads),
       staleTime: "5 minutes",
     }).pipe(Atom.withServerValueInitial);

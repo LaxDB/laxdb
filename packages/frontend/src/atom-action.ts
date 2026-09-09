@@ -5,7 +5,7 @@ import { Option } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
 import { useRef, useState } from "react";
 
-import { fromPromise } from "./promise";
+import { fromPromise } from "./atom-query";
 
 /** Each component owns its action state; repeated submissions do not cancel writes. */
 export const useAsyncAction = <A, Input = void>(

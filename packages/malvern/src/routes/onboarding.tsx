@@ -1,5 +1,5 @@
-import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
-import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
+import { useAsyncAction } from "@laxdb/frontend/atom-action";
+import { useAsyncQuery } from "@laxdb/frontend/atom-query";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {

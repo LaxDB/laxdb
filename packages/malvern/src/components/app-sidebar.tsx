@@ -1,5 +1,5 @@
 import type { Me } from "@laxdb/core/auth/auth.schema";
-import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
+import { useAsyncQuery } from "@laxdb/frontend/atom-query";
 import { Avatar, AvatarFallback } from "@laxdb/ui/components/ui/avatar";
 import {
   DropdownMenu,

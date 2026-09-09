@@ -39,7 +39,7 @@ const loadDrills = createServerFn({ method: "GET" }).handler(() =>
 );
 
 const drillsAtom = makeAsyncQuery({
-  load: () => fromPromise(() => loadDrills()),
+  load: (signal) => loadDrills({ signal }),
   staleTime: "5 minutes",
 }).pipe(Atom.withServerValueInitial);
 

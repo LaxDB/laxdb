@@ -1,5 +1,4 @@
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import {
   magicLinkClient,
   organizationClient,
@@ -7,13 +6,14 @@ import {
 import { createAuthClient } from "better-auth/react";
 
 export const organizationsAtom = makeAsyncQuery({
-  load: () =>
-    fromPromise(async () => {
-      const result = await authClient.organization.list();
-      if (result.error)
-        throw new Error(result.error.message ?? "Failed to load teams");
-      return result.data ?? [];
-    }),
+  load: async (signal) => {
+    const result = await authClient.organization.list({
+      fetchOptions: { signal },
+    });
+    if (result.error)
+      throw new Error(result.error.message ?? "Failed to load teams");
+    return result.data ?? [];
+  },
 });
 
 export const authClient = createAuthClient({

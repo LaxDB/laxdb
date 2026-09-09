@@ -5,8 +5,7 @@ import {
   type RosterPlayer,
 } from "@laxdb/core/club/club.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { fromPromise, makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
 import { AsyncResult, Atom } from "effect/unstable/reactivity";
@@ -27,14 +26,11 @@ export const listTeams = createServerFn({ method: "GET" }).handler(() =>
 export const teamsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const teamsAtom = makeAsyncQuery({
   refreshSignal: teamsChanged,
-  load: () => fromPromise(() => listTeams()),
+  load: (signal) => listTeams({ signal }),
   staleTime: "1 minute",
   serialization: {
     key: "malvern/teams",
-    schema: AsyncResult.Schema({
-      success: Schema.Array(ClubTeam),
-      error: Schema.Error(),
-    }),
+    schema: Schema.Array(ClubTeam),
   },
 }).pipe(Atom.optimistic);
 
@@ -119,7 +115,7 @@ export const rosterChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const rosterAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: rosterChanged,
-    load: () => fromPromise(() => listRoster({ data: { teamId } })),
+    load: (signal) => listRoster({ data: { teamId }, signal }),
   }),
 );
 
@@ -178,7 +174,7 @@ export const listRecipients = createServerFn({ method: "GET" }).handler(() =>
 export const recipientsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const recipientsAtom = makeAsyncQuery({
   refreshSignal: recipientsChanged,
-  load: () => fromPromise(() => listRecipients()),
+  load: (signal) => listRecipients({ signal }),
 });
 
 export const listRecipientsForTeam = createServerFn({ method: "GET" })

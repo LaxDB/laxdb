@@ -16,11 +16,10 @@ import {
   type MatchReport,
 } from "@laxdb/core/match/match.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { Effect } from "effect";
+import { Atom } from "effect/unstable/reactivity";
 
 export type FixtureView = typeof Fixture.Type;
 export type MatchReportView = typeof MatchReport.Type;
@@ -49,17 +48,17 @@ export const fixturesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const fixturesAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: fixturesChanged,
-    load: () => fromPromise(() => listFixtures({ data: { teamId } })),
+    load: (signal) => listFixtures({ data: { teamId }, signal }),
   }),
 );
 export const fixtureAtom = Atom.family((id: string) =>
   makeAsyncQuery({
     refreshSignal: fixturesChanged,
-    load: () => fromPromise(() => getFixture({ data: { id } })),
+    load: (signal) => getFixture({ data: { id }, signal }),
     staleTime: "1 minute",
     serialization: {
       key: `malvern/fixture/${id}`,
-      schema: AsyncResult.Schema({ success: Fixture, error: Schema.Error() }),
+      schema: Fixture,
     },
   }),
 );
@@ -79,11 +78,12 @@ export const selectedFixturesAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: fixturesChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listFixtures({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listFixtures({
+            data: teamId === undefined ? {} : { teamId },
+            signal,
+          }),
         ),
     }),
 );
@@ -185,12 +185,12 @@ export const listGamedaySeasons = createServerFn({ method: "GET" }).handler(
 );
 
 export const seasonsAtom = makeAsyncQuery({
-  load: () => fromPromise(() => listGamedaySeasons()),
+  load: (signal) => listGamedaySeasons({ signal }),
   staleTime: "30 minutes",
 });
 export const clubsAtom = Atom.family((seasonId: string) =>
   makeAsyncQuery({
-    load: () => fromPromise(() => listGamedayClubs({ data: { seasonId } })),
+    load: (signal) => listGamedayClubs({ data: { seasonId }, signal }),
     staleTime: "30 minutes",
   }),
 );
@@ -200,12 +200,11 @@ export const competitionsAtom = Atom.family(
     readonly clubNames: readonly string[];
   }) =>
     makeAsyncQuery({
-      load: () =>
-        fromPromise(() =>
-          listCompetitionsForClubs({
-            data: { seasonId: input.seasonId, clubNames: [...input.clubNames] },
-          }),
-        ),
+      load: (signal) =>
+        listCompetitionsForClubs({
+          data: { seasonId: input.seasonId, clubNames: [...input.clubNames] },
+          signal,
+        }),
       staleTime: "10 minutes",
     }),
 );
@@ -249,18 +248,16 @@ export const reportsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const reportsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: reportsChanged,
-    load: () => fromPromise(() => listReports({ data: { teamId } })),
+    load: (signal) => listReports({ data: { teamId }, signal }),
   }),
 );
 export const selectedReportsAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: reportsChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listReports({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listReports({ data: teamId === undefined ? {} : { teamId }, signal }),
         ),
     }),
 );
@@ -299,24 +296,25 @@ export const imagesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const fixtureImagesAtom = Atom.family((fixtureId: string) =>
   makeAsyncQuery({
     refreshSignal: imagesChanged,
-    load: () => fromPromise(() => listMatchImages({ data: { fixtureId } })),
+    load: (signal) => listMatchImages({ data: { fixtureId }, signal }),
   }),
 );
 export const teamImagesAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: imagesChanged,
-    load: () => fromPromise(() => listMatchImages({ data: { teamId } })),
+    load: (signal) => listMatchImages({ data: { teamId }, signal }),
   }),
 );
 export const selectedImagesAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: imagesChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listMatchImages({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listMatchImages({
+            data: teamId === undefined ? {} : { teamId },
+            signal,
+          }),
         ),
     }),
 );

@@ -6,8 +6,7 @@ import type {
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
@@ -94,24 +93,24 @@ export const statsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const teamStandingsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamStandings({ data: { teamId } })),
+    load: (signal) => getTeamStandings({ data: { teamId }, signal }),
   }),
 );
 export const teamSummaryAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamSummary({ data: { teamId } })),
+    load: (signal) => getTeamSummary({ data: { teamId }, signal }),
   }),
 );
 export const teamPlayerStatsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamPlayerStats({ data: { teamId } })),
+    load: (signal) => getTeamPlayerStats({ data: { teamId }, signal }),
   }),
 );
 export const fixtureStatsAtom = Atom.family((fixtureId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getFixtureStats({ data: { fixtureId } })),
+    load: (signal) => getFixtureStats({ data: { fixtureId }, signal }),
   }),
 );

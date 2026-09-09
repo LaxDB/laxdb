@@ -6,8 +6,7 @@ import type {
   FineTemplate,
 } from "@laxdb/core/fine/fine.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
@@ -29,7 +28,7 @@ export const listMembers = createServerFn({ method: "GET" }).handler(() =>
 export const membersChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const membersAtom = makeAsyncQuery({
   refreshSignal: membersChanged,
-  load: () => fromPromise(() => listMembers()),
+  load: (signal) => listMembers({ signal }),
 });
 
 export const listTemplates = createServerFn({ method: "GET" }).handler(() =>
@@ -75,7 +74,7 @@ export const listFines = createServerFn({ method: "GET" }).handler(() =>
 export const finesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const finesAtom = makeAsyncQuery({
   refreshSignal: finesChanged,
-  load: () => fromPromise(() => listFines()),
+  load: (signal) => listFines({ signal }),
 });
 
 export const listMemberFines = createServerFn({ method: "GET" })
@@ -145,7 +144,7 @@ export const adjustFine = createServerFn({ method: "POST" })
 export const auditChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const auditAtom = makeAsyncQuery({
   refreshSignal: auditChanged,
-  load: () => fromPromise(() => listAudit({ data: { limit: 200 } })),
+  load: (signal) => listAudit({ data: { limit: 200 }, signal }),
 });
 
 export const listAudit = createServerFn({ method: "GET" })

@@ -5,10 +5,8 @@
   "sideEffects": false,
   "exports": {
     "./api": "./src/api.ts",
-    "./reactivity/atom-query": "./src/reactivity/atom-query.ts",
-    "./reactivity/promise": "./src/reactivity/promise.ts",
-    "./reactivity/react": "./src/reactivity/react.ts",
-    "./reactivity/react-action": "./src/reactivity/react-action.ts",
+    "./atom-query": "./src/atom-query.ts",
+    "./atom-action": "./src/atom-action.ts",
     "./routing": "./src/routing.ts"
   },
   "scripts": {
