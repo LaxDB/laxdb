@@ -1278,7 +1278,7 @@ export class MatchService extends Context.Service<MatchService>()(
             const decoded = yield* decodeArguments(SubmitReportInput, input);
 
             const fixture = yield* repo
-              .getFixture({
+              .getFixtureWithTeam({
                 organizationId: decoded.organizationId,
                 id: decoded.fixtureId,
               })
@@ -1297,16 +1297,10 @@ export class MatchService extends Context.Service<MatchService>()(
               );
             }
 
-            const team = yield* clubRepo
-              .getTeam({
-                organizationId: decoded.organizationId,
-                id: fixture.teamId,
-              })
-              .pipe(
-                Effect.catchTag("NoSuchElementError", () =>
-                  Effect.fail(notFound("ClubTeam", fixture.teamId)),
-                ),
-              );
+            const team = fixture.team;
+            if (team === null) {
+              return yield* Effect.fail(notFound("ClubTeam", fixture.teamId));
+            }
 
             const playerIds = [
               decoded.topPlayer1Id,

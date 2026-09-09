@@ -1,6 +1,10 @@
 import type { EffectSQLiteD1Database } from "drizzle-orm/effect-d1";
 import { Array as Arr, Cause, Context, Data, Effect, Layer } from "effect";
 
+import type { DatabaseRelations } from "./relations";
+
+export type Database = EffectSQLiteD1Database<DatabaseRelations>;
+
 // ---------------------------------------------------------------------------
 // SqlError — application-facing error for Drizzle query failures
 // ---------------------------------------------------------------------------
@@ -46,10 +50,9 @@ export const headOrFail = <A>(arr: readonly A[]) =>
 // DrizzleService — provides Alchemy's Effect-native D1 Drizzle database
 // ---------------------------------------------------------------------------
 
-export class DrizzleService extends Context.Service<
-  DrizzleService,
-  EffectSQLiteD1Database
->()("DrizzleService") {}
+export class DrizzleService extends Context.Service<DrizzleService, Database>()(
+  "DrizzleService",
+) {}
 
-export const DatabaseLive = (database: Effect.Effect<EffectSQLiteD1Database>) =>
+export const DatabaseLive = (database: Effect.Effect<Database>) =>
   Layer.effect(DrizzleService, database);

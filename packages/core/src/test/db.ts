@@ -16,6 +16,7 @@ import { clubTeams, reportRecipients, rosterPlayers } from "../club/club.sql";
 import { defaultsTable } from "../defaults/defaults.sql";
 import { drillTable } from "../drill/drill.sql";
 import { DrizzleService, query } from "../drizzle/drizzle.service";
+import { relations } from "../drizzle/relations";
 import { fineEvents, fines, fineTemplates } from "../fine/fine.sql";
 import {
   clubTeamGamedayLinks,
@@ -87,7 +88,7 @@ const TestDrizzleLive = Layer.effect(
   DrizzleService,
   Effect.gen(function* () {
     const db = yield* Effect.promise(getTestD1Database);
-    return yield* DrizzleD1.makeWithDefaults({}).pipe(
+    return yield* DrizzleD1.makeWithDefaults({ relations }).pipe(
       Effect.provide(D1Client.layer({ db }).pipe(Layer.orDie)),
     );
   }),

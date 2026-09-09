@@ -96,6 +96,14 @@ export class MatchRepo extends Context.Service<MatchRepo>()("MatchRepo", {
             ),
         ).pipe(Effect.flatMap(headOrFail)),
 
+      getFixtureWithTeam: (input: FixtureByIdInput) =>
+        query(
+          db.query.fixtures.findMany({
+            where: { organizationId: input.organizationId, id: input.id },
+            with: { team: { where: { organizationId: input.organizationId } } },
+          }),
+        ).pipe(Effect.flatMap(headOrFail)),
+
       upsertFixtures: (rows: readonly UpsertFixture[]) =>
         Effect.gen(function* () {
           const now = new Date();

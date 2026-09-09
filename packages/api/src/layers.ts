@@ -3,6 +3,7 @@ import { ClubService } from "@laxdb/core/club/club.service";
 import { DefaultsService } from "@laxdb/core/defaults/defaults.service";
 import { DrillService } from "@laxdb/core/drill/drill.service";
 import { DatabaseLive as DatabaseLayer } from "@laxdb/core/drizzle/drizzle.service";
+import { relations } from "@laxdb/core/drizzle/relations";
 import { EmailService } from "@laxdb/core/email/email.service";
 import { FineService } from "@laxdb/core/fine/fine.service";
 import { MatchService } from "@laxdb/core/match/match.service";
@@ -57,7 +58,7 @@ export const DatabaseLive = Layer.unwrap(
         new Error("Cloudflare D1 binding DB is missing from api worker env"),
       );
     }
-    return DatabaseLayer(drizzleD1(Effect.succeed(env.DB)));
+    return DatabaseLayer(drizzleD1(Effect.succeed(env.DB), { relations }));
   }),
 );
 

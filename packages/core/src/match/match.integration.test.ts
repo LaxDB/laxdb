@@ -6,6 +6,7 @@ import { DrizzleService, query } from "@laxdb/core/drizzle/drizzle.service";
 import { EmailService } from "@laxdb/core/email/email.service";
 import { eq } from "drizzle-orm";
 import { Effect, Layer } from "effect";
+import { expectTypeOf } from "vitest";
 
 import { TestDatabaseLive, truncateAll } from "../test/db";
 import { makeTestRunner } from "../test/effect";
@@ -26,7 +27,7 @@ import {
 } from "./gameday.sql";
 import { MatchRepo } from "./match.repo";
 import { MatchService } from "./match.service";
-import { fixtures } from "./match.sql";
+import { fixtures, matchReports } from "./match.sql";
 
 const ORG_ID = "org-match-images";
 const USER_ID = "user-match-images";
@@ -214,6 +215,278 @@ const seedFixture = Effect.gen(function* () {
       awayScore: 0,
     }),
   );
+});
+
+describe("typed match relations", () => {
+  it("infers nested rows, distinguishes player references, and keeps optional rows null", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedFixture;
+        const db = yield* DrizzleService;
+        const service = yield* MatchService;
+        yield* query(
+          db.insert(rosterPlayers).values([
+            {
+              id: "player-first",
+              organizationId: ORG_ID,
+              teamId: TEAM_ID,
+              name: "First",
+            },
+            {
+              id: "player-second",
+              organizationId: ORG_ID,
+              teamId: TEAM_ID,
+              name: "Second",
+            },
+            {
+              id: "player-third",
+              organizationId: ORG_ID,
+              teamId: TEAM_ID,
+              name: "Third",
+            },
+          ]),
+        );
+
+        const read = () =>
+          query(
+            db.query.fixtures.findMany({
+              where: { organizationId: ORG_ID },
+              orderBy: { scheduledAt: "desc" },
+              with: {
+                team: { where: { organizationId: ORG_ID } },
+                report: {
+                  where: { organizationId: ORG_ID },
+                  with: {
+                    topPlayer1: { where: { organizationId: ORG_ID } },
+                    topPlayer2: { where: { organizationId: ORG_ID } },
+                    topPlayer3: { where: { organizationId: ORG_ID } },
+                  },
+                },
+              },
+            }),
+          );
+        expect((yield* read())[0]?.report).toBeNull();
+
+        const report = yield* service.submitReport({
+          organizationId: ORG_ID,
+          fixtureId: FIXTURE_ID,
+          topPlayer1Id: "player-second",
+          topPlayer2Id: "player-first",
+        });
+        expect(report.topPlayer2Id).toBe("player-first");
+        expect(report.topPlayer3Id).toBeNull();
+        expect(report.sentTo).toEqual([]);
+        expect(report.sentAt).toBeNull();
+        expect(report).not.toHaveProperty("team");
+        expect(report).not.toHaveProperty("topPlayer1");
+
+        const rows = yield* read();
+        expectTypeOf(rows[0]?.report?.topPlayer1?.name).toEqualTypeOf<
+          string | undefined
+        >();
+        expectTypeOf(rows[0]?.report?.topPlayer2).toEqualTypeOf<
+          typeof rosterPlayers.$inferSelect | null | undefined
+        >();
+        expectTypeOf(rows[0]?.scheduledAt).toEqualTypeOf<
+          Date | null | undefined
+        >();
+        // @ts-expect-error -- nested result fields must not degrade to an untyped value
+        void rows[0]?.report?.topPlayer1?.missingField;
+        // @ts-expect-error -- only configured and selected relations are available
+        void rows[0]?.report?.team;
+        expect(rows[0]?.team?.id).toBe(TEAM_ID);
+        expect(rows[0]?.report?.topPlayer1?.id).toBe("player-second");
+        expect(rows[0]?.report?.topPlayer2?.id).toBe("player-first");
+        expect(rows[0]?.report?.topPlayer3).toBeNull();
+        expect(rows[0]?.scheduledAt).toEqual(new Date("2026-06-20T10:00:00Z"));
+
+        yield* service.submitReport({
+          organizationId: ORG_ID,
+          fixtureId: FIXTURE_ID,
+          topPlayer1Id: "player-third",
+          topPlayer2Id: "player-second",
+          topPlayer3Id: "player-first",
+        });
+        const updated = (yield* read())[0]?.report;
+        expect([
+          updated?.topPlayer1?.id,
+          updated?.topPlayer2?.id,
+          updated?.topPlayer3?.id,
+        ]).toEqual(["player-third", "player-second", "player-first"]);
+        expect(
+          yield* service.listReports({ organizationId: ORG_ID }),
+        ).toHaveLength(1);
+        expect(
+          yield* service.getFixture({ organizationId: ORG_ID, id: FIXTURE_ID }),
+        ).not.toHaveProperty("team");
+      }),
+    ));
+
+  it("filters organizations at each relation and preserves report validation", () =>
+    run(
+      Effect.gen(function* () {
+        yield* truncateAll;
+        yield* seedFixture;
+        const db = yield* DrizzleService;
+        const service = yield* MatchService;
+        yield* query(
+          db
+            .insert(organizations)
+            .values({ id: "other-org", name: "Other", slug: "other" }),
+        );
+        yield* query(
+          db.insert(clubTeams).values({
+            id: "other-team",
+            organizationId: "other-org",
+            name: "Other",
+          }),
+        );
+        yield* query(
+          db.insert(rosterPlayers).values([
+            {
+              id: "own-player",
+              organizationId: ORG_ID,
+              teamId: TEAM_ID,
+              name: "Own",
+            },
+            {
+              id: "other-player",
+              organizationId: "other-org",
+              teamId: "other-team",
+              name: "Other",
+            },
+          ]),
+        );
+        yield* query(
+          db.insert(fixtures).values({
+            id: "other-fixture",
+            organizationId: "other-org",
+            teamId: "other-team",
+            gamedayFixtureId: "other",
+            homeTeamName: "Other",
+            awayTeamName: "Visitors",
+          }),
+        );
+        expect(
+          yield* query(
+            db.query.fixtures.findMany({
+              where: { organizationId: ORG_ID, id: "other-fixture" },
+              with: { team: { where: { organizationId: ORG_ID } } },
+            }),
+          ),
+        ).toEqual([]);
+        expect(
+          yield* service
+            .submitReport({
+              organizationId: ORG_ID,
+              fixtureId: "other-fixture",
+              topPlayer1Id: "own-player",
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({ _tag: "NotFoundError", domain: "Fixture" });
+        expect(
+          yield* service
+            .submitReport({
+              organizationId: ORG_ID,
+              fixtureId: FIXTURE_ID,
+              topPlayer1Id: "other-player",
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({
+          _tag: "ValidationError",
+          message: "Top players must come from the team roster",
+        });
+        expect(
+          yield* service
+            .submitReport({
+              organizationId: ORG_ID,
+              fixtureId: FIXTURE_ID,
+              topPlayer1Id: "own-player",
+              topPlayer2Id: "own-player",
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({
+          _tag: "ValidationError",
+          message: "Top players must be three different players",
+        });
+
+        // The schema permits cross-organization references. Relations are not authorization.
+        yield* query(
+          db.insert(matchReports).values({
+            id: "cross-report",
+            organizationId: ORG_ID,
+            fixtureId: FIXTURE_ID,
+            teamId: TEAM_ID,
+            topPlayer1Id: "own-player",
+            topPlayer2Id: "other-player",
+          }),
+        );
+        const read = () =>
+          query(
+            db.query.fixtures.findFirst({
+              where: { organizationId: ORG_ID, id: FIXTURE_ID },
+              with: {
+                report: {
+                  where: { organizationId: ORG_ID },
+                  with: {
+                    topPlayer1: { where: { organizationId: ORG_ID } },
+                    topPlayer2: { where: { organizationId: ORG_ID } },
+                  },
+                },
+              },
+            }),
+          );
+        expect((yield* read())?.report?.topPlayer1?.id).toBe("own-player");
+        expect((yield* read())?.report?.topPlayer2).toBeNull();
+        yield* query(
+          db
+            .update(matchReports)
+            .set({ organizationId: "other-org" })
+            .where(eq(matchReports.id, "cross-report")),
+        );
+        expect((yield* read())?.report).toBeNull();
+
+        yield* query(
+          db
+            .update(fixtures)
+            .set({ teamId: "other-team" })
+            .where(eq(fixtures.id, FIXTURE_ID)),
+        );
+        expect(
+          yield* service
+            .submitReport({
+              organizationId: ORG_ID,
+              fixtureId: FIXTURE_ID,
+              topPlayer1Id: "own-player",
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({
+          _tag: "NotFoundError",
+          domain: "ClubTeam",
+          id: "other-team",
+        });
+        yield* query(
+          db
+            .update(fixtures)
+            .set({ homeScore: null })
+            .where(eq(fixtures.id, FIXTURE_ID)),
+        );
+        expect(
+          yield* service
+            .submitReport({
+              organizationId: ORG_ID,
+              fixtureId: FIXTURE_ID,
+              topPlayer1Id: "own-player",
+            })
+            .pipe(Effect.flip),
+        ).toMatchObject({
+          _tag: "ValidationError",
+          message:
+            "Reports can only be submitted after the fixture has a completed score",
+        });
+      }),
+    ));
 });
 
 describe("MatchService image metadata integration", () => {
