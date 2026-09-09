@@ -15,6 +15,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
+    host: "127.0.0.1",
     watch: {
       ignored: ["**/routeTree.gen.ts", "**/.tanstack/**"],
     },

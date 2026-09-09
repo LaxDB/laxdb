@@ -39,7 +39,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "scheduler": "^0.27.0",
-    "vite": "^8.2.0"
+    "vite": "^8.2.2"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.167.35",

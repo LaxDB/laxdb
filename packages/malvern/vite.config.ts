@@ -23,6 +23,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
+    host: "127.0.0.1",
     proxy: {
       "/api/auth/": { target: localApiUrl },
       "/api/report-images/": { target: localApiUrl },

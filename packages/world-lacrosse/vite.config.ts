@@ -43,7 +43,7 @@ export default defineConfig(async () => {
       ],
     },
     server: {
-      host: true,
+      host: "127.0.0.1",
       port: 3010,
       watch: {
         ignored: ["**/routeTree.gen.ts", "**/.tanstack/**"],

@@ -4,4 +4,5 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: { target: "esnext" },
   plugins: [react()],
+  server: { host: "127.0.0.1" },
 });
