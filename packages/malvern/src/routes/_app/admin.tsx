@@ -1,6 +1,7 @@
 import { useAtomSet, RegistryContext } from "@effect/atom-react";
 import { useAsyncAction } from "@laxdb/frontend/atom-action";
 import { useAsyncQuery, waitForQuery } from "@laxdb/frontend/atom-query";
+import { authClient } from "@laxdb/frontend/auth";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import {
   AlertDialog,
@@ -48,7 +49,6 @@ import {
   type ReactElement,
 } from "react";
 
-import { authClient } from "../../lib/auth-client";
 import {
   updateTeamAtom,
   teamsChanged,

@@ -21,7 +21,6 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.170.33",
     "@tanstack/react-start": "^1.168.50",
-    "better-auth": "^1.7.3",
     "effect": "4.0.0-rc.112",
     "lucide-react": "^0.475.0",
     "react": "^19.2.8",

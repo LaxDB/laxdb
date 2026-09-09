@@ -1,11 +1,10 @@
 import { useAsyncAction } from "@laxdb/frontend/atom-action";
+import { authClient } from "@laxdb/frontend/auth";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Card, CardContent } from "@laxdb/ui/components/ui/card";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
-
-import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/accept-invitation/$id")({
   component: Accept,
@@ -17,13 +16,8 @@ function Accept() {
 
   const accept = useAsyncAction(async (invitationId: string) => {
     const session = await authClient.getSession();
-    if (!session.data) return { needLogin: true };
-    const result = await authClient.organization.acceptInvitation({
-      invitationId,
-    });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Failed to accept invitation");
-    }
+    if (!session) return { needLogin: true };
+    await authClient.organization.acceptInvitation({ invitationId });
     // Replace the document so no previous user's cache survives the identity change.
     await router.navigate({ to: "/fines", reloadDocument: true });
     return { needLogin: false };
