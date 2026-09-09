@@ -5,6 +5,7 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 import { runMarketingPrerenderConfig } from "./src/lib/marketing-prerender.ts";
+import { contentAssets } from "./vite/content-assets.ts";
 import { pagefindSearch } from "./vite/pagefind.ts";
 
 const cssModuleLocalsConvention = "camelCase" as const;
@@ -24,6 +25,7 @@ export default defineConfig(async () => {
       },
     },
     plugins: [
+      contentAssets(),
       contentCollections(),
       tailwindcss(),
       tanstackStart({
