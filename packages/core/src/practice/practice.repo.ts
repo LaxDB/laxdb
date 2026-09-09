@@ -1,8 +1,15 @@
 import { asc, eq, getColumns } from "drizzle-orm";
-import { Effect, Layer, Context } from "effect";
+import { Effect, Layer, Context, Schema } from "effect";
 
-import { headOrFail, DrizzleService, query } from "../drizzle/drizzle.service";
+import {
+  batch,
+  mapBatchRow,
+  headOrFail,
+  DrizzleService,
+  query,
+} from "../drizzle/drizzle.service";
 
+import { PracticeEdge } from "./practice.schema";
 import type {
   AddItemInput,
   CreatePracticeInput,
@@ -217,22 +224,19 @@ export class PracticeRepo extends Context.Service<PracticeRepo>()(
 
         replaceEdges: (input: ReplaceEdgesInput) =>
           Effect.gen(function* () {
-            yield* query(
-              db
-                .delete(practiceEdgeTable)
-                .where(
-                  eq(
-                    practiceEdgeTable.practicePublicId,
-                    input.practicePublicId,
-                  ),
-                ),
-            );
+            const deletion = db
+              .delete(practiceEdgeTable)
+              .where(
+                eq(practiceEdgeTable.practicePublicId, input.practicePublicId),
+              );
 
             if (input.edges.length === 0) {
+              yield* batch(db, [deletion]);
               return [];
             }
 
-            return yield* query(
+            const results = yield* batch(db, [
+              deletion,
               db
                 .insert(practiceEdgeTable)
                 .values(
@@ -244,6 +248,11 @@ export class PracticeRepo extends Context.Service<PracticeRepo>()(
                   })),
                 )
                 .returning(edgeCols),
+            ]);
+            return (results[1] ?? []).map((row) =>
+              Schema.decodeUnknownSync(PracticeEdge)(
+                mapBatchRow(edgeCols, row),
+              ),
             );
           }).pipe(Effect.tapError(Effect.logError)),
 
