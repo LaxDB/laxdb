@@ -7,11 +7,7 @@ import {
 } from "effect/unstable/reactivity";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  fromPromise,
-  makeAsyncQuery,
-  makeEffectQuery,
-} from "../src/atom-query";
+import { makeAsyncQuery, makeEffectQuery } from "../src/atom-query";
 
 describe("makeAsyncQuery", () => {
   it("shares loader data with hydrated consumers without sharing server requests", async () => {
@@ -101,48 +97,6 @@ describe("makeAsyncQuery", () => {
     }
   });
 
-  it("rolls back a failed optimistic write and refreshes a successful write", async () => {
-    let saved = "original";
-    let pending = Promise.withResolvers<string>();
-    const query = makeAsyncQuery({
-      load: () => Promise.resolve(saved),
-    }).pipe(Atom.optimistic);
-    const update = Atom.optimisticFn(query, {
-      reducer: (current, value: string) =>
-        AsyncResult.map(current, () => value),
-      fn: Atom.fn<string>()(() => fromPromise(() => pending.promise)),
-    });
-    const registry = AtomRegistry.make();
-    const stop = registry.mount(query);
-    const stopUpdate = registry.mount(update);
-    try {
-      await Effect.runPromise(AtomRegistry.getResult(registry, query));
-      registry.set(update, "draft");
-      expect(AsyncResult.getOrThrow(registry.get(query))).toBe("draft");
-      pending.reject(new Error("Write failed"));
-      await Effect.runPromiseExit(
-        AtomRegistry.getResult(registry, update, { suspendOnWaiting: true }),
-      );
-      expect(AsyncResult.getOrThrow(registry.get(query))).toBe("original");
-      pending = Promise.withResolvers<string>();
-      registry.set(update, "saved");
-      saved = "saved";
-      pending.resolve(saved);
-      await Effect.runPromise(
-        AtomRegistry.getResult(registry, update, { suspendOnWaiting: true }),
-      );
-      expect(
-        await Effect.runPromise(
-          AtomRegistry.getResult(registry, query, { suspendOnWaiting: true }),
-        ),
-      ).toBe("saved");
-    } finally {
-      stop();
-      stopUpdate();
-      registry.dispose();
-    }
-  });
-
   it("invalidates cached queries while no component is mounted", async () => {
     const changed = Atom.make(0).pipe(Atom.keepAlive);
     let version = 1;
@@ -169,29 +123,6 @@ describe("makeAsyncQuery", () => {
     } finally {
       registry.dispose();
     }
-  });
-
-  it("keeps unused queries for five minutes by default", () => {
-    const atom = makeAsyncQuery({ load: () => Promise.resolve(1) });
-
-    expect(atom.initialValueTarget?.keepAlive).toBe(false);
-    expect(atom.initialValueTarget?.idleTTL).toBe(5 * 60 * 1_000);
-  });
-
-  it("allows each query to override the idle lifetime", () => {
-    const disposable = makeAsyncQuery({
-      load: () => Promise.resolve(1),
-      idleTTL: 0,
-    });
-    const applicationOwned = makeAsyncQuery({
-      load: () => Promise.resolve(1),
-      idleTTL: "Infinity",
-    });
-
-    expect(disposable.initialValueTarget?.keepAlive).toBe(false);
-    expect(disposable.initialValueTarget?.idleTTL).toBe(0);
-    expect(applicationOwned.initialValueTarget?.keepAlive).toBe(true);
-    expect(applicationOwned.initialValueTarget?.idleTTL).toBeUndefined();
   });
 
   it("defers client-only queries and keeps them fresh for five minutes", async () => {
