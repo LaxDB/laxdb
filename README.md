@@ -70,5 +70,32 @@ The project uses an Alchemy v2 stack in `alchemy.run.ts` to define and manage Cl
 - Database: Cloudflare D1 with migrations managed by Alchemy
 - Storage: Cloudflare R2 buckets
 - Cache: Cloudflare KV namespaces
-- State: Cloudflare-managed Alchemy state store
+- State: Local files during Alchemy development; Cloudflare-managed state for deployments
 - Deployment Stages: Production (laxdb.io), Development (dev.laxdb.io), and PR previews
+
+### Local Alchemy state
+
+Run `infisical run --env=dev -- bun run dev` from the repository root.
+Alchemy's `dev` command sets `ALCHEMY_DEV=true` and enables its development context.
+Both must be true to select local state. The flag defaults to `false`.
+Stage names do not select the state backend.
+
+Deploy, plan, and destroy commands keep Cloudflare state for every stage, including `dev` and `prod`.
+Their non-development context prevents an inherited `ALCHEMY_DEV=true` from selecting local state.
+Do not set this flag in shared secrets or deployment configuration.
+
+Local state lives in `.alchemy/state/laxdb/<stage>/` in this checkout.
+The local D1 simulator stores data separately under `.alchemy/local/d1/`.
+Keep both directories together when backing up local development data.
+Do not share one checkout's state between concurrent Alchemy processes.
+
+The first local run without state initializes fresh resource records; it does not import previous Cloudflare state.
+D1 receives a new local database ID and applies the existing SQL migrations.
+Previous simulator data can remain on disk but will not follow the new ID.
+Losing local state can therefore recreate an empty database, even when old simulator files remain.
+Losing only simulator data can leave state records that prevent initialization from running again.
+Back up local data before switching, and preserve the state and simulator data together.
+This change does not delete, migrate, or repair existing remote state, including records from earlier local runs.
+
+Only the state backend changes. Provider layers, resource names, retention, migrations, and authentication remain unchanged.
+Local state does not make providers offline: Cloudflare account access and credentials can still be required.
