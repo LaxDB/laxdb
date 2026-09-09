@@ -17,5 +17,5 @@ export const database = Effect.gen(function* () {
     name: stage === "prod" ? "laxdb" : `laxdb-${stage}`,
     migrationsDir: schema.out,
     readReplication: { mode: readReplicationMode },
-  });
+  }).pipe(Alchemy.RemovalPolicy.retain(stage === "prod"));
 });
