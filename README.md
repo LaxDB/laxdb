@@ -43,7 +43,7 @@ infisical login
 infisical init
 
 # Run commands with secrets injected
-infisical run --env=dev -- bun run dev
+bun run dev
 ```
 
 See [docs/infisical/cli.md](docs/infisical/cli.md) for more details.
