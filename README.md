@@ -62,6 +62,15 @@ bun install
 - `bun run typecheck`: Runs TypeScript compiler checks across the monorepo
 - `bun run fix`: Runs linting and formatting tools to ensure code quality
 
+## Local Development
+
+Run `bun run dev` from the repository root. It loads Infisical secrets and starts the Alchemy Workers runtime.
+Malvern and Practice Planner use the `API` service binding in local development and deployment. Plain `vite dev` does not supply this binding.
+Standalone `vite build` remains available in both packages.
+
+Use the URLs printed by Alchemy. Most services use automatic ports. Malvern keeps port 1438 for auth origins and callbacks.
+The API keeps port 1437 for the CLI default.
+
 ## Infrastructure
 
 The project uses an Alchemy v2 stack in `alchemy.run.ts` to define and manage Cloudflare resources:

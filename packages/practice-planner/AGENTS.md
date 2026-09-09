@@ -57,7 +57,7 @@ const { data: drills = [] } = useAsyncQuery(drillsAtom);
 
 ### `runApi` boundary
 
-Import `runApi` directly from `@laxdb/frontend/api`. Call it only inside `createServerFn` handlers. It reads the current request's cookie through TanStack and forwards it without storing session state. Requests without cookies stay anonymous. The shared client uses local HTTP in development and the `API` service binding in deployment. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`. Keep app-specific auth paths and login settings in the app.
+Import `runApi` directly from `@laxdb/frontend/api`. Call it only inside `createServerFn` handlers. It reads the current request's cookie through TanStack and forwards it without storing session state. Requests without cookies stay anonymous. The shared client uses the `API` service binding in both development and deployment. Run `bun run dev` from the repository root; standalone Vite development does not provide the binding. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`. Keep app-specific auth paths and login settings in the app.
 
 ## HTTP API Client
 

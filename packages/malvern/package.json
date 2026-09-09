@@ -4,11 +4,8 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "dev": "vite dev --port 1438 --strictPort",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
     "typecheck": "tsgo --noEmit",
-    "test": "bun --bun vitest run --configLoader=runner",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix --quiet",
     "format": "oxfmt --check",

@@ -6,12 +6,10 @@
   "exports": {
     "./api": "./src/api.ts",
     "./atom-query": "./src/atom-query.ts",
-    "./atom-action": "./src/atom-action.ts",
-    "./routing": "./src/routing.ts"
+    "./atom-action": "./src/atom-action.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "test": "bun --bun vitest run",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix --quiet",
     "format": "oxfmt --check",
