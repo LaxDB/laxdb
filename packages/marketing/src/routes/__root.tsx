@@ -3,6 +3,7 @@
 import { NotFound, NotFoundAction, NotFoundSecondaryAction } from "@laxdb/ui/components/not-found";
 import { ThemeProvider } from "@laxdb/ui/components/theme-provider";
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router";
+import { Agentation } from "agentation";
 
 import Footer from "@/components/footer";
 import { NavBar } from "@/components/navbar";
@@ -56,6 +57,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
         </ThemeProvider>
+        {import.meta.env.DEV ? <Agentation endpoint="http://localhost:4747" /> : null}
         <Scripts />
       </body>
     </html>

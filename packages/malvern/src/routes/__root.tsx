@@ -6,6 +6,7 @@ import {
   redirect,
   Scripts,
 } from "@tanstack/react-router";
+import { Agentation } from "agentation";
 import { Effect } from "effect";
 import { AtomRegistry } from "effect/unstable/reactivity";
 
@@ -56,6 +57,9 @@ function RootComponent() {
         <RegistryContext.Provider value={registry}>
           <Outlet />
         </RegistryContext.Provider>
+        {import.meta.env.DEV ? (
+          <Agentation endpoint="http://localhost:4747" />
+        ) : null}
         <Scripts />
       </body>
     </html>

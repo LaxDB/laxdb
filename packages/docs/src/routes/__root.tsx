@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { Agentation } from "agentation";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import * as React from "react";
 
@@ -40,6 +41,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="flex min-h-screen flex-col">
         <RootProvider search={{ SearchDialog }}>{children}</RootProvider>
+        {import.meta.env.DEV ? <Agentation endpoint="http://localhost:4747" /> : null}
         <Scripts />
       </body>
     </html>
