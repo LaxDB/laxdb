@@ -8,6 +8,7 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { Agentation } from "agentation";
 
 import { AppShell } from "@/components/app-shell";
 import globalsCss from "@/globals.css?url";
@@ -52,6 +53,9 @@ function RootComponent() {
             </AppShell>
           </ThemeProvider>
         </RegistryProvider>
+        {import.meta.env.DEV ? (
+          <Agentation endpoint="http://localhost:4747" />
+        ) : null}
         <Scripts />
       </body>
     </html>

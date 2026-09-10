@@ -54,6 +54,18 @@ See [docs/infisical/cli.md](docs/infisical/cli.md) for more details.
 bun install
 ```
 
+### Visual Feedback
+
+Agentation runs only in development in Malvern, Practice Planner, Docs, Marketing, Rules Wiki, World Lacrosse, and UI Storybook.
+
+For live annotation sync, start one local server for all frontends:
+
+```bash
+infisical run --env=dev -- bunx --no-install agentation-mcp server
+```
+
+The toolbar connects to `http://localhost:4747`. If your agent already runs this server, do not start another instance. Configure `agentation-mcp` in your coding agent to read and resolve annotations.
+
 ## Available Scripts
 
 - `bun run dev`: Starts the local development environment for all packages
