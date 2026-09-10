@@ -96,7 +96,7 @@ The project uses an Alchemy v2 stack in `alchemy.run.ts` to define and manage Cl
 
 ### Local Alchemy state
 
-Run `infisical run --env=dev -- bun run dev` from the repository root.
+Run `bun run dev` from the repository root; it loads Infisical secrets.
 Alchemy's `dev` command sets `ALCHEMY_DEV=true` and enables its development context.
 Both must be true to select local state. The flag defaults to `false`.
 Stage names do not select the state backend.
