@@ -66,13 +66,11 @@ export default Alchemy.Stack(
       Layer.provideMerge(GitHub.providers()),
     ),
     state: Layer.unwrap(
-      Effect.gen(function* () {
-        // The CLI context prevents inherited ALCHEMY_DEV from redirecting deploys.
-        const { dev } = yield* Alchemy.AlchemyContext;
-        return dev && (yield* Alchemy.ALCHEMY_DEV.pipe(Effect.orDie))
-          ? Alchemy.localState()
-          : Cloudflare.state();
-      }),
+      Alchemy.AlchemyContext.pipe(
+        Effect.map(({ dev }) =>
+          dev ? Alchemy.localState() : Cloudflare.state(),
+        ),
+      ),
     ),
   },
   Effect.gen(function* () {
