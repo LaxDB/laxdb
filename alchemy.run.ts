@@ -65,7 +65,13 @@ export default Alchemy.Stack(
       Layer.provideMerge(drizzleProviders()),
       Layer.provideMerge(GitHub.providers()),
     ),
-    state: Cloudflare.state(),
+    state: Layer.unwrap(
+      Alchemy.AlchemyContext.pipe(
+        Effect.map(({ dev }) =>
+          dev ? Alchemy.localState() : Cloudflare.state(),
+        ),
+      ),
+    ),
   },
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
