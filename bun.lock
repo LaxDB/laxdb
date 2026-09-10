@@ -301,6 +301,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@distilled.cloud/aws@1.0.0-rc.8": "patches/@distilled.cloud%2Faws@1.0.0-rc.8.patch",
+  },
   "overrides": {
     "libsodium-wrappers": "0.7.13",
   },
