@@ -1,6 +1,6 @@
 import { Schema, Effect } from "effect";
 
-export class ScraperError extends Schema.TaggedErrorClass<ScraperError>()(
+export class ScraperError extends Schema.TaggedError<ScraperError>()(
   "ScraperError",
   {
     message: Schema.String,
@@ -12,7 +12,7 @@ export class ScraperError extends Schema.TaggedErrorClass<ScraperError>()(
   },
 ) {}
 
-export class ScraperHttpError extends Schema.TaggedErrorClass<ScraperHttpError>()(
+export class ScraperHttpError extends Schema.TaggedError<ScraperHttpError>()(
   "ScraperHttpError",
   {
     message: Schema.String,
@@ -25,7 +25,7 @@ export class ScraperHttpError extends Schema.TaggedErrorClass<ScraperHttpError>(
   },
 ) {}
 
-export class ScraperTimeoutError extends Schema.TaggedErrorClass<ScraperTimeoutError>()(
+export class ScraperTimeoutError extends Schema.TaggedError<ScraperTimeoutError>()(
   "ScraperTimeoutError",
   {
     message: Schema.String,
@@ -38,7 +38,7 @@ export class ScraperTimeoutError extends Schema.TaggedErrorClass<ScraperTimeoutE
   },
 ) {}
 
-export class ScraperRateLimitError extends Schema.TaggedErrorClass<ScraperRateLimitError>()(
+export class ScraperRateLimitError extends Schema.TaggedError<ScraperRateLimitError>()(
   "ScraperRateLimitError",
   {
     message: Schema.String,
@@ -51,7 +51,7 @@ export class ScraperRateLimitError extends Schema.TaggedErrorClass<ScraperRateLi
   },
 ) {}
 
-export class ScraperNetworkError extends Schema.TaggedErrorClass<ScraperNetworkError>()(
+export class ScraperNetworkError extends Schema.TaggedError<ScraperNetworkError>()(
   "ScraperNetworkError",
   {
     message: Schema.String,

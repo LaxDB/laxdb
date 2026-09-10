@@ -53,9 +53,8 @@ const createPractice = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Practices.createPractice({
+      ApiClient.use((client) =>
+        client.Practices.createPractice({
           payload: {
             name: null,
             date: data.date,
@@ -64,8 +63,8 @@ const createPractice = createServerFn({ method: "POST" })
             durationMinutes: data.durationMinutes,
             location: data.location ?? null,
           },
-        });
-      }),
+        }),
+      ),
     ),
   );
 

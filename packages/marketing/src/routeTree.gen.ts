@@ -9,44 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as KitchenSinkRouteImport } from './routes/kitchen-sink'
-import { Route as FeedbackRouteImport } from './routes/feedback'
-import { Route as DesignSystemRouteImport } from './routes/design-system'
-import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as BrandRouteImport } from './routes/brand'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WikiIndexRouteImport } from './routes/wiki/index'
-import { Route as GraphIndexRouteImport } from './routes/graph/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as BrandRouteImport } from './routes/brand'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as FeedbackRouteImport } from './routes/feedback'
+import { Route as KitchenSinkRouteImport } from './routes/kitchen-sink'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as WikiSlugRouteImport } from './routes/wiki/$slug'
-import { Route as TagTagIdRouteImport } from './routes/tag/$tagId'
-import { Route as ContentSlugRouteImport } from './routes/content/$slug'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as ContentSlugRouteImport } from './routes/content/$slug'
+import { Route as GraphIndexRouteImport } from './routes/graph/index'
+import { Route as TagTagIdRouteImport } from './routes/tag/$tagId'
+import { Route as WikiIndexRouteImport } from './routes/wiki/index'
+import { Route as WikiSlugRouteImport } from './routes/wiki/$slug'
 
-const KitchenSinkRoute = KitchenSinkRouteImport.update({
-  id: '/kitchen-sink',
-  path: '/kitchen-sink',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedbackRoute = FeedbackRouteImport.update({
-  id: '/feedback',
-  path: '/feedback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignSystemRoute = DesignSystemRouteImport.update({
-  id: '/design-system',
-  path: '/design-system',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangelogRoute = ChangelogRouteImport.update({
-  id: '/changelog',
-  path: '/changelog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BrandRoute = BrandRouteImport.update({
-  id: '/brand',
-  path: '/brand',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -54,19 +34,29 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BrandRoute = BrandRouteImport.update({
+  id: '/brand',
+  path: '/brand',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WikiIndexRoute = WikiIndexRouteImport.update({
-  id: '/wiki/',
-  path: '/wiki/',
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GraphIndexRoute = GraphIndexRouteImport.update({
-  id: '/graph/',
-  path: '/graph/',
+const DesignSystemRoute = DesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenSinkRoute = KitchenSinkRouteImport.update({
+  id: '/kitchen-sink',
+  path: '/kitchen-sink',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -74,14 +64,9 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WikiSlugRoute = WikiSlugRouteImport.update({
-  id: '/wiki/$slug',
-  path: '/wiki/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TagTagIdRoute = TagTagIdRouteImport.update({
-  id: '/tag/$tagId',
-  path: '/tag/$tagId',
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentSlugRoute = ContentSlugRouteImport.update({
@@ -89,9 +74,24 @@ const ContentSlugRoute = ContentSlugRouteImport.update({
   path: '/content/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
+const GraphIndexRoute = GraphIndexRouteImport.update({
+  id: '/graph/',
+  path: '/graph/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagTagIdRoute = TagTagIdRouteImport.update({
+  id: '/tag/$tagId',
+  path: '/tag/$tagId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WikiIndexRoute = WikiIndexRouteImport.update({
+  id: '/wiki/',
+  path: '/wiki/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WikiSlugRoute = WikiSlugRouteImport.update({
+  id: '/wiki/$slug',
+  path: '/wiki/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -214,39 +214,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/kitchen-sink': {
-      id: '/kitchen-sink'
-      path: '/kitchen-sink'
-      fullPath: '/kitchen-sink'
-      preLoaderRoute: typeof KitchenSinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feedback': {
-      id: '/feedback'
-      path: '/feedback'
-      fullPath: '/feedback'
-      preLoaderRoute: typeof FeedbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/design-system': {
-      id: '/design-system'
-      path: '/design-system'
-      fullPath: '/design-system'
-      preLoaderRoute: typeof DesignSystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/changelog': {
-      id: '/changelog'
-      path: '/changelog'
-      fullPath: '/changelog'
-      preLoaderRoute: typeof ChangelogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/brand': {
-      id: '/brand'
-      path: '/brand'
-      fullPath: '/brand'
-      preLoaderRoute: typeof BrandRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -256,25 +228,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/brand': {
+      id: '/brand'
+      path: '/brand'
+      fullPath: '/brand'
+      preLoaderRoute: typeof BrandRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wiki/': {
-      id: '/wiki/'
-      path: '/wiki'
-      fullPath: '/wiki/'
-      preLoaderRoute: typeof WikiIndexRouteImport
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/graph/': {
-      id: '/graph/'
-      path: '/graph'
-      fullPath: '/graph/'
-      preLoaderRoute: typeof GraphIndexRouteImport
+    '/design-system': {
+      id: '/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen-sink': {
+      id: '/kitchen-sink'
+      path: '/kitchen-sink'
+      fullPath: '/kitchen-sink'
+      preLoaderRoute: typeof KitchenSinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -284,18 +270,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wiki/$slug': {
-      id: '/wiki/$slug'
-      path: '/wiki/$slug'
-      fullPath: '/wiki/$slug'
-      preLoaderRoute: typeof WikiSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tag/$tagId': {
-      id: '/tag/$tagId'
-      path: '/tag/$tagId'
-      fullPath: '/tag/$tagId'
-      preLoaderRoute: typeof TagTagIdRouteImport
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content/$slug': {
@@ -305,11 +284,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
+    '/graph/': {
+      id: '/graph/'
+      path: '/graph'
+      fullPath: '/graph/'
+      preLoaderRoute: typeof GraphIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tag/$tagId': {
+      id: '/tag/$tagId'
+      path: '/tag/$tagId'
+      fullPath: '/tag/$tagId'
+      preLoaderRoute: typeof TagTagIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wiki/': {
+      id: '/wiki/'
+      path: '/wiki'
+      fullPath: '/wiki/'
+      preLoaderRoute: typeof WikiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wiki/$slug': {
+      id: '/wiki/$slug'
+      path: '/wiki/$slug'
+      fullPath: '/wiki/$slug'
+      preLoaderRoute: typeof WikiSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

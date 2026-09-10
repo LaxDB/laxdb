@@ -9,7 +9,7 @@ import {
 } from "@laxdb/ui/components/ui/toggle-group";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { BookOpen, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,12 +27,7 @@ import type { Play } from "@/types";
 // ---------------------------------------------------------------------------
 
 const listPlays = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Plays.listPlays();
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Plays.listPlays())),
 );
 
 const DeletePlayInput = Schema.Struct({ publicId: Schema.String });
@@ -43,12 +38,9 @@ const deletePlay = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Plays.deletePlay({
-          payload: { publicId: data.publicId },
-        });
-      }),
+      ApiClient.use((client) =>
+        client.Plays.deletePlay({ payload: { publicId: data.publicId } }),
+      ),
     ),
   );
 

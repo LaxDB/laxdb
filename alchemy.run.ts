@@ -119,33 +119,19 @@ export default Alchemy.Stack(
       rootDir: "./packages/marketing",
       domain: baseDomain,
       compatibility: { flags: ["nodejs_compat"] },
-      dev: {
-        port: 1439,
-        strictPort: true,
-      },
     });
 
     const rulesWiki = yield* Cloudflare.Website.Vite("rules-wiki", {
       rootDir: "./packages/rules-wiki",
       domain: `rules.${baseDomain}`,
-      dev: {
-        port: 1441,
-        strictPort: true,
-      },
     });
 
     const practicePlanner = yield* Cloudflare.Website.Vite("practice-planner", {
       rootDir: "./packages/practice-planner",
       domain: `planner.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
-      dev: {
-        port: 1440,
-        strictPort: true,
-      },
       env: {
         API: api,
-        API_PORT: "1437",
-        IS_LOCAL: isLocal ? "true" : "",
       },
     });
 
@@ -158,12 +144,8 @@ export default Alchemy.Stack(
         port: 1438,
         strictPort: true,
       },
-      // Service binding to the api worker. In v2 bindings go under `env`
-      // (this is what populates `cf.env.API`); the low-level `bindings` field
-      // is an internal WorkerBinding[] and does NOT wire the fetcher.
       env: {
         API: api,
-        IS_LOCAL: isLocal ? "true" : "",
       },
     });
 
@@ -172,10 +154,6 @@ export default Alchemy.Stack(
       domain: `live.world.${baseDomain}`,
       crons: tournamentRefreshCrons(stage, config.stages.prod),
       compatibility: { flags: ["nodejs_compat"] },
-      dev: {
-        port: 1445,
-        strictPort: true,
-      },
       env: {
         SCORES: liveScoresKv,
       },
@@ -185,10 +163,6 @@ export default Alchemy.Stack(
       rootDir: "./packages/world-lacrosse",
       domain: `world.${baseDomain}`,
       compatibility: { flags: ["nodejs_compat"] },
-      dev: {
-        port: 1444,
-        strictPort: true,
-      },
     });
 
     if (process.env.GITHUB_ACTIONS === "true" && process.env.PULL_REQUEST) {
