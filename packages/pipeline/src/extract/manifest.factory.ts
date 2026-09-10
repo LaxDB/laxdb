@@ -14,7 +14,7 @@ import type { PlatformError } from "effect/PlatformError";
 import { ExtractConfigService } from "./extract.config";
 import { isEntityStale } from "./extract.schema";
 
-class ManifestError extends Schema.TaggedErrorClass<ManifestError>()(
+class ManifestError extends Schema.TaggedError<ManifestError>()(
   "ManifestError",
   {
     path: Schema.String,

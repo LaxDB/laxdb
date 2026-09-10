@@ -1,4 +1,5 @@
-import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
+import { useAsyncAction } from "@laxdb/frontend/atom-action";
+import { authClient } from "@laxdb/frontend/auth";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -13,8 +14,6 @@ import { Spinner } from "@laxdb/ui/components/ui/spinner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { authClient } from "../lib/auth-client";
-
 export const Route = createFileRoute("/login")({
   component: Login,
 });
@@ -22,24 +21,12 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const [email, setEmail] = useState("");
 
-  const googleSignIn = useAsyncAction(async () => {
-    const result = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/",
-    });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Failed to start Google sign in");
-    }
-  });
+  const googleSignIn = useAsyncAction(() =>
+    authClient.signIn.social({ provider: "google", callbackURL: "/" }),
+  );
 
   const sendLink = useAsyncAction(async (address: string) => {
-    const result = await authClient.signIn.magicLink({
-      email: address,
-      callbackURL: "/",
-    });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Failed to send magic link");
-    }
+    await authClient.signIn.magicLink({ email: address, callbackURL: "/" });
     return address;
   });
 

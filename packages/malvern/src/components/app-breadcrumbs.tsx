@@ -1,4 +1,4 @@
-import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
+import { useAsyncQuery } from "@laxdb/frontend/atom-query";
 import {
   Breadcrumb,
   BreadcrumbItem,

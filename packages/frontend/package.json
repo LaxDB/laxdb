@@ -5,30 +5,29 @@
   "sideEffects": false,
   "exports": {
     "./api": "./src/api.ts",
-    "./reactivity/atom-query": "./src/reactivity/atom-query.ts",
-    "./reactivity/promise": "./src/reactivity/promise.ts",
-    "./reactivity/react": "./src/reactivity/react.ts",
-    "./reactivity/react-action": "./src/reactivity/react-action.ts",
-    "./routing": "./src/routing.ts"
+    "./auth": "./src/auth.ts",
+    "./atom-query": "./src/atom-query.ts",
+    "./atom-action": "./src/atom-action.ts"
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "test": "bun --bun vitest run",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix --quiet",
     "format": "oxfmt --check",
     "format:fix": "oxfmt"
   },
   "dependencies": {
-    "@effect/atom-react": "4.0.0-beta.103",
+    "@effect/atom-react": "4.0.0-rc.112",
     "@laxdb/api": "workspace:*",
-    "@tanstack/react-start": "^1.143.12",
-    "effect": "4.0.0-beta.103",
-    "react": "^19.2.0",
+    "@laxdb/core": "workspace:*",
+    "@tanstack/react-start": "^1.168.50",
+    "better-auth": "^1.7.3",
+    "effect": "4.0.0-rc.112",
+    "react": "^19.2.8",
     "scheduler": "^0.27.0"
   },
   "devDependencies": {
-    "@types/node": "^24.10.9",
-    "@types/react": "^19.2.0"
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18"
   }
 }

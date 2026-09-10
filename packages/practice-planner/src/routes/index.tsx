@@ -4,7 +4,7 @@ import { Badge } from "@laxdb/ui/components/ui/badge";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import {
   Plus,
   Calendar,
@@ -18,12 +18,7 @@ import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { practiceName } from "@/lib/practice-name";
 
 const listPractices = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Practices.listPractices();
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Practices.listPractices())),
 );
 
 const DeletePracticeInput = Schema.Struct({ publicId: Schema.String });
@@ -34,12 +29,11 @@ const deletePractice = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Practices.deletePractice({
+      ApiClient.use((client) =>
+        client.Practices.deletePractice({
           payload: { publicId: data.publicId },
-        });
-      }),
+        }),
+      ),
     ),
   );
 

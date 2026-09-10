@@ -9,7 +9,7 @@ import {
 } from "@laxdb/ui/components/ui/toggle-group";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import {
   Clock,
   Flame,
@@ -39,12 +39,7 @@ import type { Drill } from "@/types";
 // ---------------------------------------------------------------------------
 
 const listDrills = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Drills.listDrills();
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Drills.listDrills())),
 );
 
 const DeleteDrillInput = Schema.Struct({ publicId: Schema.String });
@@ -55,12 +50,9 @@ const deleteDrill = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Drills.deleteDrill({
-          payload: { publicId: data.publicId },
-        });
-      }),
+      ApiClient.use((client) =>
+        client.Drills.deleteDrill({ payload: { publicId: data.publicId } }),
+      ),
     ),
   );
 

@@ -7,7 +7,7 @@ import { Separator } from "@laxdb/ui/components/ui/separator";
 import { voidAsync } from "@laxdb/ui/lib/void-async";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { Check, Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
 
@@ -26,10 +26,9 @@ const getPlay = createServerFn({ method: "GET" })
   .inputValidator((data: string) => data)
   .handler(({ data: publicId }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Plays.getPlay({ payload: { publicId } });
-      }),
+      ApiClient.use((client) =>
+        client.Plays.getPlay({ payload: { publicId } }),
+      ),
     ),
   );
 
@@ -39,10 +38,7 @@ const updatePlay = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Plays.updatePlay({ payload: data });
-      }),
+      ApiClient.use((client) => client.Plays.updatePlay({ payload: data })),
     ),
   );
 

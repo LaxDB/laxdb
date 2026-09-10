@@ -4,6 +4,8 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  optimizeDeps: { exclude: ["cloudflare:workers"] },
+  ssr: { external: ["cloudflare:workers"] },
   build: {
     target: "esnext",
     rolldownOptions: {

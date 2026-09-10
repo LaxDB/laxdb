@@ -43,7 +43,7 @@ infisical login
 infisical init
 
 # Run commands with secrets injected
-infisical run --env=dev -- bun run dev
+bun run dev
 ```
 
 See [docs/infisical/cli.md](docs/infisical/cli.md) for more details.
@@ -66,6 +66,18 @@ All deployed stages keep Better Auth's default names, including the existing `__
 bun install
 ```
 
+### Visual Feedback
+
+Agentation runs only in development in Malvern, Practice Planner, Docs, Marketing, Rules Wiki, World Lacrosse, and UI Storybook.
+
+For live annotation sync, start one local server for all frontends:
+
+```bash
+infisical run --env=dev -- bunx --no-install agentation-mcp server
+```
+
+The toolbar connects to `http://localhost:4747`. If your agent already runs this server, do not start another instance. Configure `agentation-mcp` in your coding agent to read and resolve annotations.
+
 ## Available Scripts
 
 - `bun run dev`: Starts the local development environment for all packages
@@ -73,6 +85,15 @@ bun install
 - `bun run destroy`: Tears down all deployed infrastructure
 - `bun run typecheck`: Runs TypeScript compiler checks across the monorepo
 - `bun run fix`: Runs linting and formatting tools to ensure code quality
+
+## Local Development
+
+Run `bun run dev` from the repository root. It loads Infisical secrets and starts the Alchemy Workers runtime.
+Malvern and Practice Planner use the `API` service binding in local development and deployment. Plain `vite dev` does not supply this binding.
+Standalone `vite build` remains available in both packages.
+
+Use the URLs printed by Alchemy. Most services use automatic ports. Malvern keeps port 1438 for auth origins and callbacks.
+The API keeps port 1437 for the CLI default.
 
 ## Infrastructure
 

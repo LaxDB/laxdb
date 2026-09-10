@@ -6,9 +6,7 @@ import {
   PracticeStatus as PracticeStatusSchema,
 } from "@laxdb/core/practice/practice.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
-import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
+import { makeAsyncQuery, useAsyncQuery } from "@laxdb/frontend/atom-query";
 import { Button } from "@laxdb/ui/components/ui/button";
 import { Separator } from "@laxdb/ui/components/ui/separator";
 import { createFileRoute } from "@tanstack/react-router";
@@ -39,16 +37,11 @@ import { generateQuickPlan } from "@/lib/quick-plan";
 import type { Drill, DrillCategory, PracticeNode } from "@/types";
 
 const loadDrills = createServerFn({ method: "GET" }).handler(() =>
-  runApi(
-    Effect.gen(function* () {
-      const client = yield* ApiClient;
-      return yield* client.Drills.listDrills();
-    }),
-  ),
+  runApi(ApiClient.use((client) => client.Drills.listDrills())),
 );
 
 const drillsAtom = makeAsyncQuery({
-  load: () => fromPromise(() => loadDrills()),
+  load: (signal) => loadDrills({ signal }),
   staleTime: "5 minutes",
 }).pipe(Atom.withServerValueInitial);
 

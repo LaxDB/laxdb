@@ -1,6 +1,6 @@
 import { Schema, Effect } from "effect";
 
-export class ParserError extends Schema.TaggedErrorClass<ParserError>()(
+export class ParserError extends Schema.TaggedError<ParserError>()(
   "ParserError",
   {
     message: Schema.String,
@@ -11,7 +11,7 @@ export class ParserError extends Schema.TaggedErrorClass<ParserError>()(
   },
 ) {}
 
-export class SelectorError extends Schema.TaggedErrorClass<SelectorError>()(
+export class SelectorError extends Schema.TaggedError<SelectorError>()(
   "SelectorError",
   {
     message: Schema.String,

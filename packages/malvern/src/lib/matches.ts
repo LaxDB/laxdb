@@ -16,11 +16,9 @@ import {
   type MatchReport,
 } from "@laxdb/core/match/match.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { Atom } from "effect/unstable/reactivity";
 
 export type FixtureView = typeof Fixture.Type;
 export type MatchReportView = typeof MatchReport.Type;
@@ -38,10 +36,7 @@ export const listFixtures = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listFixtures({ payload: data });
-      }),
+      ApiClient.use((client) => client.Matches.listFixtures({ payload: data })),
     ),
   );
 
@@ -49,17 +44,17 @@ export const fixturesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const fixturesAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: fixturesChanged,
-    load: () => fromPromise(() => listFixtures({ data: { teamId } })),
+    load: (signal) => listFixtures({ data: { teamId }, signal }),
   }),
 );
 export const fixtureAtom = Atom.family((id: string) =>
   makeAsyncQuery({
     refreshSignal: fixturesChanged,
-    load: () => fromPromise(() => getFixture({ data: { id } })),
+    load: (signal) => getFixture({ data: { id }, signal }),
     staleTime: "1 minute",
     serialization: {
       key: `malvern/fixture/${id}`,
-      schema: AsyncResult.Schema({ success: Fixture, error: Schema.Error() }),
+      schema: Fixture,
     },
   }),
 );
@@ -79,11 +74,12 @@ export const selectedFixturesAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: fixturesChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listFixtures({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listFixtures({
+            data: teamId === undefined ? {} : { teamId },
+            signal,
+          }),
         ),
     }),
 );
@@ -92,10 +88,7 @@ export const getFixture = createServerFn({ method: "GET" })
   .inputValidator((input: { id: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.getFixture({ payload: data });
-      }),
+      ApiClient.use((client) => client.Matches.getFixture({ payload: data })),
     ),
   );
 
@@ -103,10 +96,7 @@ export const syncFixtures = createServerFn({ method: "POST" })
   .inputValidator((input: { teamId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.syncFixtures({ payload: data });
-      }),
+      ApiClient.use((client) => client.Matches.syncFixtures({ payload: data })),
     ),
   );
 
@@ -114,10 +104,9 @@ export const syncGamedayRoster = createServerFn({ method: "POST" })
   .inputValidator((input: { teamId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.syncGamedayRoster({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.syncGamedayRoster({ payload: data }),
+      ),
     ),
   );
 
@@ -127,12 +116,9 @@ export const syncGamedayAssociationSeason = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.syncGamedayAssociationSeason({
-          payload: data,
-        });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.syncGamedayAssociationSeason({ payload: data }),
+      ),
     ),
   );
 
@@ -145,10 +131,9 @@ export const importGamedayTeams = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.importGamedayTeams({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.importGamedayTeams({ payload: data }),
+      ),
     ),
   );
 
@@ -156,10 +141,9 @@ export const listCompetitions = createServerFn({ method: "GET" })
   .inputValidator((input: { seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listCompetitions({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listCompetitions({ payload: data }),
+      ),
     ),
   );
 
@@ -167,30 +151,28 @@ export const listGamedayTeams = createServerFn({ method: "GET" })
   .inputValidator((input: { compId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listGamedayTeams({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listGamedayTeams({ payload: data }),
+      ),
     ),
   );
 
 export const listGamedaySeasons = createServerFn({ method: "GET" }).handler(
   () =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listGamedaySeasons({ payload: {} });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listGamedaySeasons({ payload: {} }),
+      ),
     ),
 );
 
 export const seasonsAtom = makeAsyncQuery({
-  load: () => fromPromise(() => listGamedaySeasons()),
+  load: (signal) => listGamedaySeasons({ signal }),
   staleTime: "30 minutes",
 });
 export const clubsAtom = Atom.family((seasonId: string) =>
   makeAsyncQuery({
-    load: () => fromPromise(() => listGamedayClubs({ data: { seasonId } })),
+    load: (signal) => listGamedayClubs({ data: { seasonId }, signal }),
     staleTime: "30 minutes",
   }),
 );
@@ -200,12 +182,11 @@ export const competitionsAtom = Atom.family(
     readonly clubNames: readonly string[];
   }) =>
     makeAsyncQuery({
-      load: () =>
-        fromPromise(() =>
-          listCompetitionsForClubs({
-            data: { seasonId: input.seasonId, clubNames: [...input.clubNames] },
-          }),
-        ),
+      load: (signal) =>
+        listCompetitionsForClubs({
+          data: { seasonId: input.seasonId, clubNames: [...input.clubNames] },
+          signal,
+        }),
       staleTime: "10 minutes",
     }),
 );
@@ -214,10 +195,9 @@ export const listGamedayClubs = createServerFn({ method: "GET" })
   .inputValidator((input: { seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listGamedayClubs({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listGamedayClubs({ payload: data }),
+      ),
     ),
   );
 
@@ -225,12 +205,9 @@ export const listCompetitionsForClubs = createServerFn({ method: "GET" })
   .inputValidator((input: { clubNames: string[]; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listCompetitionsForClubs({
-          payload: data,
-        });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listCompetitionsForClubs({ payload: data }),
+      ),
     ),
   );
 
@@ -238,10 +215,7 @@ export const listReports = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listReports({ payload: data });
-      }),
+      ApiClient.use((client) => client.Matches.listReports({ payload: data })),
     ),
   );
 
@@ -249,18 +223,16 @@ export const reportsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const reportsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: reportsChanged,
-    load: () => fromPromise(() => listReports({ data: { teamId } })),
+    load: (signal) => listReports({ data: { teamId }, signal }),
   }),
 );
 export const selectedReportsAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: reportsChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listReports({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listReports({ data: teamId === undefined ? {} : { teamId }, signal }),
         ),
     }),
 );
@@ -277,10 +249,7 @@ export const submitReport = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.submitReport({ payload: data });
-      }),
+      ApiClient.use((client) => client.Matches.submitReport({ payload: data })),
     ),
   );
 
@@ -288,10 +257,9 @@ export const listMatchImages = createServerFn({ method: "GET" })
   .inputValidator((input: { fixtureId?: string; teamId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.listMatchImages({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.listMatchImages({ payload: data }),
+      ),
     ),
   );
 
@@ -299,24 +267,25 @@ export const imagesChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const fixtureImagesAtom = Atom.family((fixtureId: string) =>
   makeAsyncQuery({
     refreshSignal: imagesChanged,
-    load: () => fromPromise(() => listMatchImages({ data: { fixtureId } })),
+    load: (signal) => listMatchImages({ data: { fixtureId }, signal }),
   }),
 );
 export const teamImagesAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: imagesChanged,
-    load: () => fromPromise(() => listMatchImages({ data: { teamId } })),
+    load: (signal) => listMatchImages({ data: { teamId }, signal }),
   }),
 );
 export const selectedImagesAtom = Atom.family(
   (teamIds: readonly string[] | null) =>
     makeAsyncQuery({
       refreshSignal: imagesChanged,
-      load: () =>
-        fromPromise(() =>
-          loadForTeams(teamIds, (teamId) =>
-            listMatchImages({ data: teamId === undefined ? {} : { teamId } }),
-          ),
+      load: (signal) =>
+        loadForTeams(teamIds, (teamId) =>
+          listMatchImages({
+            data: teamId === undefined ? {} : { teamId },
+            signal,
+          }),
         ),
     }),
 );
@@ -332,10 +301,9 @@ export const uploadMatchImage = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.uploadMatchImage({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.uploadMatchImage({ payload: data }),
+      ),
     ),
   );
 
@@ -343,9 +311,8 @@ export const deleteMatchImage = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Matches.deleteMatchImage({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Matches.deleteMatchImage({ payload: data }),
+      ),
     ),
   );
