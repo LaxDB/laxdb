@@ -1,3 +1,4 @@
+import { authClient } from "@laxdb/frontend/auth";
 import { Separator } from "@laxdb/ui/components/ui/separator";
 import {
   SidebarInset,
@@ -19,7 +20,6 @@ import {
   AppTopNavigation,
 } from "../components/app-breadcrumbs";
 import { AppSidebar } from "../components/app-sidebar";
-import { authClient } from "../lib/auth-client";
 import { teamsAtom } from "../lib/club";
 
 export const Route = createFileRoute("/_app")({
@@ -62,12 +62,7 @@ function AppShell() {
     setSignOutError(null);
 
     try {
-      const result = await authClient.signOut();
-      if (result.error) {
-        setSignOutError(result.error.message ?? "Unable to sign out.");
-        setIsSigningOut(false);
-        return;
-      }
+      await authClient.signOut();
 
       // A new document drops all user-scoped cached data.
       await router.navigate({ to: "/login", reloadDocument: true });

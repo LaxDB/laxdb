@@ -1,5 +1,6 @@
-import { useAsyncQuery } from "@laxdb/frontend/reactivity/react";
-import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
+import { useAsyncAction } from "@laxdb/frontend/atom-action";
+import { useAsyncQuery } from "@laxdb/frontend/atom-query";
+import { authClient, organizationsAtom } from "@laxdb/frontend/auth";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -14,8 +15,6 @@ import { Input } from "@laxdb/ui/components/ui/input";
 import { Spinner } from "@laxdb/ui/components/ui/spinner";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-
-import { authClient, organizationsAtom } from "../lib/auth-client";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
@@ -32,12 +31,7 @@ function Onboarding() {
   const memberships = useAsyncQuery(organizationsAtom);
 
   const rejoin = useAsyncAction(async (organizationId: string) => {
-    const result = await authClient.organization.setActive({
-      organizationId,
-    });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Failed to rejoin team");
-    }
+    await authClient.organization.setActive({ organizationId });
 
     await router.navigate({ to: "/fines", reloadDocument: true });
   });
@@ -55,13 +49,7 @@ function Onboarding() {
         name: input.name,
         slug: input.slug || slugify(input.name),
       });
-      if (org.error) {
-        throw new Error(org.error.message ?? "Failed to create team");
-      }
-      const organizationId = getCreatedOrganizationId(org);
-      if (organizationId !== null) {
-        await authClient.organization.setActive({ organizationId });
-      }
+      await authClient.organization.setActive({ organizationId: org.id });
 
       await router.navigate({ to: "/fines", reloadDocument: true });
     },
@@ -147,14 +135,6 @@ function Onboarding() {
     </main>
   );
 }
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === "object" && value !== null;
-
-const getCreatedOrganizationId = (value: unknown): string | null => {
-  if (!isRecord(value) || !isRecord(value.data)) return null;
-  return typeof value.data.id === "string" ? value.data.id : null;
-};
 
 const slugify = (s: string) =>
   s

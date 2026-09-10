@@ -6,10 +6,8 @@ import type {
   TeamStandings,
 } from "@laxdb/core/stats/stats.schema";
 import { runApi } from "@laxdb/frontend/api";
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
-import { fromPromise } from "@laxdb/frontend/reactivity/promise";
+import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect } from "effect";
 import { Atom } from "effect/unstable/reactivity";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
@@ -29,10 +27,9 @@ export const getFixtureStats = createServerFn({ method: "GET" })
   .inputValidator((input: { fixtureId: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getFixtureStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getFixtureStats({ payload: data }),
+      ),
     ),
   );
 
@@ -50,10 +47,9 @@ export const upsertFixtureStats = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.upsertFixtureStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.upsertFixtureStats({ payload: data }),
+      ),
     ),
   );
 
@@ -61,10 +57,7 @@ export const getTeamSummary = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamSummary({ payload: data });
-      }),
+      ApiClient.use((client) => client.Stats.getTeamSummary({ payload: data })),
     ),
   );
 
@@ -72,10 +65,9 @@ export const getTeamPlayerStats = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamPlayerStats({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getTeamPlayerStats({ payload: data }),
+      ),
     ),
   );
 
@@ -83,10 +75,9 @@ export const getTeamStandings = createServerFn({ method: "GET" })
   .inputValidator((input: { teamId: string; seasonId?: string }) => input)
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Stats.getTeamStandings({ payload: data });
-      }),
+      ApiClient.use((client) =>
+        client.Stats.getTeamStandings({ payload: data }),
+      ),
     ),
   );
 
@@ -94,24 +85,24 @@ export const statsChanged = Atom.make(0).pipe(Atom.keepAlive);
 export const teamStandingsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamStandings({ data: { teamId } })),
+    load: (signal) => getTeamStandings({ data: { teamId }, signal }),
   }),
 );
 export const teamSummaryAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamSummary({ data: { teamId } })),
+    load: (signal) => getTeamSummary({ data: { teamId }, signal }),
   }),
 );
 export const teamPlayerStatsAtom = Atom.family((teamId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getTeamPlayerStats({ data: { teamId } })),
+    load: (signal) => getTeamPlayerStats({ data: { teamId }, signal }),
   }),
 );
 export const fixtureStatsAtom = Atom.family((fixtureId: string) =>
   makeAsyncQuery({
     refreshSignal: statsChanged,
-    load: () => fromPromise(() => getFixtureStats({ data: { fixtureId } })),
+    load: (signal) => getFixtureStats({ data: { fixtureId }, signal }),
   }),
 );

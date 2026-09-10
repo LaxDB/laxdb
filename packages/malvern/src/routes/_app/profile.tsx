@@ -1,5 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
-import { useAsyncAction } from "@laxdb/frontend/reactivity/react-action";
+import { useAsyncAction } from "@laxdb/frontend/atom-action";
+import { authClient, meAtom } from "@laxdb/frontend/auth";
 import { Alert, AlertDescription } from "@laxdb/ui/components/ui/alert";
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
@@ -14,9 +15,6 @@ import { Spinner } from "@laxdb/ui/components/ui/spinner";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useContext, useState } from "react";
 
-import { authClient } from "../../lib/auth-client";
-import { meAtom } from "../../lib/session";
-
 export const Route = createFileRoute("/_app/profile")({
   component: Profile,
 });
@@ -28,10 +26,7 @@ function Profile() {
   const [name, setName] = useState(me?.userName ?? "");
 
   const updateName = useAsyncAction(async (nextName: string) => {
-    const result = await authClient.updateUser({ name: nextName });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Failed to update profile");
-    }
+    await authClient.updateUser({ name: nextName });
     registry.refresh(meAtom);
     await router.invalidate();
   });

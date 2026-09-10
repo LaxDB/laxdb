@@ -12,10 +12,7 @@ Use route loaders for data the user sees immediately:
 
 ```tsx
 const listPractices = createServerFn({ method: "GET" }).handler(() =>
-  runApi(Effect.gen(function* () {
-    const client = yield* ApiClient;
-    return yield* client.Practices.listPractices();
-  })),
+  runApi(ApiClient.use((client) => client.Practices.listPractices())),
 );
 
 export const Route = createFileRoute("/")({
@@ -32,14 +29,11 @@ Use the shared Effect query helpers for deferred data. `Atom.withServerValueInit
 
 ```tsx
 const loadDrills = createServerFn({ method: "GET" }).handler(() =>
-  runApi(Effect.gen(function* () {
-    const client = yield* ApiClient;
-    return yield* client.Drills.listDrills();
-  })),
+  runApi(ApiClient.use((client) => client.Drills.listDrills())),
 );
 
 const drillsAtom = makeAsyncQuery({
-  load: () => fromPromise(() => loadDrills()),
+  load: (signal) => loadDrills({ signal }),
   staleTime: "5 minutes",
 }).pipe(Atom.withServerValueInitial);
 
@@ -57,7 +51,7 @@ const { data: drills = [] } = useAsyncQuery(drillsAtom);
 
 ### `runApi` boundary
 
-Import `runApi` directly from `@laxdb/frontend/api`. Call it only inside `createServerFn` handlers. It reads the current request's cookie through TanStack and forwards it without storing session state. Requests without cookies stay anonymous. The shared client uses local HTTP in development and the `API` service binding in deployment. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`. Keep app-specific auth paths and login settings in the app.
+Import `runApi` directly from `@laxdb/frontend/api`. Call it only inside `createServerFn` handlers. It reads the current request's cookie through TanStack and forwards it without storing session state. Requests without cookies stay anonymous. The shared client uses the `API` service binding in both development and deployment. Run `bun run dev` from the repository root; standalone Vite development does not provide the binding. It uses `structuredClone` to strip Effect `Schema.Class` prototypes before TanStack serialization. Keep UI components in `@laxdb/ui`. Import the shared auth client and session queries from `@laxdb/frontend/auth`; do not create another auth client. Auth requests reject on failure. Apps own redirects, role checks, and their `/api/auth/*` route. Use a full-document navigation after logout or organization changes to discard cached user data.
 
 ## HTTP API Client
 

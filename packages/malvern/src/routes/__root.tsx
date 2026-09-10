@@ -1,4 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
+import { meAtom } from "@laxdb/frontend/auth";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -11,7 +12,6 @@ import { Effect } from "effect";
 import { AtomRegistry } from "effect/unstable/reactivity";
 
 import { NotFound } from "../components/not-found";
-import { meAtom } from "../lib/session";
 import appCss from "../styles.css?url";
 
 const PUBLIC_PATHS = ["/login", "/accept-invitation"];

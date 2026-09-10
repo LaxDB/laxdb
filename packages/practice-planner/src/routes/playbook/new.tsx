@@ -6,7 +6,7 @@ import { Separator } from "@laxdb/ui/components/ui/separator";
 import { voidAsync } from "@laxdb/ui/lib/void-async";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -23,10 +23,7 @@ const createPlay = createServerFn({ method: "POST" })
   )
   .handler(({ data }) =>
     runApi(
-      Effect.gen(function* () {
-        const client = yield* ApiClient;
-        return yield* client.Plays.createPlay({ payload: data });
-      }),
+      ApiClient.use((client) => client.Plays.createPlay({ payload: data })),
     ),
   );
 

@@ -1,4 +1,4 @@
-import { makeAsyncQuery } from "@laxdb/frontend/reactivity/atom-query";
+import { makeEffectQuery } from "@laxdb/frontend/atom-query";
 import { Effect, Schedule, Schema } from "effect";
 
 import { FetchError } from "./error";
@@ -61,7 +61,7 @@ const fetchLiveScheduleEffect = (previous: LiveSchedule | undefined) =>
     ),
   );
 
-export const liveScheduleAtom = makeAsyncQuery({
+export const liveScheduleAtom = makeEffectQuery({
   load: fetchLiveScheduleEffect,
   staleTime: "15 seconds",
   idleTTL: "Infinity",
