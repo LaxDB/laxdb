@@ -23,10 +23,13 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppRosterRouteImport } from './routes/_app/roster'
 import { Route as AcceptInvitationIdRouteImport } from './routes/accept-invitation.$id'
+import { Route as CardsIndexRouteImport } from './routes/cards/index'
+import { Route as CardsTeamSlugRouteImport } from './routes/cards/$teamSlug'
 import { Route as AppTeamsIndexRouteImport } from './routes/_app/teams/index'
 import { Route as AppTeamsTeamIdRouteImport } from './routes/_app/teams/$teamId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiReportImagesIdRouteImport } from './routes/api/report-images/$id'
+import { Route as CardsTeamSlugPlayerIdRouteImport } from './routes/cards/$teamSlug_.$playerId'
 import { Route as AppTeamsTeamIdFixturesRouteImport } from './routes/_app/teams/$teamId_.fixtures'
 import { Route as AppTeamsTeamIdPhotosRouteImport } from './routes/_app/teams/$teamId_.photos'
 import { Route as AppTeamsTeamIdReportsRouteImport } from './routes/_app/teams/$teamId_.reports'
@@ -104,6 +107,16 @@ const AcceptInvitationIdRoute = AcceptInvitationIdRouteImport.update({
   path: '/accept-invitation/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CardsIndexRoute = CardsIndexRouteImport.update({
+  id: '/cards/',
+  path: '/cards/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardsTeamSlugRoute = CardsTeamSlugRouteImport.update({
+  id: '/cards/$teamSlug',
+  path: '/cards/$teamSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppTeamsIndexRoute = AppTeamsIndexRouteImport.update({
   id: '/teams/',
   path: '/teams/',
@@ -122,6 +135,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const ApiReportImagesIdRoute = ApiReportImagesIdRouteImport.update({
   id: '/api/report-images/$id',
   path: '/api/report-images/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CardsTeamSlugPlayerIdRoute = CardsTeamSlugPlayerIdRouteImport.update({
+  id: '/cards/$teamSlug_/$playerId',
+  path: '/cards/$teamSlug/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppTeamsTeamIdFixturesRoute = AppTeamsTeamIdFixturesRouteImport.update({
@@ -175,9 +193,12 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/roster': typeof AppRosterRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
+  '/cards/$teamSlug': typeof CardsTeamSlugRoute
+  '/cards/': typeof CardsIndexRoute
   '/teams/$teamId': typeof AppTeamsTeamIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/report-images/$id': typeof ApiReportImagesIdRoute
+  '/cards/$teamSlug/$playerId': typeof CardsTeamSlugPlayerIdRoute
   '/teams/': typeof AppTeamsIndexRoute
   '/teams/$teamId/fixtures': typeof AppTeamsTeamIdFixturesRoute
   '/teams/$teamId/photos': typeof AppTeamsTeamIdPhotosRoute
@@ -201,9 +222,12 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/roster': typeof AppRosterRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
+  '/cards/$teamSlug': typeof CardsTeamSlugRoute
+  '/cards': typeof CardsIndexRoute
   '/teams/$teamId': typeof AppTeamsTeamIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/report-images/$id': typeof ApiReportImagesIdRoute
+  '/cards/$teamSlug/$playerId': typeof CardsTeamSlugPlayerIdRoute
   '/teams': typeof AppTeamsIndexRoute
   '/teams/$teamId/fixtures': typeof AppTeamsTeamIdFixturesRoute
   '/teams/$teamId/photos': typeof AppTeamsTeamIdPhotosRoute
@@ -229,9 +253,12 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/roster': typeof AppRosterRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
+  '/cards/$teamSlug': typeof CardsTeamSlugRoute
+  '/cards/': typeof CardsIndexRoute
   '/_app/teams/$teamId': typeof AppTeamsTeamIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/report-images/$id': typeof ApiReportImagesIdRoute
+  '/cards/$teamSlug_/$playerId': typeof CardsTeamSlugPlayerIdRoute
   '/_app/teams/': typeof AppTeamsIndexRoute
   '/_app/teams/$teamId_/fixtures': typeof AppTeamsTeamIdFixturesRoute
   '/_app/teams/$teamId_/photos': typeof AppTeamsTeamIdPhotosRoute
@@ -257,9 +284,12 @@ export interface FileRouteTypes {
     | '/reports'
     | '/roster'
     | '/accept-invitation/$id'
+    | '/cards/$teamSlug'
+    | '/cards/'
     | '/teams/$teamId'
     | '/api/auth/$'
     | '/api/report-images/$id'
+    | '/cards/$teamSlug/$playerId'
     | '/teams/'
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/photos'
@@ -283,9 +313,12 @@ export interface FileRouteTypes {
     | '/reports'
     | '/roster'
     | '/accept-invitation/$id'
+    | '/cards/$teamSlug'
+    | '/cards'
     | '/teams/$teamId'
     | '/api/auth/$'
     | '/api/report-images/$id'
+    | '/cards/$teamSlug/$playerId'
     | '/teams'
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/photos'
@@ -310,9 +343,12 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/roster'
     | '/accept-invitation/$id'
+    | '/cards/$teamSlug'
+    | '/cards/'
     | '/_app/teams/$teamId'
     | '/api/auth/$'
     | '/api/report-images/$id'
+    | '/cards/$teamSlug_/$playerId'
     | '/_app/teams/'
     | '/_app/teams/$teamId_/fixtures'
     | '/_app/teams/$teamId_/photos'
@@ -329,8 +365,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   AcceptInvitationIdRoute: typeof AcceptInvitationIdRoute
+  CardsTeamSlugRoute: typeof CardsTeamSlugRoute
+  CardsIndexRoute: typeof CardsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiReportImagesIdRoute: typeof ApiReportImagesIdRoute
+  CardsTeamSlugPlayerIdRoute: typeof CardsTeamSlugPlayerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -433,6 +472,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcceptInvitationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cards/': {
+      id: '/cards/'
+      path: '/cards'
+      fullPath: '/cards/'
+      preLoaderRoute: typeof CardsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cards/$teamSlug': {
+      id: '/cards/$teamSlug'
+      path: '/cards/$teamSlug'
+      fullPath: '/cards/$teamSlug'
+      preLoaderRoute: typeof CardsTeamSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/teams/': {
       id: '/_app/teams/'
       path: '/teams'
@@ -459,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/api/report-images/$id'
       fullPath: '/api/report-images/$id'
       preLoaderRoute: typeof ApiReportImagesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cards/$teamSlug_/$playerId': {
+      id: '/cards/$teamSlug_/$playerId'
+      path: '/cards/$teamSlug/$playerId'
+      fullPath: '/cards/$teamSlug/$playerId'
+      preLoaderRoute: typeof CardsTeamSlugPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/teams/$teamId_/fixtures': {
@@ -563,8 +623,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   AcceptInvitationIdRoute: AcceptInvitationIdRoute,
+  CardsTeamSlugRoute: CardsTeamSlugRoute,
+  CardsIndexRoute: CardsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiReportImagesIdRoute: ApiReportImagesIdRoute,
+  CardsTeamSlugPlayerIdRoute: CardsTeamSlugPlayerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

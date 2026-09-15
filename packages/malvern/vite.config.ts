@@ -25,7 +25,7 @@ export default defineConfig({
   },
   server: {
     watch: {
-      ignored: ["**/route-tree.gen.ts", "**/.tanstack/**"],
+      ignored: ["**/.tanstack/**"],
     },
   },
 });

@@ -1,0 +1,459 @@
+/* Leave room for the back link while preserving the printed 5:7 ratio. */
+.player-card-fullscreen {
+  width: min(100%, 750px, calc((100svh - 112px) * 5 / 7));
+}
+
+.interactive-card-stage {
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  perspective: 1600px;
+}
+
+.interactive-card-rotator {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.interactive-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 2.933% / 2.095%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  box-shadow: 0 28px 60px
+    color-mix(in srgb, var(--color-trading-card-ink) 40%, transparent);
+}
+
+.interactive-card-light {
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-trading-card-paper) 3%, transparent) 40%,
+    color-mix(in srgb, var(--color-trading-card-paper) 20%, transparent) 48%,
+    color-mix(in srgb, var(--color-trading-card-paper) 5%, transparent) 56%,
+    transparent 64%
+  );
+}
+
+.interactive-card-front {
+  transform: translateZ(0.6px);
+}
+
+.interactive-card-back {
+  transform: rotateY(180deg) translateZ(0.6px);
+}
+
+.interactive-card-surface {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 2.933%;
+  padding: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.interactive-card-surface:active {
+  cursor: grabbing;
+}
+
+.interactive-card-surface:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 8px;
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--duration-card-transition);
+  animation-timing-function: var(--ease-card-transition);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+
+  .interactive-card-surface {
+    cursor: pointer;
+  }
+}
+
+/* Paper's 750 × 1050 artwork, scaled by the width of each card container. */
+.player-card-container {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.player-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  border-radius: 2.933cqw;
+  color: var(--color-trading-card-ink);
+  font-family: var(--font-trading-card);
+  font-synthesis: none;
+  line-height: 1.2;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-card-front {
+  padding: 3.733cqw;
+  background: var(--color-trading-card-paper);
+}
+
+.player-card-border {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border: 0.4cqw solid var(--color-trading-card-ink);
+  border-radius: 1.6cqw;
+  padding: 0.933cqw;
+}
+
+.player-card-face {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 0.267cqw solid var(--color-trading-card-red);
+  border-radius: 0.8cqw;
+  background: var(--color-trading-card-ink);
+}
+
+.player-card-masthead {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  height: 14.267cqw;
+  border-bottom: 0.667cqw solid var(--color-trading-card-paper);
+  padding-inline: 3.333cqw;
+  background: var(--color-trading-card-red);
+  color: var(--color-trading-card-paper);
+}
+
+.player-card-team {
+  font-size: 6cqw;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.player-card-season {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4cqw;
+  padding-left: 2.667cqw;
+  font-family: var(--font-sans);
+  font-size: 2.667cqw;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.player-card-sport {
+  font-size: 1.6cqw;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+}
+
+.player-card-photo-window {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(
+    145deg,
+    var(--color-trading-card-photo),
+    var(--color-trading-card-silver)
+  );
+}
+
+.player-card-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-card-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.4cqw;
+  font-family: var(--font-sans);
+  font-size: 2.267cqw;
+  letter-spacing: 0.18em;
+}
+
+.player-card-placeholder svg {
+  width: 10.667cqw;
+  height: 14.667cqw;
+}
+
+.player-card-photo-border {
+  position: absolute;
+  inset: 2.4cqw;
+  border: 0.133cqw solid
+    color-mix(in srgb, var(--color-trading-card-paper) 50%, transparent);
+}
+
+.player-card-badge {
+  position: absolute;
+  top: 4.267cqw;
+  left: 4.267cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 9.867cqw;
+  height: 11.6cqw;
+  border: 0.267cqw solid var(--color-trading-card-paper);
+  border-radius: 0 0 4cqw 4cqw;
+  background: var(--color-trading-card-ink);
+  color: var(--color-trading-card-paper);
+  font-family: var(--font-sans);
+  font-size: 3.6cqw;
+  font-weight: 600;
+}
+
+.player-card-nameplate {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  height: 24cqw;
+  border-top: 0.8cqw solid var(--color-trading-card-paper);
+  padding: 2cqw 3.733cqw;
+  color: var(--color-trading-card-paper);
+}
+
+.player-card-display-name {
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.player-card-nameplate .player-card-display-name {
+  width: 60cqw;
+}
+
+.player-card-first-name {
+  font-size: 3.733cqw;
+  line-height: 4.533cqw;
+  letter-spacing: 0.14em;
+}
+
+.player-card-last-name {
+  width: 60cqw;
+  font-size: 10.133cqw;
+  font-weight: 600;
+  line-height: 11.467cqw;
+  letter-spacing: -0.02em;
+}
+
+.player-card-last-name-medium {
+  font-size: 8.533cqw;
+}
+
+.player-card-last-name-long {
+  font-size: 5.2cqw;
+  line-height: 6cqw;
+  white-space: pre-line;
+}
+
+.player-card-crest {
+  flex-shrink: 0;
+  width: 14.933cqw;
+  height: 14.933cqw;
+  border-radius: 50%;
+  background: var(--color-trading-card-paper);
+  object-fit: contain;
+}
+
+.player-card-crest-mcc {
+  padding: 1.2cqw;
+}
+
+.player-card-nameplate .player-card-crest {
+  position: absolute;
+  top: 3.733cqw;
+  right: 3.467cqw;
+  border: 0.533cqw solid var(--color-trading-card-paper);
+}
+
+.player-card-front-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4cqw;
+  height: 6cqw;
+  background: var(--color-trading-card-paper);
+  font-size: 2.133cqw;
+  letter-spacing: 0.16em;
+}
+
+.player-card-diamond {
+  color: var(--color-trading-card-red);
+}
+
+.player-card-back {
+  padding: 5.067cqw;
+  background: var(--color-trading-card-stock);
+}
+
+.player-card-reverse-border {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3.467cqw;
+  min-height: 0;
+  border: 0.267cqw solid var(--color-trading-card-ink);
+  padding: 3.333cqw;
+}
+
+.player-card-reverse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.267cqw solid var(--color-trading-card-ink);
+  padding-bottom: 2.667cqw;
+  font-size: 2.8cqw;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.player-card-number {
+  border: 0.267cqw solid var(--color-trading-card-ink);
+  border-radius: 50%;
+  padding: 1.067cqw 2cqw;
+  font-family: var(--font-sans);
+  font-size: 2.533cqw;
+  font-weight: 400;
+}
+
+.player-card-reverse-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+}
+
+.player-card-full-name {
+  font-size: 6.933cqw;
+  font-weight: 600;
+  line-height: 9.6cqw;
+}
+
+.player-card-full-name-long {
+  font-size: 5.6cqw;
+  line-height: 6.667cqw;
+  white-space: pre-line;
+}
+
+.player-card-competition {
+  font-size: 2.667cqw;
+  letter-spacing: 0.1em;
+}
+
+.player-card-record {
+  border-block: 0.4cqw solid var(--color-trading-card-ink);
+}
+
+.player-card-record-heading {
+  padding: 1.733cqw 2.133cqw;
+  background: var(--color-trading-card-ink);
+  color: var(--color-trading-card-stock);
+  font-size: 2.667cqw;
+  letter-spacing: 0.1em;
+}
+
+.player-card-stats {
+  display: flex;
+  padding-block: 2.933cqw;
+}
+
+.player-card-stat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.667cqw;
+}
+
+.player-card-stat + .player-card-stat {
+  border-left: 0.133cqw solid var(--color-trading-card-ink);
+}
+
+.player-card-stat dt {
+  font-size: 2.267cqw;
+  letter-spacing: 0.08em;
+}
+
+.player-card-stat dd {
+  order: -1;
+  font-size: 7.733cqw;
+  font-weight: 500;
+  line-height: 9.067cqw;
+}
+
+.player-card-position {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 5.867cqw;
+  border-bottom: 0.133cqw solid var(--color-trading-card-silver);
+  font-size: 2.667cqw;
+  letter-spacing: 0.03em;
+}
+
+.player-card-position dd {
+  font-size: 3.067cqw;
+  font-weight: 500;
+}
+
+.player-card-summary {
+  flex: 1;
+}
+
+.player-card-header-crest .player-card-crest {
+  width: 7.467cqw;
+  height: 7.467cqw;
+}
+
+.player-card-header-crest .player-card-crest-mcc {
+  padding: 0.667cqw;
+}
+
+.player-card-imprint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.067cqw;
+  border-top: 0.267cqw solid var(--color-trading-card-ink);
+  padding-top: 2.667cqw;
+  font-size: 1.867cqw;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}

@@ -11,8 +11,28 @@
   font-display: swap;
 }
 
+/* Printed player cards keep their Paper palette in either application theme. */
+@font-face {
+  font-family: "Oswald";
+  src: url(./fonts/Oswald.ttf) format("truetype");
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: "Helvetica Neue", "Helvetica", "Inter", -apple-system, sans-serif;
+  --font-trading-card: "Oswald", "Arial Narrow", sans-serif;
+  --duration-card-transition: 260ms;
+  --ease-card-transition: cubic-bezier(0.22, 1, 0.36, 1);
+  --color-trading-card-paper: #ffffff;
+  --color-trading-card-stock: #f2f0e9;
+  --color-trading-card-ink: #17243c;
+  --color-trading-card-red: #b82032;
+  --color-trading-card-silver: #b8bdc5;
+  --color-trading-card-photo: #dde1e5;
+
+  --font-sans:
+    "Helvetica Neue", "Helvetica", "Inter", -apple-system, sans-serif;
   --font-serif: "Newsreader", "Times", serif;
   --font-mono: "Newsreader", serif;
 

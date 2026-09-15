@@ -23,6 +23,7 @@
     "@tanstack/react-start": "^1.168.50",
     "effect": "4.0.0-rc.112",
     "lucide-react": "^0.475.0",
+    "motion": "^12.28.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "scheduler": "^0.27.0"
