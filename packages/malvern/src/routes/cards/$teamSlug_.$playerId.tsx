@@ -135,7 +135,6 @@ function PlayerCardPage() {
       void navigate({
         to: "/cards/$teamSlug",
         params: { teamSlug: team.slug },
-        search: { side },
         hash: player.id,
         hashScrollIntoView: { behavior: "instant", block: "center" },
         viewTransition: true,
@@ -159,7 +158,6 @@ function PlayerCardPage() {
             <Link
               to="/cards/$teamSlug"
               params={{ teamSlug: team.slug }}
-              search={{ side }}
               hash={player.id}
               hashScrollIntoView={{ behavior: "instant", block: "center" }}
               viewTransition

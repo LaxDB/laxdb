@@ -1,9 +1,5 @@
 import { Button } from "@laxdb/ui/components/ui/button";
 import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@laxdb/ui/components/ui/toggle-group";
-import {
   createFileRoute,
   Link,
   notFound,
@@ -20,14 +16,12 @@ import {
   preloadPlayerPhoto,
 } from "../../lib/player-card-assets";
 import {
-  cardSideSearch,
   findCardTeam,
   getCardPlayers,
   type CardTeam,
 } from "../../lib/player-cards";
 
 export const Route = createFileRoute("/cards/$teamSlug")({
-  validateSearch: cardSideSearch,
   loader: ({ params }) => {
     const team = findCardTeam(params.teamSlug);
     if (!team) throw notFound();
@@ -61,8 +55,6 @@ function TeamCardRoute() {
 }
 
 function TeamCards({ team }: { team: CardTeam }) {
-  const { side } = Route.useSearch();
-  const navigate = Route.useNavigate();
   const hash = useLocation({ select: (location) => location.hash });
   const [activePlayerId, setActivePlayerId] = useState(hash);
   const players = getCardPlayers(team);
@@ -79,33 +71,13 @@ function TeamCards({ team }: { team: CardTeam }) {
           <ArrowLeft data-icon="inline-start" />
           All teams
         </Button>
-        <div className="flex w-full flex-wrap items-end justify-between gap-6">
-          <div className="flex flex-col gap-3">
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              {team.teamLabel} · {team.season}
-            </span>
-            <h1 className="font-serif text-4xl tracking-tight sm:text-5xl">
-              {team.name}
-            </h1>
-          </div>
-          <ToggleGroup
-            aria-label="Card side"
-            variant="outline"
-            value={[side]}
-            onValueChange={(value) => {
-              const next = value[0];
-              if (next === "front" || next === "back") {
-                void navigate({ search: { side: next }, replace: true });
-              }
-            }}
-          >
-            <ToggleGroupItem value="front" className="min-h-11 px-4">
-              Fronts
-            </ToggleGroupItem>
-            <ToggleGroupItem value="back" className="min-h-11 px-4">
-              Backs
-            </ToggleGroupItem>
-          </ToggleGroup>
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            {team.teamLabel} · {team.season}
+          </span>
+          <h1 className="font-serif text-4xl tracking-tight sm:text-5xl">
+            {team.name}
+          </h1>
         </div>
       </header>
       <ul
@@ -121,7 +93,7 @@ function TeamCards({ team }: { team: CardTeam }) {
             <Link
               to="/cards/$teamSlug/$playerId"
               params={{ teamSlug: team.slug, playerId: player.id }}
-              search={{ side }}
+              search={{ side: "front" }}
               viewTransition
               onMouseEnter={() => {
                 preloadPlayerPhoto(player);
@@ -156,7 +128,7 @@ function TeamCards({ team }: { team: CardTeam }) {
                 <PlayerCard
                   player={player}
                   team={team}
-                  side={side}
+                  side="front"
                   priority={index < 3}
                 />
               </div>

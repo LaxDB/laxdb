@@ -5,7 +5,8 @@
 - `/cards` lists published team collections.
 - `/cards/malvern-mcc-u14-2026` shows the U14 Boys collection.
 - `/cards/malvern-mcc-u14-2026/<player-id>` opens an enlarged card.
-- The Fronts / Backs control changes the gallery side. The URL preserves the selected side.
+- The team gallery always shows fronts, including when opened with an old `?side=back` URL.
+- Gallery links open the front of an individual card. Only individual cards can flip; their URLs preserve the selected side.
 - Up/down cycles through players alphabetically, with wraparound. Left/right flips the card in the selected direction.
 - Click or Enter flips the card. Drag rotates it. Escape returns to the selected gallery card.
 - Reduced-motion settings disable 3D rotation and directional movement.

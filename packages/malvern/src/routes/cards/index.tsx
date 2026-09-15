@@ -32,7 +32,6 @@ function CardCollections() {
             <Link
               to="/cards/$teamSlug"
               params={{ teamSlug: team.slug }}
-              search={{ side: "front" }}
               className="flex items-center justify-between gap-6 py-6 outline-none hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
             >
               <div className="flex flex-col gap-1">
