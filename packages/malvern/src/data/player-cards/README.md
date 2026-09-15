@@ -24,6 +24,14 @@ The gallery and keyboard navigation sort players by first name, then surname. Bo
 
 `crest` records the artwork choice, not confirmed club membership. Missing statistics display a dash rather than an invented value.
 
+## Asset loading
+
+Keep each approved JPEG as the fallback. Generate WebP copies at the original width and 480px wide, using `cwebp -q 85 -metadata none`. Set `photo.srcSet` with the actual pixel widths. Do not change the approved crop.
+
+The gallery requests smaller images where the screen size permits. Its first three photos load eagerly; other photos use lazy loading. The viewer preloads its photo and decodes the previous and next photos at low priority. Hovering or focusing a gallery card also prepares its viewer photo.
+
+Card routes preload Oswald WOFF2. Its short font-display block avoids showing a different font while it loads. Collection routes also preload Newsreader. Keep preload URLs aligned with the font sources in `@laxdb/ui/globals.css`.
+
 ## Current snapshot
 
 The U14 collection contains 16 players, each with an approved photo crop. Six cards use MCC crests; ten use Malvern crests. All cards retain the “Malvern / MCC” heading. The user supplied the jersey numbers. Felix's surname remains provisional. Player summaries are deferred.

@@ -15,6 +15,11 @@ import { flushSync } from "react-dom";
 
 import { PlayerCard } from "../../components/player-cards/player-card";
 import {
+  cardFontPreload,
+  collectionFontPreload,
+  preloadPlayerPhoto,
+} from "../../lib/player-card-assets";
+import {
   cardSideSearch,
   findCardTeam,
   getCardPlayers,
@@ -29,6 +34,7 @@ export const Route = createFileRoute("/cards/$teamSlug")({
     return team;
   },
   head: ({ loaderData }) => ({
+    links: [cardFontPreload, collectionFontPreload],
     meta: [
       {
         title: loaderData
@@ -106,7 +112,7 @@ function TeamCards({ team }: { team: CardTeam }) {
         aria-label="Players"
         className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2 xl:grid-cols-3"
       >
-        {players.map((player) => (
+        {players.map((player, index) => (
           <li
             key={player.id}
             id={player.id}
@@ -117,6 +123,12 @@ function TeamCards({ team }: { team: CardTeam }) {
               params={{ teamSlug: team.slug, playerId: player.id }}
               search={{ side }}
               viewTransition
+              onMouseEnter={() => {
+                preloadPlayerPhoto(player);
+              }}
+              onFocus={() => {
+                preloadPlayerPhoto(player);
+              }}
               onClick={(event) => {
                 if (
                   event.button !== 0 ||
@@ -141,7 +153,12 @@ function TeamCards({ team }: { team: CardTeam }) {
                       : "none",
                 }}
               >
-                <PlayerCard player={player} team={team} side={side} />
+                <PlayerCard
+                  player={player}
+                  team={team}
+                  side={side}
+                  priority={index < 3}
+                />
               </div>
             </Link>
           </li>

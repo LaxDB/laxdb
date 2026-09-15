@@ -1,5 +1,6 @@
 import { cn } from "@laxdb/ui/lib/utils";
 
+import { cardImageSizes } from "../../lib/player-card-assets";
 import {
   cardCrests,
   type CardPlayer,
@@ -11,6 +12,8 @@ interface PlayerCardProps {
   player: CardPlayer;
   team: CardTeam;
   side: CardSide;
+  priority?: boolean;
+  imageSizes?: string;
 }
 
 function ClubCrest({ player }: { player: CardPlayer }) {
@@ -26,13 +29,19 @@ function ClubCrest({ player }: { player: CardPlayer }) {
       alt={`${crest.name} crest`}
       width={112}
       height={112}
-      loading="lazy"
+      loading="eager"
       decoding="async"
     />
   );
 }
 
-export function PlayerCard({ player, team, side }: PlayerCardProps) {
+export function PlayerCard({
+  player,
+  team,
+  side,
+  priority = false,
+  imageSizes = cardImageSizes.gallery,
+}: PlayerCardProps) {
   const name = `${player.firstName} ${player.lastName}`;
   const displayName = player.nickname
     ? `${player.firstName} “${player.nickname}” ${player.lastName}`
@@ -63,10 +72,13 @@ export function PlayerCard({ player, team, side }: PlayerCardProps) {
                   <img
                     className="player-card-photo"
                     src={player.photo.src}
+                    srcSet={player.photo.srcSet}
+                    sizes={imageSizes}
                     alt={player.photo.alt}
                     width={670}
                     height={638}
-                    loading="lazy"
+                    loading={priority ? "eager" : "lazy"}
+                    fetchPriority={priority ? "high" : "auto"}
                     decoding="async"
                   />
                 ) : (

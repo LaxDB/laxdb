@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 
+import { collectionFontPreload } from "../../lib/player-card-assets";
 import { cardTeams } from "../../lib/player-cards";
 
 export const Route = createFileRoute("/cards/")({
   head: () => ({
+    links: [collectionFontPreload],
     meta: [
       { title: "Player cards | Malvern Lacrosse" },
       { name: "robots", content: "noindex, nofollow" },

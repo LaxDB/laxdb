@@ -6,6 +6,7 @@ import {
   type PointerEvent,
 } from "react";
 
+import { cardImageSizes } from "../../lib/player-card-assets";
 import type { CardPlayer, CardSide, CardTeam } from "../../lib/player-cards";
 
 import { PlayerCard } from "./player-card";
@@ -131,7 +132,13 @@ export function InteractivePlayerCard({
         style={{ viewTransitionName: `player-card-${player.id}` }}
       >
         {reducedMotion ? (
-          <PlayerCard player={player} team={team} side={side} />
+          <PlayerCard
+            player={player}
+            team={team}
+            side={side}
+            priority
+            imageSizes={cardImageSizes.viewer}
+          />
         ) : (
           <motion.div
             className="interactive-card-rotator"
@@ -141,7 +148,13 @@ export function InteractivePlayerCard({
               className="interactive-card-face interactive-card-front"
               aria-hidden={side !== "front"}
             >
-              <PlayerCard player={player} team={team} side="front" />
+              <PlayerCard
+                player={player}
+                team={team}
+                side="front"
+                priority
+                imageSizes={cardImageSizes.viewer}
+              />
               <motion.div
                 aria-hidden="true"
                 className="interactive-card-light"

@@ -21,6 +21,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Spittle",
       photo: {
         src: "/player-cards/u14-2026/bay-spittle.jpg",
+        srcSet:
+          "/player-cards/u14-2026/bay-spittle-480.webp 480w, /player-cards/u14-2026/bay-spittle.webp 700w",
         alt: "Bay Spittle running with his lacrosse stick",
       },
       position: "Defender",
@@ -37,6 +39,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Skepper",
       photo: {
         src: "/player-cards/u14-2026/billy-skepper-11.jpg",
+        srcSet:
+          "/player-cards/u14-2026/billy-skepper-11-480.webp 480w, /player-cards/u14-2026/billy-skepper-11.webp 680w",
         alt: "Billy Skepper running near the goal",
       },
       position: "Midfielder",
@@ -52,6 +56,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Poniger",
       photo: {
         src: "/player-cards/u14-2026/christian-poniger.jpg",
+        srcSet:
+          "/player-cards/u14-2026/christian-poniger-480.webp 480w, /player-cards/u14-2026/christian-poniger.webp 700w",
         alt: "Christian Poniger moving between defenders",
       },
       position: "Defender",
@@ -67,6 +73,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Jonker",
       photo: {
         src: "/player-cards/u14-2026/connor-jonker-18.jpg",
+        srcSet:
+          "/player-cards/u14-2026/connor-jonker-18-480.webp 480w, /player-cards/u14-2026/connor-jonker-18.webp 1000w",
         alt: "Connor Jonker moving with his lacrosse stick",
       },
       position: "Defender",
@@ -83,6 +91,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Fairclough-Rushton",
       photo: {
         src: "/player-cards/u14-2026/edward-fairclough-rushton-21.jpg",
+        srcSet:
+          "/player-cards/u14-2026/edward-fairclough-rushton-21-480.webp 480w, /player-cards/u14-2026/edward-fairclough-rushton-21.webp 760w",
         alt: "Edward Fairclough-Rushton during play",
       },
       position: "Goalie",
@@ -99,6 +109,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Farrell",
       photo: {
         src: "/player-cards/u14-2026/ethan-farrell-15-left.jpg",
+        srcSet:
+          "/player-cards/u14-2026/ethan-farrell-15-left-480.webp 480w, /player-cards/u14-2026/ethan-farrell-15-left.webp 700w",
         alt: "Ethan Farrell near the goal during play",
       },
       position: "Attack",
@@ -114,6 +126,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Lester",
       photo: {
         src: "/player-cards/u14-2026/finn-lester.jpg",
+        srcSet:
+          "/player-cards/u14-2026/finn-lester-480.webp 480w, /player-cards/u14-2026/finn-lester.webp 700w",
         alt: "Finn Lester running between opponents",
       },
       position: "Midfielder",
@@ -130,6 +144,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Finnigan",
       photo: {
         src: "/player-cards/u14-2026/harrison-finnigan-19.jpg",
+        srcSet:
+          "/player-cards/u14-2026/harrison-finnigan-19-480.webp 480w, /player-cards/u14-2026/harrison-finnigan-19.webp 700w",
         alt: "Harrison Finnigan running with his lacrosse stick",
       },
       position: "Attack",
@@ -145,6 +161,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Wright",
       photo: {
         src: "/player-cards/u14-2026/harry-wright-17.jpg",
+        srcSet:
+          "/player-cards/u14-2026/harry-wright-17-480.webp 480w, /player-cards/u14-2026/harry-wright-17.webp 850w",
         alt: "Harry Wright during play",
       },
       position: "Attack",
@@ -161,6 +179,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "De Haan",
       photo: {
         src: "/player-cards/u14-2026/jordan-de-haan-22.jpg",
+        srcSet:
+          "/player-cards/u14-2026/jordan-de-haan-22-480.webp 480w, /player-cards/u14-2026/jordan-de-haan-22.webp 700w",
         alt: "Jordan De Haan running during play",
       },
       position: "Attack",
@@ -176,6 +196,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Takahashi",
       photo: {
         src: "/player-cards/u14-2026/kai-takahashi-23-left.jpg",
+        srcSet:
+          "/player-cards/u14-2026/kai-takahashi-23-left-480.webp 480w, /player-cards/u14-2026/kai-takahashi-23-left.webp 1000w",
         alt: "Kai Takahashi contesting a ground ball",
       },
       position: "Defender",
@@ -192,6 +214,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Long",
       photo: {
         src: "/player-cards/u14-2026/oliver-long-12.jpg",
+        srcSet:
+          "/player-cards/u14-2026/oliver-long-12-480.webp 480w, /player-cards/u14-2026/oliver-long-12.webp 900w",
         alt: "Oliver Long running with his lacrosse stick",
       },
       position: "Midfielder",
@@ -208,6 +232,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Lane",
       photo: {
         src: "/player-cards/u14-2026/patrick-lane-13.jpg",
+        srcSet:
+          "/player-cards/u14-2026/patrick-lane-13-480.webp 480w, /player-cards/u14-2026/patrick-lane-13.webp 800w",
         alt: "Patrick Lane carrying his lacrosse stick",
       },
       position: "Midfielder",
@@ -229,6 +255,8 @@ export const u14Boys2026: CardTeam = {
       assists: 2,
       photo: {
         src: "/player-cards/u14-2026/toby-gao-7.jpg",
+        srcSet:
+          "/player-cards/u14-2026/toby-gao-7-480.webp 480w, /player-cards/u14-2026/toby-gao-7.webp 700w",
         alt: "Toby Gao running with his lacrosse stick",
       },
     },
@@ -239,6 +267,8 @@ export const u14Boys2026: CardTeam = {
       lastName: "Cartwright",
       photo: {
         src: "/player-cards/u14-2026/zac-cartwright-16.jpg",
+        srcSet:
+          "/player-cards/u14-2026/zac-cartwright-16-480.webp 480w, /player-cards/u14-2026/zac-cartwright-16.webp 1000w",
         alt: "Zac Cartwright running past a defender",
       },
       position: "Midfielder",
@@ -261,6 +291,8 @@ export const u14Boys2026: CardTeam = {
       assists: 0,
       photo: {
         src: "/player-cards/u14-2026/felix-20.jpg",
+        srcSet:
+          "/player-cards/u14-2026/felix-20-480.webp 480w, /player-cards/u14-2026/felix-20.webp 740w",
         alt: "Felix Nation defending during play",
       },
     },

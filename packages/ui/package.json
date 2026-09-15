@@ -20,7 +20,8 @@
       "types": "./dist/hooks/*.d.ts",
       "default": "./src/hooks/*.ts"
     },
-    "./assets/*": "./src/assets/*"
+    "./assets/*": "./src/assets/*",
+    "./fonts/*": "./src/fonts/*"
   },
   "scripts": {
     "storybook": "storybook dev -p 6006 --no-open",
