@@ -14,7 +14,7 @@ import { AtomRegistry } from "effect/unstable/reactivity";
 import { NotFound } from "../components/not-found";
 import appCss from "../styles.css?url";
 
-const PUBLIC_PATHS = ["/login", "/accept-invitation"];
+const PUBLIC_PATHS = ["/login", "/accept-invitation", "/cards"];
 const isPublic = (path: string) =>
   PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
