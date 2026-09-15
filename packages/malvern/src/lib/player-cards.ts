@@ -23,7 +23,11 @@ export interface CardPlayer {
   readonly games: number | null;
   readonly goals: number | null;
   readonly assists: number | null;
-  readonly photo?: { readonly src: string; readonly alt: string };
+  readonly photo?: {
+    readonly src: string;
+    readonly srcSet?: string;
+    readonly alt: string;
+  };
 }
 
 export interface CardTeam {

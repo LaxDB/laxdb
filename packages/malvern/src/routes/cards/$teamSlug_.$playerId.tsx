@@ -6,6 +6,11 @@ import { useEffect, useState } from "react";
 
 import { InteractivePlayerCard } from "../../components/player-cards/interactive-player-card";
 import {
+  cardFontPreload,
+  cardPhotoPreloads,
+  preloadPlayerPhoto,
+} from "../../lib/player-card-assets";
+import {
   cardSideSearch,
   findCardTeam,
   getCardPlayers,
@@ -22,6 +27,10 @@ export const Route = createFileRoute("/cards/$teamSlug_/$playerId")({
     return { team, player };
   },
   head: ({ loaderData }) => ({
+    links: [
+      cardFontPreload,
+      ...(loaderData ? cardPhotoPreloads(loaderData.player) : []),
+    ],
     meta: [
       {
         title: loaderData
@@ -62,6 +71,17 @@ function PlayerCardPage() {
   const navigate = Route.useNavigate();
   const [cycleDirection, setCycleDirection] = useState(1);
   const [flipDirection, setFlipDirection] = useState<-1 | 1>(1);
+
+  useEffect(() => {
+    const players = getCardPlayers(team);
+    const index = players.findIndex((entry) => entry.id === player.id);
+    if (index < 0 || players.length < 2) return;
+    for (const direction of [-1, 1]) {
+      const neighbor =
+        players[(index + direction + players.length) % players.length];
+      if (neighbor) preloadPlayerPhoto(neighbor);
+    }
+  }, [player.id, team]);
 
   useEffect(() => {
     const handleCardKeys = (event: KeyboardEvent) => {

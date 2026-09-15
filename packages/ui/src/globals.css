@@ -14,10 +14,11 @@
 /* Printed player cards keep their Paper palette in either application theme. */
 @font-face {
   font-family: "Oswald";
-  src: url(./fonts/Oswald.ttf) format("truetype");
+  src: url(./fonts/Oswald.woff2) format("woff2");
   font-weight: 200 700;
   font-style: normal;
-  font-display: swap;
+  /* Preloaded by card routes; avoid a visible fallback-font swap. */
+  font-display: block;
 }
 
 @theme {
