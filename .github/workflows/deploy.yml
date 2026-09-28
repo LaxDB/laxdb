@@ -49,6 +49,13 @@ jobs:
             exit 1
           fi
 
+      - name: Restore Turbo lint and format cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-lint-format-v1-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-lint-format-v1-
+
       - name: Lint
         run: bun run lint --output-logs=errors-only -- --quiet
 
@@ -73,6 +80,13 @@ jobs:
 
       - name: Generate marketing content collections
         run: bun run --cwd packages/marketing gen:content-collections
+
+      - name: Restore Turbo typecheck cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-typecheck-v1-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-typecheck-v1-
 
       - name: Typecheck
         run: bun run typecheck --output-logs=errors-only
