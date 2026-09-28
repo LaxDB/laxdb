@@ -3,12 +3,11 @@
   "globalDependencies": [
     ".env",
     ".env.*",
-    "tsconfig.json"
+    "tsconfig.json",
+    "types/**/*.d.ts",
+    "patches/**"
   ],
-  "globalEnv": [
-    "NODE_ENV",
-    "CI"
-  ],
+  "globalEnv": ["NODE_ENV", "CI"],
   "globalPassThroughEnv": [
     "CLOUDFLARE_ACCOUNT_ID",
     "CLOUDFLARE_API_TOKEN",
@@ -16,33 +15,33 @@
   ],
   "tasks": {
     "typecheck": {
-      "dependsOn": [
-        "^typecheck"
-      ],
-      "inputs": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "tsconfig.json",
-        "package.json"
-      ],
+      "dependsOn": ["^typecheck"],
       "outputs": []
     },
+    "@laxdb/ui#typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    },
+    "@laxdb/docs#typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": [".source/**"]
+    },
+    "@laxdb/marketing#typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": [".content-collections/**", "public/content-assets/**"]
+    },
+    "@laxdb/marketing#lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxlintrc.json"],
+      "outputs": [".content-collections/**", "public/content-assets/**"]
+    },
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        ".output/**"
-      ],
-      "env": [
-        "VITE_*"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".output/**"],
+      "env": ["VITE_*"]
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "inputs": [
         "src/**/*.ts",
         "src/**/*.tsx",
@@ -51,50 +50,36 @@
         "vitest.config.ts",
         "package.json"
       ],
-      "outputs": [
-        "coverage/**"
-      ],
-      "env": [
-        "TEST_*"
-      ]
+      "outputs": ["coverage/**"],
+      "env": ["TEST_*"]
     },
     "dev": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ],
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxlintrc.json"],
       "outputs": []
     },
     "format": {
-      "dependsOn": [
-        "^format"
-      ],
+      "dependsOn": ["^format"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.oxfmtrc.json"],
       "outputs": []
     },
     "fix": {
-      "dependsOn": [
-        "^fix"
-      ],
+      "dependsOn": ["^fix"],
       "cache": false,
       "outputs": []
     },
     "lint:fix": {
-      "dependsOn": [
-        "^lint:fix"
-      ],
+      "dependsOn": ["^lint:fix"],
       "cache": false,
       "outputs": []
     },
     "format:fix": {
-      "dependsOn": [
-        "^format:fix"
-      ],
+      "dependsOn": ["^format:fix"],
       "cache": false,
       "outputs": []
     }
