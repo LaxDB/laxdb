@@ -18,7 +18,7 @@ import {
 import { runApi } from "@laxdb/frontend/api";
 import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Atom } from "effect/unstable/reactivity";
+import { Atom } from "effect/reactivity";
 
 export type FixtureView = typeof Fixture.Type;
 export type MatchReportView = typeof MatchReport.Type;

@@ -1,6 +1,6 @@
 import { DrillContract } from "@laxdb/core/drill/drill.contract";
 import { Schema } from "effect";
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 
 import { DomainErrors } from "../errors";
 

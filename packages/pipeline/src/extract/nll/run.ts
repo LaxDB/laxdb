@@ -12,7 +12,7 @@
 
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect, Layer } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import {
   forceOption,
@@ -25,7 +25,7 @@ import {
 import { NLLExtractorService } from "./nll.extractor";
 import { NLLManifestService } from "./nll.manifest";
 
-const seasonOption = Flag.integer("season").pipe(
+const seasonOption = Flag.Int("season").pipe(
   Flag.withAlias("s"),
   Flag.withDescription("Season ID to extract"),
   Flag.withDefault(225),

@@ -91,10 +91,10 @@ export class EmailService extends Context.Service<EmailService>()(
   "EmailService",
   {
     make: Effect.gen(function* () {
-      const apiKey = yield* Config.redacted("RESEND_API_KEY").pipe(
+      const apiKey = yield* Config.Redacted("RESEND_API_KEY").pipe(
         Config.withDefault(Redacted.make("")),
       );
-      const sender = yield* Config.string("EMAIL_SENDER").pipe(
+      const sender = yield* Config.String("EMAIL_SENDER").pipe(
         Config.withDefault(DEFAULT_EMAIL_SENDER),
       );
       return makeService({ apiKey: Redacted.value(apiKey), sender });

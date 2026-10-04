@@ -12,8 +12,8 @@ import { getTestD1Database } from "@laxdb/core/test/db";
 import { RuntimeContext, type BaseRuntimeContext } from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { Context, DateTime, Effect, Layer } from "effect";
-import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpRouter, HttpServerResponse } from "effect/http";
+import { HttpApiBuilder } from "effect/http-api";
 
 import { makeAuth } from "../auth/auth";
 import { LaxdbApi } from "../definition";

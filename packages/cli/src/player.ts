@@ -22,7 +22,7 @@ import {
   UpdatePlayerInput,
 } from "@laxdb/core/player/player.schema";
 import { Effect, Option, Schema } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 
 import { apiLayer, baseUrlFlag, output, prettyFlag, readStdin } from "./shared";
 
@@ -48,7 +48,7 @@ const listCommand = Command.make(
 const getCommand = Command.make(
   "get",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -63,8 +63,8 @@ const getCommand = Command.make(
 const createCommand = Command.make(
   "create",
   {
-    name: Flag.string("name").pipe(Flag.withDescription("Player name")),
-    email: Flag.string("email").pipe(Flag.withDescription("Player email")),
+    name: Flag.String("name").pipe(Flag.withDescription("Player name")),
+    email: Flag.String("email").pipe(Flag.withDescription("Player email")),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -84,12 +84,12 @@ const createCommand = Command.make(
 const updateCommand = Command.make(
   "update",
   {
-    publicId: Argument.string("publicId"),
-    name: Flag.string("name").pipe(
+    publicId: Argument.String("publicId"),
+    name: Flag.String("name").pipe(
       Flag.withDescription("Player name"),
       Flag.optional,
     ),
-    email: Flag.string("email").pipe(
+    email: Flag.String("email").pipe(
       Flag.withDescription("Player email"),
       Flag.optional,
     ),
@@ -113,7 +113,7 @@ const updateCommand = Command.make(
 const deleteCommand = Command.make(
   "delete",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },

@@ -1,7 +1,7 @@
 import type { FineApiPayload } from "@laxdb/core/fine/fine.contract";
 import { FineService } from "@laxdb/core/fine/fine.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import {
   withAdminOrganization,

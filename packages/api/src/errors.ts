@@ -4,7 +4,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@laxdb/core/error";
-import { HttpApiSchema } from "effect/unstable/httpapi";
+import { HttpApiSchema } from "effect/http-api";
 
 export const ApiNotFoundError = NotFoundError.pipe(HttpApiSchema.status(404));
 

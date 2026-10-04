@@ -2,7 +2,7 @@
 
 - **Tests require an explicit request**: Do not write/add to tests unless the user explicitly requests them. If you believe a test is necessary, suggest it and wait for approval; do not write it.
 - **Type safety is non-negotiable**: No `any`, no `!`, no `as Type`
-- **Infisical for secrets**: `infisical run --env=dev --` prefix for local dev
+- **Infisical for secrets**: `bun run dev` uses Alchemy’s native Infisical provider. Configure local authentication with `bun alchemy profile edit --add Infisical`. Use `infisical run --env=dev --` for standalone commands outside Alchemy.
 - **CSS tokens live in `@laxdb/ui`**: `packages/ui/src/globals.css` is single source of truth for all runtime design tokens (colors, fonts, animations). Other packages import via `@import "@laxdb/ui/globals.css"`. Never duplicate tokens.
 - **DESIGN.md guides visual intent**: read root `DESIGN.md` before visual UI changes. Keep it semantically aligned with `packages/ui/src/globals.css`; validate edits with `bun run design:lint`.
 **Data flow**: App routes and server functions call `packages/api`, which delegates to `packages/core` services. Services use repos for DB access. All Effect-based with typed errors.

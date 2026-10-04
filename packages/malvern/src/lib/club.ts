@@ -8,7 +8,7 @@ import { runApi } from "@laxdb/frontend/api";
 import { fromPromise, makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
 import { Schema } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 
 export type TeamView = typeof ClubTeam.Type;
 export type RosterPlayerView = typeof RosterPlayer.Type;

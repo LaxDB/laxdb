@@ -12,7 +12,7 @@ import { Separator } from "@laxdb/ui/components/ui/separator";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { Effect, Schema } from "effect";
-import { Atom } from "effect/unstable/reactivity";
+import { Atom } from "effect/reactivity";
 import { Sparkles, Library, GitBranch, Settings } from "lucide-react";
 import { useState, useCallback, useMemo } from "react";
 

@@ -2,7 +2,7 @@
 
 import { useAtom } from "@effect/atom-react";
 import { Option } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { useRef, useState } from "react";
 
 import { fromPromise } from "./atom-query";

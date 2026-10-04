@@ -22,7 +22,7 @@ import {
   UpdatePracticeInput,
 } from "@laxdb/core/practice/practice.schema";
 import { Effect, Option, Schema } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 
 import { parseJsonValue } from "./json";
 import { apiLayer, baseUrlFlag, output, prettyFlag, readStdin } from "./shared";
@@ -53,7 +53,7 @@ const listCommand = Command.make(
 const getCommand = Command.make(
   "get",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -67,34 +67,34 @@ const getCommand = Command.make(
     }).pipe(Effect.provide(apiLayer(baseUrl))),
 );
 
-const nameFlag = Flag.string("name").pipe(
+const nameFlag = Flag.String("name").pipe(
   Flag.withDescription("Practice name"),
   Flag.optional,
 );
-const dateFlag = Flag.string("date").pipe(
+const dateFlag = Flag.String("date").pipe(
   Flag.withDescription("Practice date (ISO 8601)"),
   Flag.optional,
 );
-const durationFlag = Flag.integer("duration").pipe(
+const durationFlag = Flag.Int("duration").pipe(
   Flag.withDescription("Duration in minutes"),
   Flag.optional,
 );
-const locationFlag = Flag.string("location").pipe(
+const locationFlag = Flag.String("location").pipe(
   Flag.withDescription("Field/facility name"),
   Flag.optional,
 );
-const statusFlag = Flag.choice("status", [
+const statusFlag = Flag.Literals("status", [
   "draft",
   "scheduled",
   "in-progress",
   "completed",
   "cancelled",
 ] as const).pipe(Flag.withDescription("Practice status"), Flag.optional);
-const descriptionFlag = Flag.string("description").pipe(
+const descriptionFlag = Flag.String("description").pipe(
   Flag.withDescription("Practice description"),
   Flag.optional,
 );
-const notesFlag = Flag.string("notes").pipe(
+const notesFlag = Flag.String("notes").pipe(
   Flag.withDescription("Coach notes"),
   Flag.optional,
 );
@@ -133,7 +133,7 @@ const createCommand = Command.make(
 const updateCommand = Command.make(
   "update",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     name: nameFlag,
     date: dateFlag,
     duration: durationFlag,
@@ -166,7 +166,7 @@ const updateCommand = Command.make(
 const deleteCommand = Command.make(
   "delete",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -187,39 +187,39 @@ const deleteCommand = Command.make(
 const addItemCommand = Command.make(
   "add-item",
   {
-    practiceId: Argument.string("practiceId"),
-    type: Flag.choice("type", [
+    practiceId: Argument.String("practiceId"),
+    type: Flag.Literals("type", [
       "warmup",
       "drill",
       "cooldown",
       "water-break",
       "activity",
     ] as const).pipe(Flag.withDescription("Item type")),
-    drill: Flag.string("drill").pipe(
+    drill: Flag.String("drill").pipe(
       Flag.withDescription("Drill publicId (for type=drill)"),
       Flag.optional,
     ),
-    label: Flag.string("label").pipe(
+    label: Flag.String("label").pipe(
       Flag.withDescription("Label for non-drill items"),
       Flag.optional,
     ),
-    duration: Flag.integer("duration").pipe(
+    duration: Flag.Int("duration").pipe(
       Flag.withDescription("Duration in minutes"),
       Flag.optional,
     ),
-    itemNotes: Flag.string("notes").pipe(
+    itemNotes: Flag.String("notes").pipe(
       Flag.withDescription("Item notes"),
       Flag.optional,
     ),
-    groups: Flag.string("groups").pipe(
+    groups: Flag.String("groups").pipe(
       Flag.withDescription("Groups (comma-separated, e.g. attack,midfield)"),
       Flag.optional,
     ),
-    order: Flag.integer("order").pipe(
+    order: Flag.Int("order").pipe(
       Flag.withDescription("Order index"),
       Flag.optional,
     ),
-    priority: Flag.choice("priority", [
+    priority: Flag.Literals("priority", [
       "required",
       "optional",
       "if-time",
@@ -257,39 +257,39 @@ const addItemCommand = Command.make(
 const updateItemCommand = Command.make(
   "update-item",
   {
-    itemId: Argument.string("itemId"),
-    type: Flag.choice("type", [
+    itemId: Argument.String("itemId"),
+    type: Flag.Literals("type", [
       "warmup",
       "drill",
       "cooldown",
       "water-break",
       "activity",
     ] as const).pipe(Flag.withDescription("Item type"), Flag.optional),
-    drill: Flag.string("drill").pipe(
+    drill: Flag.String("drill").pipe(
       Flag.withDescription("Drill publicId"),
       Flag.optional,
     ),
-    label: Flag.string("label").pipe(
+    label: Flag.String("label").pipe(
       Flag.withDescription("Item label"),
       Flag.optional,
     ),
-    duration: Flag.integer("duration").pipe(
+    duration: Flag.Int("duration").pipe(
       Flag.withDescription("Duration in minutes"),
       Flag.optional,
     ),
-    itemNotes: Flag.string("notes").pipe(
+    itemNotes: Flag.String("notes").pipe(
       Flag.withDescription("Item notes"),
       Flag.optional,
     ),
-    groups: Flag.string("groups").pipe(
+    groups: Flag.String("groups").pipe(
       Flag.withDescription("Groups (comma-separated)"),
       Flag.optional,
     ),
-    order: Flag.integer("order").pipe(
+    order: Flag.Int("order").pipe(
       Flag.withDescription("Order index"),
       Flag.optional,
     ),
-    priority: Flag.choice("priority", [
+    priority: Flag.Literals("priority", [
       "required",
       "optional",
       "if-time",
@@ -327,7 +327,7 @@ const updateItemCommand = Command.make(
 const removeItemCommand = Command.make(
   "remove-item",
   {
-    itemId: Argument.string("itemId"),
+    itemId: Argument.String("itemId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -344,7 +344,7 @@ const removeItemCommand = Command.make(
 const listItemsCommand = Command.make(
   "list-items",
   {
-    practiceId: Argument.string("practiceId"),
+    practiceId: Argument.String("practiceId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -363,8 +363,8 @@ const listItemsCommand = Command.make(
 const reorderItemsCommand = Command.make(
   "reorder-items",
   {
-    practiceId: Argument.string("practiceId"),
-    order: Flag.string("order").pipe(
+    practiceId: Argument.String("practiceId"),
+    order: Flag.String("order").pipe(
       Flag.withDescription("Comma-separated item publicIds in new order"),
     ),
     pretty: prettyFlag,
@@ -390,7 +390,7 @@ const reorderItemsCommand = Command.make(
 const listEdgesCommand = Command.make(
   "list-edges",
   {
-    practiceId: Argument.string("practiceId"),
+    practiceId: Argument.String("practiceId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -409,8 +409,8 @@ const listEdgesCommand = Command.make(
 const replaceEdgesCommand = Command.make(
   "replace-edges",
   {
-    practiceId: Argument.string("practiceId"),
-    edges: Flag.string("edges").pipe(
+    practiceId: Argument.String("practiceId"),
+    edges: Flag.String("edges").pipe(
       Flag.withDescription(
         "JSON array of edges; falls back to stdin when omitted",
       ),
@@ -444,16 +444,16 @@ const replaceEdgesCommand = Command.make(
 const reviewCommand = Command.make(
   "review",
   {
-    practiceId: Argument.string("practiceId"),
-    wentWell: Flag.string("went-well").pipe(
+    practiceId: Argument.String("practiceId"),
+    wentWell: Flag.String("went-well").pipe(
       Flag.withDescription("What went well"),
       Flag.optional,
     ),
-    needsImprovement: Flag.string("needs-improvement").pipe(
+    needsImprovement: Flag.String("needs-improvement").pipe(
       Flag.withDescription("What needs improvement"),
       Flag.optional,
     ),
-    reviewNotes: Flag.string("notes").pipe(
+    reviewNotes: Flag.String("notes").pipe(
       Flag.withDescription("Review notes"),
       Flag.optional,
     ),
@@ -497,7 +497,7 @@ const reviewCommand = Command.make(
 const getReviewCommand = Command.make(
   "get-review",
   {
-    practiceId: Argument.string("practiceId"),
+    practiceId: Argument.String("practiceId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },

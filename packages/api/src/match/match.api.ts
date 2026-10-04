@@ -12,11 +12,7 @@ import {
   MatchApiPayload,
   MatchContract,
 } from "@laxdb/core/match/match.contract";
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-} from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 
 const MatchErrors = [
   AuthenticationError.pipe(HttpApiSchema.status(401)),

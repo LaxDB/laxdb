@@ -2,6 +2,7 @@ import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import { providers as drizzleProviders } from "alchemy/Drizzle/Providers";
 import * as GitHub from "alchemy/GitHub";
+import * as Infisical from "alchemy/Infisical";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -44,23 +45,39 @@ export const storage = Cloudflare.R2.Bucket("storage").pipe(
 );
 
 const stackSecrets = Config.all({
-  betterAuthUrl: Config.string("BETTER_AUTH_URL").pipe(Config.withDefault("")),
-  emailSender: Config.string("EMAIL_SENDER").pipe(Config.withDefault("")),
-  googleClientId: Config.string("GOOGLE_CLIENT_ID").pipe(
+  betterAuthUrl: Config.String("BETTER_AUTH_URL").pipe(Config.withDefault("")),
+  emailSender: Config.String("EMAIL_SENDER").pipe(Config.withDefault("")),
+  googleClientId: Config.String("GOOGLE_CLIENT_ID").pipe(
     Config.withDefault(""),
   ),
-  googleClientSecret: Config.redacted("GOOGLE_CLIENT_SECRET").pipe(
+  googleClientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET").pipe(
     Config.withDefault(Redacted.make("")),
   ),
-  resendApiKey: Config.redacted("RESEND_API_KEY").pipe(
+  resendApiKey: Config.Redacted("RESEND_API_KEY").pipe(
     Config.withDefault(Redacted.make("")),
   ),
-  trustedOrigins: Config.string("TRUSTED_ORIGINS").pipe(Config.withDefault("")),
+  trustedOrigins: Config.String("TRUSTED_ORIGINS").pipe(Config.withDefault("")),
 });
 
 export default Alchemy.Stack(
   config.stack,
   {
+    secrets: [
+      Infisical.Secrets(({ stage, alchemyContext }) => ({
+        project: "8fecebf6-c68b-4bf3-a3c6-e3255cf27996",
+        environment:
+          alchemyContext.dev || stage === config.stages.dev
+            ? "dev"
+            : stage === config.stages.prod
+              ? "prod"
+              : "staging",
+        path: "/",
+        recursive: false,
+        includeImports: false,
+      })),
+      // Explicit shell overrides remain available for local flags and CI tokens.
+      Alchemy.Secrets.ProcessEnv(),
+    ],
     providers: Cloudflare.providers().pipe(
       Layer.provideMerge(drizzleProviders()),
       Layer.provideMerge(GitHub.providers()),

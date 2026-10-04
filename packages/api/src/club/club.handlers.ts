@@ -2,7 +2,7 @@ import type { ClubApiPayload } from "@laxdb/core/club/club.contract";
 import { ClubService } from "@laxdb/core/club/club.service";
 import { MatchService } from "@laxdb/core/match/match.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import {
   requireTeamManager,

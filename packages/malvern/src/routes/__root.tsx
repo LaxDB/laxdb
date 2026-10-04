@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Agentation } from "agentation";
 import { Effect } from "effect";
-import { AtomRegistry } from "effect/unstable/reactivity";
+import { AtomRegistry } from "effect/reactivity";
 
 import { NotFound } from "../components/not-found";
 import appCss from "../styles.css?url";

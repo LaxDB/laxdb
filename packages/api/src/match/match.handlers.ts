@@ -3,7 +3,7 @@ import { DatabaseError, ValidationError } from "@laxdb/core/error";
 import type { MatchApiPayload } from "@laxdb/core/match/match.contract";
 import { MatchService } from "@laxdb/core/match/match.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import {
   requireTeamManager,

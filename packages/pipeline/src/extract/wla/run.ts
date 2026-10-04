@@ -13,7 +13,7 @@
 
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect, Layer } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import {
   forceOption,
@@ -28,19 +28,19 @@ import { WLAManifestService } from "./wla.manifest";
 
 const DEFAULT_SEASON = new Date().getFullYear();
 
-const seasonOption = Flag.integer("season").pipe(
+const seasonOption = Flag.Int("season").pipe(
   Flag.withAlias("s"),
   Flag.withDescription(`Season year (default: ${DEFAULT_SEASON})`),
   Flag.withDefault(DEFAULT_SEASON),
 );
 
-const allOption = Flag.boolean("all").pipe(
+const allOption = Flag.Boolean("all").pipe(
   Flag.withAlias("a"),
   Flag.withDescription("Extract all seasons (2005-2025)"),
   Flag.withDefault(false),
 );
 
-const scheduleOption = Flag.boolean("schedule").pipe(
+const scheduleOption = Flag.Boolean("schedule").pipe(
   Flag.withDescription("Include schedule extraction"),
   Flag.withDefault(false),
 );

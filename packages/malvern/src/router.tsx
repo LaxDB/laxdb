@@ -1,5 +1,5 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import { AtomRegistry, Hydration } from "effect/unstable/reactivity";
+import { AtomRegistry, Hydration } from "effect/reactivity";
 
 import { routeTree } from "./route-tree.gen";
 

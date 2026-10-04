@@ -26,27 +26,27 @@ export class PipelineConfig extends Context.Service<PipelineConfig>()(
   "PipelineConfig",
   {
     make: Effect.gen(function* () {
-      const userAgent = yield* Config.string("PIPELINE_USER_AGENT").pipe(
+      const userAgent = yield* Config.String("PIPELINE_USER_AGENT").pipe(
         Config.withDefault(DEFAULT_PIPELINE_CONFIG.userAgent),
       );
 
-      const defaultTimeoutMs = yield* Config.number(
+      const defaultTimeoutMs = yield* Config.Number(
         "PIPELINE_DEFAULT_TIMEOUT_MS",
       ).pipe(Config.withDefault(DEFAULT_PIPELINE_CONFIG.defaultTimeoutMs));
 
-      const maxRetries = yield* Config.number("PIPELINE_MAX_RETRIES").pipe(
+      const maxRetries = yield* Config.Number("PIPELINE_MAX_RETRIES").pipe(
         Config.withDefault(DEFAULT_PIPELINE_CONFIG.maxRetries),
       );
 
-      const retryDelayMs = yield* Config.number("PIPELINE_RETRY_DELAY_MS").pipe(
+      const retryDelayMs = yield* Config.Number("PIPELINE_RETRY_DELAY_MS").pipe(
         Config.withDefault(DEFAULT_PIPELINE_CONFIG.retryDelayMs),
       );
 
-      const rateLimitDelayMs = yield* Config.number(
+      const rateLimitDelayMs = yield* Config.Number(
         "PIPELINE_RATE_LIMIT_DELAY_MS",
       ).pipe(Config.withDefault(DEFAULT_PIPELINE_CONFIG.rateLimitDelayMs));
 
-      const maxConcurrency = yield* Config.number(
+      const maxConcurrency = yield* Config.Number(
         "PIPELINE_MAX_CONCURRENCY",
       ).pipe(Config.withDefault(DEFAULT_PIPELINE_CONFIG.maxConcurrency));
 
@@ -68,8 +68,8 @@ export class PipelineConfig extends Context.Service<PipelineConfig>()(
 
 export class PLLConfig extends Context.Service<PLLConfig>()("PLLConfig", {
   make: Effect.gen(function* () {
-    const restToken = yield* Config.redacted("PLL_REST_TOKEN");
-    const graphqlToken = yield* Config.redacted("PLL_GRAPHQL_TOKEN");
+    const restToken = yield* Config.Redacted("PLL_REST_TOKEN");
+    const graphqlToken = yield* Config.Redacted("PLL_GRAPHQL_TOKEN");
 
     return {
       rest: {

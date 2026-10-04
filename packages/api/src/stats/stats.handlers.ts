@@ -3,7 +3,7 @@ import { MatchService } from "@laxdb/core/match/match.service";
 import type { StatsApiPayload } from "@laxdb/core/stats/stats.contract";
 import { StatsService } from "@laxdb/core/stats/stats.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import {
   requireTeamManager,

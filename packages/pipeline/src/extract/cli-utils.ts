@@ -1,16 +1,16 @@
-import { Flag } from "effect/unstable/cli";
+import { Flag } from "effect/cli";
 
 import type { ExtractionMode } from "./incremental.service";
 
 /** Shared CLI option for force/full extraction mode. */
-export const forceOption = Flag.boolean("force").pipe(
+export const forceOption = Flag.Boolean("force").pipe(
   Flag.withAlias("f"),
   Flag.withDescription("Re-extract everything (mode: full)"),
   Flag.withDefault(false),
 );
 
 /** Shared CLI option for incremental extraction mode. */
-export const incrementalOption = Flag.boolean("incremental").pipe(
+export const incrementalOption = Flag.Boolean("incremental").pipe(
   Flag.withAlias("i"),
   Flag.withDescription(
     "Re-extract stale data - 24h for current seasons (mode: incremental)",
@@ -19,14 +19,14 @@ export const incrementalOption = Flag.boolean("incremental").pipe(
 );
 
 /** Shared CLI option for JSON output (machine-readable). */
-export const jsonOption = Flag.boolean("json").pipe(
+export const jsonOption = Flag.Boolean("json").pipe(
   Flag.withAlias("j"),
   Flag.withDescription("Output results as JSON (machine-readable)"),
   Flag.withDefault(false),
 );
 
 /** Shared CLI option for status query. */
-export const statusOption = Flag.boolean("status").pipe(
+export const statusOption = Flag.Boolean("status").pipe(
   Flag.withDescription("Show extraction status from manifest"),
   Flag.withDefault(false),
 );

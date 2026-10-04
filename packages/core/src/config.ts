@@ -1,24 +1,24 @@
 import { Config } from "effect";
 
 export const AppConfig = Config.all({
-  apiUrl: Config.string("API_URL"),
+  apiUrl: Config.String("API_URL"),
 
-  googleClientId: Config.string("GOOGLE_CLIENT_ID"),
-  googleClientSecret: Config.redacted("GOOGLE_CLIENT_SECRET"),
-  polarWebhookSecret: Config.redacted("POLAR_WEBHOOK_SECRET"),
+  googleClientId: Config.String("GOOGLE_CLIENT_ID"),
+  googleClientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET"),
+  polarWebhookSecret: Config.Redacted("POLAR_WEBHOOK_SECRET"),
 
-  alchemyPassword: Config.redacted("ALCHEMY_PASSWORD"),
-  alchemyStateToken: Config.redacted("ALCHEMY_STATE_TOKEN"),
+  alchemyPassword: Config.Redacted("ALCHEMY_PASSWORD"),
+  alchemyStateToken: Config.Redacted("ALCHEMY_STATE_TOKEN"),
 
-  cloudflareAccountId: Config.string("CLOUDFLARE_ACCOUNT_ID"),
-  cloudflareApiToken: Config.redacted("CLOUDFLARE_API_TOKEN"),
-  cloudflareEmail: Config.string("CLOUDFLARE_EMAIL"),
+  cloudflareAccountId: Config.String("CLOUDFLARE_ACCOUNT_ID"),
+  cloudflareApiToken: Config.Redacted("CLOUDFLARE_API_TOKEN"),
+  cloudflareEmail: Config.String("CLOUDFLARE_EMAIL"),
 
-  pllGraphqlToken: Config.redacted("PLL_GRAPHQL_TOKEN"),
-  pllRestToken: Config.redacted("PLL_REST_TOKEN"),
+  pllGraphqlToken: Config.Redacted("PLL_GRAPHQL_TOKEN"),
+  pllRestToken: Config.Redacted("PLL_REST_TOKEN"),
 
-  awsRegion: Config.string("AWS_REGION").pipe(Config.withDefault("us-west-2")),
-  emailSender: Config.string("EMAIL_SENDER").pipe(
+  awsRegion: Config.String("AWS_REGION").pipe(Config.withDefault("us-west-2")),
+  emailSender: Config.String("EMAIL_SENDER").pipe(
     Config.withDefault("noreply@laxdb.io"),
   ),
 });
@@ -42,7 +42,7 @@ const requireEnv = (name: string): string => {
  *
  * SECURITY:
  * - Only non-sensitive values (public URLs) should be exposed here
- * - Secrets MUST use AppConfig with Config.redacted() for proper redaction in logs
+ * - Secrets MUST use AppConfig with Config.Redacted() for proper redaction in logs
  * - If you need a secret synchronously, refactor to defer the access into Effect context
  */
 export const Env = {

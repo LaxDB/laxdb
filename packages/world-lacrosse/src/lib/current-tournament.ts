@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { AsyncResult, Atom } from "effect/unstable/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import {
   createContext,
   createElement,

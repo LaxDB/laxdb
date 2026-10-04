@@ -13,7 +13,7 @@
 
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect, Layer } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import {
   forceOption,
@@ -26,19 +26,19 @@ import {
 import { MLLExtractorService } from "./mll.extractor";
 import { MLLManifestService } from "./mll.manifest";
 
-const yearOption = Flag.integer("year").pipe(
+const yearOption = Flag.Int("year").pipe(
   Flag.withAlias("y"),
   Flag.withDescription("Extract specific year (default: 2019)"),
   Flag.withDefault(2019),
 );
 
-const allOption = Flag.boolean("all").pipe(
+const allOption = Flag.Boolean("all").pipe(
   Flag.withAlias("a"),
   Flag.withDescription("Extract all seasons (2001-2020)"),
   Flag.withDefault(false),
 );
 
-const withScheduleOption = Flag.boolean("with-schedule").pipe(
+const withScheduleOption = Flag.Boolean("with-schedule").pipe(
   Flag.withDescription("Include Wayback schedule extraction"),
   Flag.withDefault(false),
 );

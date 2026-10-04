@@ -1,6 +1,6 @@
 import { PlayerService } from "@laxdb/core/player/player.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import { LaxdbApi } from "../definition";
 

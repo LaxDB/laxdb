@@ -1,4 +1,4 @@
-import { HttpApi } from "effect/unstable/httpapi";
+import { HttpApi } from "effect/http-api";
 
 import { AuthGroup } from "./auth/auth.api";
 import { ClubGroup } from "./club/club.api";
