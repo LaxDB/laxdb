@@ -1,6 +1,6 @@
 import { DefaultsContract } from "@laxdb/core/defaults/defaults.contract";
 import { Schema } from "effect";
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 
 import { DefaultsErrors } from "../errors";
 

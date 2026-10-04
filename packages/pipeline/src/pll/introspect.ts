@@ -32,7 +32,7 @@ query($slug: ID!) {
 `;
 
 const program = Effect.gen(function* () {
-  const token = yield* Config.redacted("PLL_GRAPHQL_TOKEN");
+  const token = yield* Config.Redacted("PLL_GRAPHQL_TOKEN");
   const slug = process.argv[2] ?? "2024_game_1";
 
   console.log(`Fetching event: ${slug}\n`);

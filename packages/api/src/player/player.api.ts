@@ -1,6 +1,6 @@
 import { PlayerContract } from "@laxdb/core/player/player.contract";
 import { Schema } from "effect";
-import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup } from "effect/http-api";
 
 import { DomainErrors } from "../errors";
 

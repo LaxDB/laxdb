@@ -1,6 +1,6 @@
 import { DrillService } from "@laxdb/core/drill/drill.service";
 import { Effect } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import { LaxdbApi } from "../definition";
 

@@ -10,11 +10,7 @@ import {
   StatsApiPayload,
   StatsContract,
 } from "@laxdb/core/stats/stats.contract";
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-} from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 
 const StatsErrors = [
   AuthenticationError.pipe(HttpApiSchema.status(401)),

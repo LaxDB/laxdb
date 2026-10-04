@@ -12,7 +12,7 @@
 
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Console, Effect, Layer } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import { MSL_GAMESHEET_SEASONS } from "../../msl/msl.schema";
 import {
@@ -28,19 +28,19 @@ import { MSLManifestService } from "./msl.manifest";
 
 const DEFAULT_SEASON_ID = 9567;
 
-const seasonOption = Flag.integer("season").pipe(
+const seasonOption = Flag.Int("season").pipe(
   Flag.withAlias("s"),
   Flag.withDescription(`Gamesheet season ID (default: ${DEFAULT_SEASON_ID})`),
   Flag.withDefault(DEFAULT_SEASON_ID),
 );
 
-const allOption = Flag.boolean("all").pipe(
+const allOption = Flag.Boolean("all").pipe(
   Flag.withAlias("a"),
   Flag.withDescription("Extract all seasons (2023-2025)"),
   Flag.withDefault(false),
 );
 
-const listSeasonsOption = Flag.boolean("list-seasons").pipe(
+const listSeasonsOption = Flag.Boolean("list-seasons").pipe(
   Flag.withDescription("Show available Gamesheet season IDs"),
   Flag.withDefault(false),
 );

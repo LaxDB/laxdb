@@ -4,8 +4,8 @@ import { BunRuntime, BunServices } from "@effect/platform-bun";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import * as Stream from "effect/Stream";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 const main = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;

@@ -13,7 +13,7 @@
     "fix": "bun run lint:fix && bun run format:fix"
   },
   "dependencies": {
-    "@effect/atom-react": "4.0.0-rc.112",
+    "@effect/atom-react": "4.0.0",
     "@laxdb/api": "workspace:*",
     "@laxdb/core": "workspace:*",
     "@laxdb/frontend": "workspace:*",
@@ -21,7 +21,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "^1.170.33",
     "@tanstack/react-start": "^1.168.50",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0",
     "lucide-react": "^0.475.0",
     "motion": "^12.28.1",
     "react": "^19.2.8",

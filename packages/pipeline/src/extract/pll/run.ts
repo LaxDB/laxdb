@@ -12,7 +12,7 @@
 
 import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { Effect, Layer, Option } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import {
   forceOption,
@@ -25,19 +25,19 @@ import {
 import { PLLExtractorService } from "./pll.extractor";
 import { PLLManifestService } from "./pll.manifest";
 
-const yearOption = Flag.integer("year").pipe(
+const yearOption = Flag.Int("year").pipe(
   Flag.withAlias("y"),
   Flag.withDescription("Extract specific year (2019-2030)"),
   Flag.optional,
 );
 
-const allOption = Flag.boolean("all").pipe(
+const allOption = Flag.Boolean("all").pipe(
   Flag.withAlias("a"),
   Flag.withDescription("Extract all years (2019-2025)"),
   Flag.withDefault(false),
 );
 
-const noDetailsOption = Flag.boolean("no-details").pipe(
+const noDetailsOption = Flag.Boolean("no-details").pipe(
   Flag.withDescription("Skip detail endpoints (faster)"),
   Flag.withDefault(false),
 );

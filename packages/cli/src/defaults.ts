@@ -13,24 +13,24 @@ import { BunRuntime, BunServices } from "@effect/platform-bun";
 import { ApiClient } from "@laxdb/api/client";
 import { DefaultsValues } from "@laxdb/core/defaults/defaults.schema";
 import { Effect, Option, Schema } from "effect";
-import { Command, Flag } from "effect/unstable/cli";
+import { Command, Flag } from "effect/cli";
 
 import { parseJsonValue } from "./json";
 import { apiLayer, baseUrlFlag, output, prettyFlag, readStdin } from "./shared";
 
-const scopeTypeFlag = Flag.choice("scope-type", [
+const scopeTypeFlag = Flag.Literals("scope-type", [
   "global",
   "user",
   "team",
   "org",
 ] as const).pipe(Flag.withDescription("Defaults scope type"));
-const scopeIdFlag = Flag.string("scope-id").pipe(
+const scopeIdFlag = Flag.String("scope-id").pipe(
   Flag.withDescription("Defaults scope identifier"),
 );
-const namespaceFlag = Flag.string("namespace").pipe(
+const namespaceFlag = Flag.String("namespace").pipe(
   Flag.withDescription("Defaults namespace"),
 );
-const valuesFlag = Flag.string("values").pipe(
+const valuesFlag = Flag.String("values").pipe(
   Flag.withDescription(
     "JSON object of values; falls back to stdin when omitted",
   ),

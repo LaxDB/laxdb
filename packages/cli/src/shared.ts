@@ -7,15 +7,15 @@
 import { makeApiClientLayer } from "@laxdb/api/client";
 import { CliInputError } from "@laxdb/core/error";
 import { Effect, Layer } from "effect";
-import { Flag } from "effect/unstable/cli";
-import { FetchHttpClient } from "effect/unstable/http";
+import { Flag } from "effect/cli";
+import { FetchHttpClient } from "effect/http";
 
-export const prettyFlag = Flag.boolean("pretty").pipe(
+export const prettyFlag = Flag.Boolean("pretty").pipe(
   Flag.withDescription("Pretty-print JSON output"),
   Flag.withDefault(false),
 );
 
-export const baseUrlFlag = Flag.string("base-url").pipe(
+export const baseUrlFlag = Flag.String("base-url").pipe(
   Flag.withDescription("API base URL"),
   Flag.withDefault(process.env.LAXDB_API_URL ?? "http://localhost:1437"),
 );

@@ -1,5 +1,5 @@
 import { Context, Layer, type Effect } from "effect";
-import { HttpApiClient } from "effect/unstable/httpapi";
+import { HttpApiClient } from "effect/http-api";
 
 import { LaxdbApi } from "./definition";
 

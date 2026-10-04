@@ -15,16 +15,16 @@ export class ExtractConfigService extends Context.Service<ExtractConfigService>(
     make: Effect.gen(function* () {
       const path = yield* Path;
       const defaultOutputDir = path.join(process.cwd(), "output");
-      const outputDir = yield* Config.string("EXTRACT_OUTPUT_DIR").pipe(
+      const outputDir = yield* Config.String("EXTRACT_OUTPUT_DIR").pipe(
         Config.withDefault(defaultOutputDir),
       );
-      const concurrency = yield* Config.number("EXTRACT_CONCURRENCY").pipe(
+      const concurrency = yield* Config.Number("EXTRACT_CONCURRENCY").pipe(
         Config.withDefault(5),
       );
-      const delayBetweenRequestsMs = yield* Config.number(
+      const delayBetweenRequestsMs = yield* Config.Number(
         "EXTRACT_DELAY_MS",
       ).pipe(Config.withDefault(100));
-      const delayBetweenBatchesMs = yield* Config.number(
+      const delayBetweenBatchesMs = yield* Config.Number(
         "EXTRACT_BATCH_DELAY_MS",
       ).pipe(Config.withDefault(500));
 

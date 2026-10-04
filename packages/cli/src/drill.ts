@@ -22,7 +22,7 @@ import {
   UpdateDrillInput,
 } from "@laxdb/core/drill/drill.schema";
 import { Effect, Option, Schema } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 
 import { apiLayer, baseUrlFlag, output, prettyFlag, readStdin } from "./shared";
 
@@ -45,70 +45,70 @@ const decodePositionGroups = Schema.decodeUnknownSync(
 // Shared field flags
 // ---------------------------------------------------------------------------
 
-const subtitleFlag = Flag.string("subtitle").pipe(
+const subtitleFlag = Flag.String("subtitle").pipe(
   Flag.withDescription("Drill subtitle"),
   Flag.optional,
 );
-const descriptionFlag = Flag.string("description").pipe(
+const descriptionFlag = Flag.String("description").pipe(
   Flag.withDescription("Drill description"),
   Flag.optional,
 );
-const difficultyFlag = Flag.choice("difficulty", [
+const difficultyFlag = Flag.Literals("difficulty", [
   "beginner",
   "intermediate",
   "advanced",
 ] as const).pipe(Flag.withDescription("Difficulty level"), Flag.optional);
-const categoryFlag = Flag.string("category").pipe(
+const categoryFlag = Flag.String("category").pipe(
   Flag.withDescription("Categories (comma-separated)"),
   Flag.optional,
 );
-const positionGroupFlag = Flag.string("position-group").pipe(
+const positionGroupFlag = Flag.String("position-group").pipe(
   Flag.withDescription("Position groups (comma-separated)"),
   Flag.optional,
 );
-const intensityFlag = Flag.choice("intensity", [
+const intensityFlag = Flag.Literals("intensity", [
   "low",
   "medium",
   "high",
 ] as const).pipe(Flag.withDescription("Intensity level"), Flag.optional);
-const contactFlag = Flag.boolean("contact").pipe(
+const contactFlag = Flag.Boolean("contact").pipe(
   Flag.withDescription("Contact drill"),
   Flag.optional,
 );
-const competitiveFlag = Flag.boolean("competitive").pipe(
+const competitiveFlag = Flag.Boolean("competitive").pipe(
   Flag.withDescription("Competitive drill"),
   Flag.optional,
 );
-const playerCountFlag = Flag.integer("player-count").pipe(
+const playerCountFlag = Flag.Int("player-count").pipe(
   Flag.withDescription("Number of players"),
   Flag.optional,
 );
-const durationFlag = Flag.integer("duration").pipe(
+const durationFlag = Flag.Int("duration").pipe(
   Flag.withDescription("Duration in minutes"),
   Flag.optional,
 );
-const fieldSpaceFlag = Flag.choice("field-space", [
+const fieldSpaceFlag = Flag.Literals("field-space", [
   "full-field",
   "half-field",
   "box",
 ] as const).pipe(Flag.withDescription("Field space required"), Flag.optional);
-const equipmentFlag = Flag.string("equipment").pipe(
+const equipmentFlag = Flag.String("equipment").pipe(
   Flag.withDescription("Equipment (comma-separated)"),
   Flag.optional,
 );
-const diagramUrlFlag = Flag.string("diagram-url").pipe(
+const diagramUrlFlag = Flag.String("diagram-url").pipe(
   Flag.withDescription("Diagram URL"),
   Flag.optional,
 );
-const videoUrlFlag = Flag.string("video-url").pipe(
+const videoUrlFlag = Flag.String("video-url").pipe(
   Flag.withDescription("Video URL"),
   Flag.optional,
 );
-const coachNotesFlag = Flag.string("coach-notes").pipe(
+const coachNotesFlag = Flag.String("coach-notes").pipe(
   Flag.withDescription("Coach notes"),
   Flag.optional,
 );
-const tagsFlag = Flag.string("tags").pipe(
+const tagsFlag = Flag.String("tags").pipe(
   Flag.withDescription("Tags (comma-separated)"),
   Flag.optional,
 );
@@ -131,7 +131,7 @@ const listCommand = Command.make(
 const getCommand = Command.make(
   "get",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -146,7 +146,7 @@ const getCommand = Command.make(
 const createCommand = Command.make(
   "create",
   {
-    name: Flag.string("name").pipe(Flag.withDescription("Drill name")),
+    name: Flag.String("name").pipe(Flag.withDescription("Drill name")),
     subtitle: subtitleFlag,
     description: descriptionFlag,
     difficulty: difficultyFlag,
@@ -216,8 +216,8 @@ const createCommand = Command.make(
 const updateCommand = Command.make(
   "update",
   {
-    publicId: Argument.string("publicId"),
-    name: Flag.string("name").pipe(
+    publicId: Argument.String("publicId"),
+    name: Flag.String("name").pipe(
       Flag.withDescription("Drill name"),
       Flag.optional,
     ),
@@ -291,7 +291,7 @@ const updateCommand = Command.make(
 const deleteCommand = Command.make(
   "delete",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },

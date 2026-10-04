@@ -6,7 +6,7 @@ import {
 } from "node:http";
 
 import { Context } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { HttpRouter } from "effect/http";
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Parameters erases the fully provided route layer and widens the handler context.
 const emptyRequestContext = Context.empty() as Context.Context<unknown>;

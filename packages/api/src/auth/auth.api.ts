@@ -1,10 +1,6 @@
 import { Me } from "@laxdb/core/auth/auth.schema";
 import { AuthenticationError, AuthorizationError } from "@laxdb/core/error";
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-} from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 
 import { EmptyPayload } from "../shared/payload";
 

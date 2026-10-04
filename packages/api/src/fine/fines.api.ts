@@ -7,11 +7,7 @@ import {
   ValidationError,
 } from "@laxdb/core/error";
 import { FineApiPayload, FineContract } from "@laxdb/core/fine/fine.contract";
-import {
-  HttpApiEndpoint,
-  HttpApiGroup,
-  HttpApiSchema,
-} from "effect/unstable/httpapi";
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api";
 
 import { EmptyPayload } from "../shared/payload";
 

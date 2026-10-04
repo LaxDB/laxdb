@@ -7,7 +7,7 @@ import "@tanstack/react-start/server-only";
 import { makeApiClientLayer, type ApiClient } from "@laxdb/api/client";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { Effect, Layer, ManagedRuntime } from "effect";
-import { FetchHttpClient } from "effect/unstable/http";
+import { FetchHttpClient } from "effect/http";
 
 export const forwardApiRequest = async (request: Request) => {
   const { env } = await import("cloudflare:workers");

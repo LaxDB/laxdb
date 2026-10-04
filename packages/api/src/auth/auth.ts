@@ -9,7 +9,7 @@ import {
 } from "@laxdb/core/email/email.service";
 import { AuthenticationError, AuthorizationError } from "@laxdb/core/error";
 import { Effect } from "effect";
-import * as HttpServerRequest from "effect/unstable/http/HttpServerRequest";
+import * as HttpServerRequest from "effect/http/HttpServerRequest";
 
 import type { AuthService } from "./auth.service";
 

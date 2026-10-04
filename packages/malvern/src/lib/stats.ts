@@ -8,7 +8,7 @@ import type {
 import { runApi } from "@laxdb/frontend/api";
 import { makeAsyncQuery } from "@laxdb/frontend/atom-query";
 import { createServerFn } from "@tanstack/react-start";
-import { Atom } from "effect/unstable/reactivity";
+import { Atom } from "effect/reactivity";
 
 export type FixtureStatSheetView = typeof FixtureStatSheet.Type;
 export type TeamSeasonSummaryView = typeof TeamSeasonSummary.Type;

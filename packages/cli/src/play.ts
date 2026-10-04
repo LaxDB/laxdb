@@ -23,7 +23,7 @@ import {
   UpdatePlayInput,
 } from "@laxdb/core/play/play.schema";
 import { Effect, Option, Schema } from "effect";
-import { Argument, Command, Flag } from "effect/unstable/cli";
+import { Argument, Command, Flag } from "effect/cli";
 
 import { apiLayer, baseUrlFlag, output, prettyFlag, readStdin } from "./shared";
 
@@ -36,27 +36,27 @@ const parseCsv = (csv: string) =>
 // Derived from core schema — stays in sync automatically
 const categoryChoices = PlayCategory.literals;
 
-const formationFlag = Flag.string("formation").pipe(
+const formationFlag = Flag.String("formation").pipe(
   Flag.withDescription("Formation or alignment"),
   Flag.optional,
 );
-const descriptionFlag = Flag.string("description").pipe(
+const descriptionFlag = Flag.String("description").pipe(
   Flag.withDescription("Play description"),
   Flag.optional,
 );
-const personnelNotesFlag = Flag.string("personnel-notes").pipe(
+const personnelNotesFlag = Flag.String("personnel-notes").pipe(
   Flag.withDescription("Personnel or matchup notes"),
   Flag.optional,
 );
-const tagsFlag = Flag.string("tags").pipe(
+const tagsFlag = Flag.String("tags").pipe(
   Flag.withDescription("Comma-separated tags"),
   Flag.optional,
 );
-const diagramUrlFlag = Flag.string("diagram-url").pipe(
+const diagramUrlFlag = Flag.String("diagram-url").pipe(
   Flag.withDescription("Diagram URL"),
   Flag.optional,
 );
-const videoUrlFlag = Flag.string("video-url").pipe(
+const videoUrlFlag = Flag.String("video-url").pipe(
   Flag.withDescription("Video URL"),
   Flag.optional,
 );
@@ -75,7 +75,7 @@ const listCommand = Command.make(
 const getCommand = Command.make(
   "get",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },
@@ -90,8 +90,8 @@ const getCommand = Command.make(
 const createCommand = Command.make(
   "create",
   {
-    name: Flag.string("name").pipe(Flag.withDescription("Play name")),
-    category: Flag.choice("category", categoryChoices).pipe(
+    name: Flag.String("name").pipe(Flag.withDescription("Play name")),
+    category: Flag.Literals("category", categoryChoices).pipe(
       Flag.withDescription("Play category"),
     ),
     formation: formationFlag,
@@ -127,12 +127,12 @@ const createCommand = Command.make(
 const updateCommand = Command.make(
   "update",
   {
-    publicId: Argument.string("publicId"),
-    name: Flag.string("name").pipe(
+    publicId: Argument.String("publicId"),
+    name: Flag.String("name").pipe(
       Flag.withDescription("Play name"),
       Flag.optional,
     ),
-    category: Flag.choice("category", categoryChoices).pipe(
+    category: Flag.Literals("category", categoryChoices).pipe(
       Flag.withDescription("Play category"),
       Flag.optional,
     ),
@@ -170,7 +170,7 @@ const updateCommand = Command.make(
 const deleteCommand = Command.make(
   "delete",
   {
-    publicId: Argument.string("publicId"),
+    publicId: Argument.String("publicId"),
     pretty: prettyFlag,
     baseUrl: baseUrlFlag,
   },

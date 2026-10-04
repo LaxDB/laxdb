@@ -10,7 +10,7 @@ export const SerialSchema = Schema.Number.check(
 export type SerialId = typeof SerialSchema.Type;
 
 export const NanoidSchema = Schema.String.check(
-  Schema.isLengthBetween(NANOID_LENGTH, NANOID_LENGTH),
+  Schema.isBetweenLength(NANOID_LENGTH, NANOID_LENGTH),
   Schema.isPattern(/^[A-Za-z0-9_-]{12}$/, {
     message: "Invalid nanoid format",
   }),
@@ -25,7 +25,7 @@ export const PublicIdSchema = {
 const DateString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Date,
-    SchemaTransformation.transformOrFail({
+    SchemaTransformation.transformEffect({
       decode: (value) => {
         const date = new Date(value);
         return Number.isNaN(date.getTime())

@@ -29,7 +29,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { AtomRegistry } from "effect/unstable/reactivity";
+import { AtomRegistry } from "effect/reactivity";
 import { useContext, useEffect, useState } from "react";
 
 import {
